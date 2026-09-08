@@ -1,22 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f5f7;
+  --background: #f4f6f7;
   --surface: #ffffff;
-  --surface-muted: #eef0f3;
-  --foreground: #1a1d23;
-  --foreground-muted: #5b6270;
-  --border: #dde1e7;
-  --accent: #c2540f;
-  --accent-foreground: #ffffff;
-  --accent-soft: #fbe9dd;
+  --surface-muted: #edf1f3;
+  --foreground: #16232b;
+  --foreground-muted: #5c6b74;
+  --border: #dbe3e7;
 
-  --estado-pendiente-bg: #eef0f3;
-  --estado-pendiente-fg: #5b6270;
+  /* Marca REINER (tomada de reiner-sa.com.ar): azul institucional + verde
+     azulado del hero. El azul es el interactivo (accent); el teal se usa
+     puntualmente para no competir con el semáforo de estados. */
+  --accent: #0075a4;
+  --accent-hover: #006086;
+  --accent-foreground: #ffffff;
+  --accent-soft: #e2f1f7;
+  --brand-teal: #00997b;
+
+  --estado-pendiente-bg: #edf1f3;
+  --estado-pendiente-fg: #5c6b74;
   --estado-en-curso-bg: #fef3c7;
   --estado-en-curso-fg: #92400e;
-  --estado-terminada-bg: #dcfce7;
-  --estado-terminada-fg: #166534;
+  --estado-terminada-bg: #d9f0ea;
+  --estado-terminada-fg: #00755d;
   --estado-alerta-bg: #fee2e2;
   --estado-alerta-fg: #991b1b;
 }
@@ -29,8 +35,11 @@
   --color-foreground-muted: var(--foreground-muted);
   --color-border: var(--border);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-soft: var(--accent-soft);
+  --color-brand-teal: var(--brand-teal);
+  --color-estado-terminada-fg: var(--estado-terminada-fg);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

@@ -150,7 +150,7 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
                     </label>
                   </div>
                 )}
-                <button type="submit" className="btn-lg w-full bg-green-700 text-white">
+                <button type="submit" className="btn-lg w-full bg-brand-teal text-white">
                   ✔ Finalizar {esUltima ? "pieza" : "operación"}
                 </button>
               </form>
@@ -196,7 +196,7 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
                 {op.secuencia}. {op.proceso.nombre}
               </span>
               {completadas.has(op.id) ? (
-                <span className="text-green-700">✓</span>
+                <span className="text-estado-terminada-fg">✓</span>
               ) : (
                 <span>—</span>
               )}
