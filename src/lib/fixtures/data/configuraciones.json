@@ -1,0 +1,42 @@
+[
+  {
+    "id": "ps120i",
+    "modeloId": "PS",
+    "codigo": "PS120I",
+    "variante": "120",
+    "instrumentacion": "instrumentada",
+    "nombre": "PS 120 - Instrumentada"
+  },
+  {
+    "id": "ps120s",
+    "modeloId": "PS",
+    "codigo": "PS120S",
+    "variante": "120",
+    "instrumentacion": "sin_instrumentar",
+    "nombre": "PS 120 - Sin Instrumentar"
+  },
+  {
+    "id": "ps124i",
+    "modeloId": "PS",
+    "codigo": "PS124I",
+    "variante": "124",
+    "instrumentacion": "instrumentada",
+    "nombre": "PS 124 - Instrumentada"
+  },
+  {
+    "id": "ps124s",
+    "modeloId": "PS",
+    "codigo": "PS124S",
+    "variante": "124",
+    "instrumentacion": "sin_instrumentar",
+    "nombre": "PS 124 - Sin Instrumentar"
+  },
+  {
+    "id": "rd-std",
+    "modeloId": "RD",
+    "codigo": "RD-STD",
+    "variante": "estándar",
+    "instrumentacion": "instrumentada",
+    "nombre": "RD - configuración estándar"
+  }
+]

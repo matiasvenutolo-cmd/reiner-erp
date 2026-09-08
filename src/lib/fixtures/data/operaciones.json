@@ -1,0 +1,5018 @@
+[
+  {
+    "id": "PS01CB124s001-op1",
+    "piezaId": "PS01CB124s001",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s001-op2",
+    "piezaId": "PS01CB124s001",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s001-op3",
+    "piezaId": "PS01CB124s001",
+    "procesoId": "ROSCADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s001-op4",
+    "piezaId": "PS01CB124s001",
+    "procesoId": "CROMADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s001-op5",
+    "piezaId": "PS01CB124s001",
+    "procesoId": "GRABADO_LASER",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s002-op1",
+    "piezaId": "PS01CB124s002",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 2,
+    "dispositivoId": "rectificado"
+  },
+  {
+    "id": "PS01CB124s002-op2",
+    "piezaId": "PS01CB124s002",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s002-op3",
+    "piezaId": "PS01CB124s002",
+    "procesoId": "ROSCADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s002-op4",
+    "piezaId": "PS01CB124s002",
+    "procesoId": "CROMADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s003-op1",
+    "piezaId": "PS01CB124s003",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s003-op2",
+    "piezaId": "PS01CB124s003",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s003-op3",
+    "piezaId": "PS01CB124s003",
+    "procesoId": "ROSCADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s003-op4",
+    "piezaId": "PS01CB124s003",
+    "procesoId": "CROMADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s001-op1",
+    "piezaId": "PS01CB120s001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s001-op2",
+    "piezaId": "PS01CB120s001",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s001-op3",
+    "piezaId": "PS01CB120s001",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s001-op4",
+    "piezaId": "PS01CB120s001",
+    "procesoId": "TORNO",
+    "secuencia": 4,
+    "ops": 3,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s001-op5",
+    "piezaId": "PS01CB120s001",
+    "procesoId": "CNC",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s001-op6",
+    "piezaId": "PS01CB120s001",
+    "procesoId": "CNC",
+    "secuencia": 6,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s001-op7",
+    "piezaId": "PS01CB120s001",
+    "procesoId": "ROSCADO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s001-op8",
+    "piezaId": "PS01CB120s001",
+    "procesoId": "CROMADO",
+    "secuencia": 8,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s002-op1",
+    "piezaId": "PS01CB120s002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s002-op2",
+    "piezaId": "PS01CB120s002",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s002-op3",
+    "piezaId": "PS01CB120s002",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s002-op4",
+    "piezaId": "PS01CB120s002",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s002-op5",
+    "piezaId": "PS01CB120s002",
+    "procesoId": "CNC",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s002-op6",
+    "piezaId": "PS01CB120s002",
+    "procesoId": "CNC",
+    "secuencia": 6,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s002-op7",
+    "piezaId": "PS01CB120s002",
+    "procesoId": "ROSCADO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s002-op8",
+    "piezaId": "PS01CB120s002",
+    "procesoId": "CROMADO",
+    "secuencia": 8,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s003-op1",
+    "piezaId": "PS01CB120s003",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s003-op2",
+    "piezaId": "PS01CB120s003",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s003-op3",
+    "piezaId": "PS01CB120s003",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s003-op4",
+    "piezaId": "PS01CB120s003",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s003-op5",
+    "piezaId": "PS01CB120s003",
+    "procesoId": "CNC",
+    "secuencia": 5,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s003-op6",
+    "piezaId": "PS01CB120s003",
+    "procesoId": "ROSCADO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s003-op7",
+    "piezaId": "PS01CB120s003",
+    "procesoId": "CHAVETERO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s003-op8",
+    "piezaId": "PS01CB120s003",
+    "procesoId": "CROMADO",
+    "secuencia": 8,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s003-op9",
+    "piezaId": "PS01CB120s003",
+    "procesoId": "GRABADO_LASER",
+    "secuencia": 9,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s004-op1",
+    "piezaId": "PS01CB124s004",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s004-op2",
+    "piezaId": "PS01CB124s004",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s004-op3",
+    "piezaId": "PS01CB124s004",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s004-op4",
+    "piezaId": "PS01CB124s004",
+    "procesoId": "CROMADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s005-op1",
+    "piezaId": "PS01CB124s005",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s005-op2",
+    "piezaId": "PS01CB124s005",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s005-op3",
+    "piezaId": "PS01CB124s005",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s005-op4",
+    "piezaId": "PS01CB124s005",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s005-op5",
+    "piezaId": "PS01CB124s005",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s007-op1",
+    "piezaId": "PS01CB124s007",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s007-op2",
+    "piezaId": "PS01CB124s007",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s007-op3",
+    "piezaId": "PS01CB124s007",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s007-op4",
+    "piezaId": "PS01CB124s007",
+    "procesoId": "CROMADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s008-op1",
+    "piezaId": "PS01CB124s008",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s008-op2",
+    "piezaId": "PS01CB124s008",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s008-op3",
+    "piezaId": "PS01CB124s008",
+    "procesoId": "CROMADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s009-op1",
+    "piezaId": "PS01CB124s009",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s010-op1",
+    "piezaId": "PS01CB124s010",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s004-op1",
+    "piezaId": "PS01CB120s004",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s005-op1",
+    "piezaId": "PS01CB120s005",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s006-op1",
+    "piezaId": "PS01CB120s006",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB120s007-op1",
+    "piezaId": "PS01CB120s007",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s011-op1",
+    "piezaId": "PS01CB124s011",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD001110S007-op1",
+    "piezaId": "RD001110S007",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD001110S007-op2",
+    "piezaId": "RD001110S007",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD001108S007-op1",
+    "piezaId": "RD001108S007",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD001108S007-op2",
+    "piezaId": "RD001108S007",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s101-op1",
+    "piezaId": "PS01CB124s101",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s101-op2",
+    "piezaId": "PS01CB124s101",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s101-op3",
+    "piezaId": "PS01CB124s101",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s101-op4",
+    "piezaId": "PS01CB124s101",
+    "procesoId": "ROSCADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s101-op5",
+    "piezaId": "PS01CB124s101",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s101-op6",
+    "piezaId": "PS01CB124s101",
+    "procesoId": "CROMADO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s102-op1",
+    "piezaId": "PS01CB124s102",
+    "procesoId": "ROSCADO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS01CB124s102-op2",
+    "piezaId": "PS01CB124s102",
+    "procesoId": "CROMADO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD001108S100-op1",
+    "piezaId": "RD001108S100",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD001110S012-op1",
+    "piezaId": "RD001110S012",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD001108S011-op1",
+    "piezaId": "RD001108S011",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD001110S011-op1",
+    "piezaId": "RD001110S011",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD001110S008-op1",
+    "piezaId": "RD001110S008",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD001110S009-op1",
+    "piezaId": "RD001110S009",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD001110S010-op1",
+    "piezaId": "RD001110S010",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i001-op1",
+    "piezaId": "PS02CP100i001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i001-op2",
+    "piezaId": "PS02CP100i001",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i001-op3",
+    "piezaId": "PS02CP100i001",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i001-op4",
+    "piezaId": "PS02CP100i001",
+    "procesoId": "ROSCADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i001-op5",
+    "piezaId": "PS02CP100i001",
+    "procesoId": "PAVONADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i002-op1",
+    "piezaId": "PS02CP100i002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i002-op2",
+    "piezaId": "PS02CP100i002",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i002-op3",
+    "piezaId": "PS02CP100i002",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i002-op4",
+    "piezaId": "PS02CP100i002",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i002-op5",
+    "piezaId": "PS02CP100i002",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i003-op1",
+    "piezaId": "PS02CP100i003",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i003-op2",
+    "piezaId": "PS02CP100i003",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i003-op3",
+    "piezaId": "PS02CP100i003",
+    "procesoId": "TALLER",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i004-op1",
+    "piezaId": "PS02CP100i004",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i004-op2",
+    "piezaId": "PS02CP100i004",
+    "procesoId": "TALLER",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i005-op1",
+    "piezaId": "PS02CP100i005",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i005-op2",
+    "piezaId": "PS02CP100i005",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i005-op3",
+    "piezaId": "PS02CP100i005",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i005-op4",
+    "piezaId": "PS02CP100i005",
+    "procesoId": "TEMPLADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i005-op5",
+    "piezaId": "PS02CP100i005",
+    "procesoId": "ARENADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i005-op6",
+    "piezaId": "PS02CP100i005",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i006-op1",
+    "piezaId": "PS02CP100i006",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i006-op2",
+    "piezaId": "PS02CP100i006",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i007-op1",
+    "piezaId": "PS02CP100i007",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i007-op2",
+    "piezaId": "PS02CP100i007",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i007-op3",
+    "piezaId": "PS02CP100i007",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i007-op4",
+    "piezaId": "PS02CP100i007",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i007-op5",
+    "piezaId": "PS02CP100i007",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i008-op1",
+    "piezaId": "PS02CP100i008",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i008-op2",
+    "piezaId": "PS02CP100i008",
+    "procesoId": "FRESADO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i008-op3",
+    "piezaId": "PS02CP100i008",
+    "procesoId": "TALLER",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i008-op4",
+    "piezaId": "PS02CP100i008",
+    "procesoId": "PAVONADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i009-op1",
+    "piezaId": "PS02CP100i009",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i009-op2",
+    "piezaId": "PS02CP100i009",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i009-op3",
+    "piezaId": "PS02CP100i009",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i009-op4",
+    "piezaId": "PS02CP100i009",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i009-op5",
+    "piezaId": "PS02CP100i009",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i010-op1",
+    "piezaId": "PS02CP100i010",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i010-op2",
+    "piezaId": "PS02CP100i010",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i011-op1",
+    "piezaId": "PS02CP100i011",
+    "procesoId": "IMPRESION_3D",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i012-op1",
+    "piezaId": "PS02CP100i012",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i013-op1",
+    "piezaId": "PS02CP100i013",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i014-op1",
+    "piezaId": "PS02CP100i014",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i101-op1",
+    "piezaId": "PS02CP100i101",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i101-op2",
+    "piezaId": "PS02CP100i101",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i101-op3",
+    "piezaId": "PS02CP100i101",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i101-op4",
+    "piezaId": "PS02CP100i101",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i101-op5",
+    "piezaId": "PS02CP100i101",
+    "procesoId": "PINTURA",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i102-op1",
+    "piezaId": "PS02CP100i102",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i102-op2",
+    "piezaId": "PS02CP100i102",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i102-op3",
+    "piezaId": "PS02CP100i102",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i102-op4",
+    "piezaId": "PS02CP100i102",
+    "procesoId": "PINTURA",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i103-op1",
+    "piezaId": "PS02CP100i103",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i103-op2",
+    "piezaId": "PS02CP100i103",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i103-op3",
+    "piezaId": "PS02CP100i103",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i103-op4",
+    "piezaId": "PS02CP100i103",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i103-op5",
+    "piezaId": "PS02CP100i103",
+    "procesoId": "PINTURA",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i104-op1",
+    "piezaId": "PS02CP100i104",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i104-op2",
+    "piezaId": "PS02CP100i104",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i104-op3",
+    "piezaId": "PS02CP100i104",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i104-op4",
+    "piezaId": "PS02CP100i104",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i104-op5",
+    "piezaId": "PS02CP100i104",
+    "procesoId": "PINTURA",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i105-op1",
+    "piezaId": "PS02CP100i105",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i105-op2",
+    "piezaId": "PS02CP100i105",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i105-op3",
+    "piezaId": "PS02CP100i105",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i105-op4",
+    "piezaId": "PS02CP100i105",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i105-op5",
+    "piezaId": "PS02CP100i105",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i105-op6",
+    "piezaId": "PS02CP100i105",
+    "procesoId": "PINTURA",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i106-op1",
+    "piezaId": "PS02CP100i106",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i106-op2",
+    "piezaId": "PS02CP100i106",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i106-op3",
+    "piezaId": "PS02CP100i106",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i106-op4",
+    "piezaId": "PS02CP100i106",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i106-op5",
+    "piezaId": "PS02CP100i106",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i106-op6",
+    "piezaId": "PS02CP100i106",
+    "procesoId": "PINTURA",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i107-op1",
+    "piezaId": "PS02CP100i107",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i107-op2",
+    "piezaId": "PS02CP100i107",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i107-op3",
+    "piezaId": "PS02CP100i107",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i107-op4",
+    "piezaId": "PS02CP100i107",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i107-op5",
+    "piezaId": "PS02CP100i107",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i107-op6",
+    "piezaId": "PS02CP100i107",
+    "procesoId": "PINTURA",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i108-op1",
+    "piezaId": "PS02CP100i108",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i108-op2",
+    "piezaId": "PS02CP100i108",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i108-op3",
+    "piezaId": "PS02CP100i108",
+    "procesoId": "TALLER",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i108-op4",
+    "piezaId": "PS02CP100i108",
+    "procesoId": "TEMPLADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i108-op5",
+    "piezaId": "PS02CP100i108",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i108-op6",
+    "piezaId": "PS02CP100i108",
+    "procesoId": "ARENADO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i108-op7",
+    "piezaId": "PS02CP100i108",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i201-op1",
+    "piezaId": "PS02CP100i201",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i201-op2",
+    "piezaId": "PS02CP100i201",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i201-op3",
+    "piezaId": "PS02CP100i201",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i201-op4",
+    "piezaId": "PS02CP100i201",
+    "procesoId": "TEMPLADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i201-op5",
+    "piezaId": "PS02CP100i201",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i201-op6",
+    "piezaId": "PS02CP100i201",
+    "procesoId": "ARENADO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i201-op7",
+    "piezaId": "PS02CP100i201",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i202-op1",
+    "piezaId": "PS02CP100i202",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i202-op2",
+    "piezaId": "PS02CP100i202",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i202-op3",
+    "piezaId": "PS02CP100i202",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i202-op4",
+    "piezaId": "PS02CP100i202",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 3,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i202-op5",
+    "piezaId": "PS02CP100i202",
+    "procesoId": "TALLER",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i202-op6",
+    "piezaId": "PS02CP100i202",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i202-op7",
+    "piezaId": "PS02CP100i202",
+    "procesoId": "CROMADO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i203-op1",
+    "piezaId": "PS02CP100i203",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i203-op2",
+    "piezaId": "PS02CP100i203",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i203-op3",
+    "piezaId": "PS02CP100i203",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i203-op4",
+    "piezaId": "PS02CP100i203",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i203-op5",
+    "piezaId": "PS02CP100i203",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i301-op1",
+    "piezaId": "PS02CP100i301",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i301-op2",
+    "piezaId": "PS02CP100i301",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i301-op3",
+    "piezaId": "PS02CP100i301",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i301-op4",
+    "piezaId": "PS02CP100i301",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i301-op5",
+    "piezaId": "PS02CP100i301",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i301-op6",
+    "piezaId": "PS02CP100i301",
+    "procesoId": "PINTURA",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i302-op1",
+    "piezaId": "PS02CP100i302",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i302-op2",
+    "piezaId": "PS02CP100i302",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i302-op3",
+    "piezaId": "PS02CP100i302",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i302-op4",
+    "piezaId": "PS02CP100i302",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i302-op5",
+    "piezaId": "PS02CP100i302",
+    "procesoId": "PINTURA",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i303-op1",
+    "piezaId": "PS02CP100i303",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i303-op2",
+    "piezaId": "PS02CP100i303",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i303-op3",
+    "piezaId": "PS02CP100i303",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i303-op4",
+    "piezaId": "PS02CP100i303",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i303-op5",
+    "piezaId": "PS02CP100i303",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i303-op6",
+    "piezaId": "PS02CP100i303",
+    "procesoId": "PINTURA",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i304-op1",
+    "piezaId": "PS02CP100i304",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i304-op2",
+    "piezaId": "PS02CP100i304",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i304-op3",
+    "piezaId": "PS02CP100i304",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i304-op4",
+    "piezaId": "PS02CP100i304",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i304-op5",
+    "piezaId": "PS02CP100i304",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i304-op6",
+    "piezaId": "PS02CP100i304",
+    "procesoId": "PINTURA",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i305-op1",
+    "piezaId": "PS02CP100i305",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i305-op2",
+    "piezaId": "PS02CP100i305",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i305-op3",
+    "piezaId": "PS02CP100i305",
+    "procesoId": "TALLER",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i305-op4",
+    "piezaId": "PS02CP100i305",
+    "procesoId": "TEMPLADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i305-op5",
+    "piezaId": "PS02CP100i305",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i305-op6",
+    "piezaId": "PS02CP100i305",
+    "procesoId": "ARENADO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i305-op7",
+    "piezaId": "PS02CP100i305",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i401-op1",
+    "piezaId": "PS02CP100i401",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i401-op2",
+    "piezaId": "PS02CP100i401",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i401-op3",
+    "piezaId": "PS02CP100i401",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i401-op4",
+    "piezaId": "PS02CP100i401",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i401-op5",
+    "piezaId": "PS02CP100i401",
+    "procesoId": "TEMPLADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i401-op6",
+    "piezaId": "PS02CP100i401",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i401-op7",
+    "piezaId": "PS02CP100i401",
+    "procesoId": "ARENADO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i401-op8",
+    "piezaId": "PS02CP100i401",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 8,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i402-op1",
+    "piezaId": "PS02CP100i402",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i402-op2",
+    "piezaId": "PS02CP100i402",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i402-op3",
+    "piezaId": "PS02CP100i402",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i402-op4",
+    "piezaId": "PS02CP100i402",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 3,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i402-op5",
+    "piezaId": "PS02CP100i402",
+    "procesoId": "TALLER",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i402-op6",
+    "piezaId": "PS02CP100i402",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i402-op7",
+    "piezaId": "PS02CP100i402",
+    "procesoId": "CROMADO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i403-op1",
+    "piezaId": "PS02CP100i403",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i403-op2",
+    "piezaId": "PS02CP100i403",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i403-op3",
+    "piezaId": "PS02CP100i403",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i403-op4",
+    "piezaId": "PS02CP100i403",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 3,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i403-op5",
+    "piezaId": "PS02CP100i403",
+    "procesoId": "TALLER",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i403-op6",
+    "piezaId": "PS02CP100i403",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i403-op7",
+    "piezaId": "PS02CP100i403",
+    "procesoId": "CROMADO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i501-op1",
+    "piezaId": "PS02CP100i501",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i501-op2",
+    "piezaId": "PS02CP100i501",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i501-op3",
+    "piezaId": "PS02CP100i501",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i501-op4",
+    "piezaId": "PS02CP100i501",
+    "procesoId": "TORNO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i501-op5",
+    "piezaId": "PS02CP100i501",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i501-op6",
+    "piezaId": "PS02CP100i501",
+    "procesoId": "TALLER",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i501-op7",
+    "piezaId": "PS02CP100i501",
+    "procesoId": "PAVONADO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i502-op1",
+    "piezaId": "PS02CP100i502",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i502-op2",
+    "piezaId": "PS02CP100i502",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i502-op3",
+    "piezaId": "PS02CP100i502",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i502-op4",
+    "piezaId": "PS02CP100i502",
+    "procesoId": "TALLADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i503-op1",
+    "piezaId": "PS02CP100i503",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i503-op2",
+    "piezaId": "PS02CP100i503",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i503-op3",
+    "piezaId": "PS02CP100i503",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i503-op4",
+    "piezaId": "PS02CP100i503",
+    "procesoId": "TALLADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i504-op1",
+    "piezaId": "PS02CP100i504",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i504-op2",
+    "piezaId": "PS02CP100i504",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i504-op3",
+    "piezaId": "PS02CP100i504",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i504-op4",
+    "piezaId": "PS02CP100i504",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i504-op5",
+    "piezaId": "PS02CP100i504",
+    "procesoId": "PAVONADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i505-op1",
+    "piezaId": "PS02CP100i505",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i506-op1",
+    "piezaId": "PS02CP100i506",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i506-op2",
+    "piezaId": "PS02CP100i506",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i506-op3",
+    "piezaId": "PS02CP100i506",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i507-op1",
+    "piezaId": "PS02CP100i507",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS02CP100i508-op1",
+    "piezaId": "PS02CP100i508",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD002100i009-op1",
+    "piezaId": "RD002100i009",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD002100i009-op2",
+    "piezaId": "RD002100i009",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD002100i009-op3",
+    "piezaId": "RD002100i009",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD003100I021-op1",
+    "piezaId": "RD003100I021",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS04CR124s001-op1",
+    "piezaId": "PS04CR124s001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS04CR124s001-op2",
+    "piezaId": "PS04CR124s001",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS04CR124s001-op3",
+    "piezaId": "PS04CR124s001",
+    "procesoId": "TALLER",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS04CR124s002-op1",
+    "piezaId": "PS04CR124s002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS04CR124s002-op2",
+    "piezaId": "PS04CR124s002",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS04CR124s002-op3",
+    "piezaId": "PS04CR124s002",
+    "procesoId": "FRESADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS04CR124s003-op1",
+    "piezaId": "PS04CR124s003",
+    "procesoId": "IMPRESION_3D",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s001-op1",
+    "piezaId": "PS05DS124s001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s001-op2",
+    "piezaId": "PS05DS124s001",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s001-op3",
+    "piezaId": "PS05DS124s001",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s001-op4",
+    "piezaId": "PS05DS124s001",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s001-op5",
+    "piezaId": "PS05DS124s001",
+    "procesoId": "TEMPLADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s001-op6",
+    "piezaId": "PS05DS124s001",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s002-op1",
+    "piezaId": "PS05DS124s002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s002-op2",
+    "piezaId": "PS05DS124s002",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s002-op3",
+    "piezaId": "PS05DS124s002",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s002-op4",
+    "piezaId": "PS05DS124s002",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s002-op5",
+    "piezaId": "PS05DS124s002",
+    "procesoId": "TALLER",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s002-op6",
+    "piezaId": "PS05DS124s002",
+    "procesoId": "PAVONADO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s003-op1",
+    "piezaId": "PS05DS124s003",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s003-op2",
+    "piezaId": "PS05DS124s003",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s003-op3",
+    "piezaId": "PS05DS124s003",
+    "procesoId": "COMPRAS",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s003-op4",
+    "piezaId": "PS05DS124s003",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s004-op1",
+    "piezaId": "PS05DS124s004",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s004-op2",
+    "piezaId": "PS05DS124s004",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s004-op3",
+    "piezaId": "PS05DS124s004",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s004-op4",
+    "piezaId": "PS05DS124s004",
+    "procesoId": "PAVONADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s005-op1",
+    "piezaId": "PS05DS124s005",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s005-op2",
+    "piezaId": "PS05DS124s005",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s005-op3",
+    "piezaId": "PS05DS124s005",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s005-op4",
+    "piezaId": "PS05DS124s005",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s005-op5",
+    "piezaId": "PS05DS124s005",
+    "procesoId": "PAVONADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s006-op1",
+    "piezaId": "PS05DS124s006",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s006-op2",
+    "piezaId": "PS05DS124s006",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s006-op3",
+    "piezaId": "PS05DS124s006",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s006-op4",
+    "piezaId": "PS05DS124s006",
+    "procesoId": "PAVONADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s007-op1",
+    "piezaId": "PS05DS124s007",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s007-op2",
+    "piezaId": "PS05DS124s007",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS05DS124s007-op3",
+    "piezaId": "PS05DS124s007",
+    "procesoId": "PAVONADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD003100I217-op1",
+    "piezaId": "RD003100I217",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD003100I216-op1",
+    "piezaId": "RD003100I216",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s001-op1",
+    "piezaId": "PS06EY100s001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s001-op2",
+    "piezaId": "PS06EY100s001",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s001-op3",
+    "piezaId": "PS06EY100s001",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s001-op4",
+    "piezaId": "PS06EY100s001",
+    "procesoId": "ROSCADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s001-op5",
+    "piezaId": "PS06EY100s001",
+    "procesoId": "TEMPLADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s001-op6",
+    "piezaId": "PS06EY100s001",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s002-op1",
+    "piezaId": "PS06EY100s002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s002-op2",
+    "piezaId": "PS06EY100s002",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s002-op3",
+    "piezaId": "PS06EY100s002",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s002-op4",
+    "piezaId": "PS06EY100s002",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s002-op5",
+    "piezaId": "PS06EY100s002",
+    "procesoId": "PAVONADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s003-op1",
+    "piezaId": "PS06EY100s003",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s003-op2",
+    "piezaId": "PS06EY100s003",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s003-op3",
+    "piezaId": "PS06EY100s003",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS06EY100s003-op4",
+    "piezaId": "PS06EY100s003",
+    "procesoId": "PAVONADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL120s001-op1",
+    "piezaId": "PS07PDL120s001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL120s001-op2",
+    "piezaId": "PS07PDL120s001",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL120s002-op1",
+    "piezaId": "PS07PDL120s002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL120s002-op2",
+    "piezaId": "PS07PDL120s002",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL120s003-op1",
+    "piezaId": "PS07PDL120s003",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL120s003-op2",
+    "piezaId": "PS07PDL120s003",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s001-op1",
+    "piezaId": "PS07PDL124s001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s001-op2",
+    "piezaId": "PS07PDL124s001",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s002-op1",
+    "piezaId": "PS07PDL124s002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s002-op2",
+    "piezaId": "PS07PDL124s002",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s003-op1",
+    "piezaId": "PS07PDL124s003",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s003-op2",
+    "piezaId": "PS07PDL124s003",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s004-op1",
+    "piezaId": "PS07PDL124s004",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s004-op2",
+    "piezaId": "PS07PDL124s004",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s004-op3",
+    "piezaId": "PS07PDL124s004",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s004-op4",
+    "piezaId": "PS07PDL124s004",
+    "procesoId": "SOLDADURA",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s004-op5",
+    "piezaId": "PS07PDL124s004",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s005-op1",
+    "piezaId": "PS07PDL124s005",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s005-op2",
+    "piezaId": "PS07PDL124s005",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s005-op3",
+    "piezaId": "PS07PDL124s005",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s005-op4",
+    "piezaId": "PS07PDL124s005",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s005-op5",
+    "piezaId": "PS07PDL124s005",
+    "procesoId": "ROSCADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS07PDL124s005-op6",
+    "piezaId": "PS07PDL124s005",
+    "procesoId": "CROMADO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s001-op1",
+    "piezaId": "PS09FDC100s001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s001-op2",
+    "piezaId": "PS09FDC100s001",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s001-op3",
+    "piezaId": "PS09FDC100s001",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s001-op4",
+    "piezaId": "PS09FDC100s001",
+    "procesoId": "ROSCADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s001-op5",
+    "piezaId": "PS09FDC100s001",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s002-op1",
+    "piezaId": "PS09FDC100s002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s002-op2",
+    "piezaId": "PS09FDC100s002",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s002-op3",
+    "piezaId": "PS09FDC100s002",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s002-op4",
+    "piezaId": "PS09FDC100s002",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s002-op5",
+    "piezaId": "PS09FDC100s002",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 5,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s002-op6",
+    "piezaId": "PS09FDC100s002",
+    "procesoId": "TALLER",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s002-op7",
+    "piezaId": "PS09FDC100s002",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s002-op8",
+    "piezaId": "PS09FDC100s002",
+    "procesoId": "CNC",
+    "secuencia": 8,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s002-op9",
+    "piezaId": "PS09FDC100s002",
+    "procesoId": "CROMADO_ANODIZADO",
+    "secuencia": 9,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s003-op1",
+    "piezaId": "PS09FDC100s003",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s003-op2",
+    "piezaId": "PS09FDC100s003",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s003-op3",
+    "piezaId": "PS09FDC100s003",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s003-op4",
+    "piezaId": "PS09FDC100s003",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s003-op5",
+    "piezaId": "PS09FDC100s003",
+    "procesoId": "TALLER",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s003-op6",
+    "piezaId": "PS09FDC100s003",
+    "procesoId": "CROMADO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s004-op1",
+    "piezaId": "PS09FDC100s004",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s004-op2",
+    "piezaId": "PS09FDC100s004",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s004-op3",
+    "piezaId": "PS09FDC100s004",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s004-op4",
+    "piezaId": "PS09FDC100s004",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s004-op5",
+    "piezaId": "PS09FDC100s004",
+    "procesoId": "TALLER",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s004-op6",
+    "piezaId": "PS09FDC100s004",
+    "procesoId": "CROMADO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s005-op1",
+    "piezaId": "PS09FDC100s005",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s005-op2",
+    "piezaId": "PS09FDC100s005",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s005-op3",
+    "piezaId": "PS09FDC100s005",
+    "procesoId": "ANODIZADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s006-op1",
+    "piezaId": "PS09FDC100s006",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s007-op1",
+    "piezaId": "PS09FDC100s007",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s007-op2",
+    "piezaId": "PS09FDC100s007",
+    "procesoId": "TALLER",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s008-op1",
+    "piezaId": "PS09FDC100s008",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s008-op2",
+    "piezaId": "PS09FDC100s008",
+    "procesoId": "TALLER",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s009-op1",
+    "piezaId": "PS09FDC100s009",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s009-op2",
+    "piezaId": "PS09FDC100s009",
+    "procesoId": "TALLER",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s010-op1",
+    "piezaId": "PS09FDC100s010",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s010-op2",
+    "piezaId": "PS09FDC100s010",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s010-op3",
+    "piezaId": "PS09FDC100s010",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s010-op4",
+    "piezaId": "PS09FDC100s010",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s011-op1",
+    "piezaId": "PS09FDC100s011",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s011-op2",
+    "piezaId": "PS09FDC100s011",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s012-op1",
+    "piezaId": "PS09FDC100s012",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s012-op2",
+    "piezaId": "PS09FDC100s012",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s013-op1",
+    "piezaId": "PS09FDC100s013",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s013-op2",
+    "piezaId": "PS09FDC100s013",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s014-op1",
+    "piezaId": "PS09FDC100s014",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s014-op2",
+    "piezaId": "PS09FDC100s014",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s014-op3",
+    "piezaId": "PS09FDC100s014",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s014-op4",
+    "piezaId": "PS09FDC100s014",
+    "procesoId": "TALLADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s015-op1",
+    "piezaId": "PS09FDC100s015",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s015-op2",
+    "piezaId": "PS09FDC100s015",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s015-op3",
+    "piezaId": "PS09FDC100s015",
+    "procesoId": "TALLADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s016-op1",
+    "piezaId": "PS09FDC100s016",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s016-op2",
+    "piezaId": "PS09FDC100s016",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s016-op3",
+    "piezaId": "PS09FDC100s016",
+    "procesoId": "TALLADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s017-op1",
+    "piezaId": "PS09FDC100s017",
+    "procesoId": "CNC",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s018-op1",
+    "piezaId": "PS09FDC100s018",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s019-op1",
+    "piezaId": "PS09FDC100s019",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s022-op1",
+    "piezaId": "PS09FDC100s022",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s023-op1",
+    "piezaId": "PS09FDC100s023",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s023-op2",
+    "piezaId": "PS09FDC100s023",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s024-op1",
+    "piezaId": "PS09FDC100s024",
+    "procesoId": "CNC",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s025-op1",
+    "piezaId": "PS09FDC100s025",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s025-op2",
+    "piezaId": "PS09FDC100s025",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s026-op1",
+    "piezaId": "PS09FDC100s026",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD009100S002-op1",
+    "piezaId": "RD009100S002",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD009100S002-op2",
+    "piezaId": "RD009100S002",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD009100S003-op1",
+    "piezaId": "RD009100S003",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD009100S003-op2",
+    "piezaId": "RD009100S003",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD009100S004-op1",
+    "piezaId": "RD009100S004",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD009100S004-op2",
+    "piezaId": "RD009100S004",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD003100I021-op2",
+    "piezaId": "RD003100I021",
+    "procesoId": "COMPRAS",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s101-op1",
+    "piezaId": "PS09FDC100s101",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s101-op2",
+    "piezaId": "PS09FDC100s101",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s102-op1",
+    "piezaId": "PS09FDC100s102",
+    "procesoId": "TORNO",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS09FDC100s102-op2",
+    "piezaId": "PS09FDC100s102",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12CDD100s001-op1",
+    "piezaId": "PS12CDD100s001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12CDD100s001-op2",
+    "piezaId": "PS12CDD100s001",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12CDD100s001-op3",
+    "piezaId": "PS12CDD100s001",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12CDD100s001-op4",
+    "piezaId": "PS12CDD100s001",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12CDD100s002-op1",
+    "piezaId": "PS12CDD100s002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12CDD100s002-op2",
+    "piezaId": "PS12CDD100s002",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12CDD100s002-op3",
+    "piezaId": "PS12CDD100s002",
+    "procesoId": "ANODIZADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12CDD100s003-op1",
+    "piezaId": "PS12CDD100s003",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12CDD100s003-op2",
+    "piezaId": "PS12CDD100s003",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12CDD100s003-op3",
+    "piezaId": "PS12CDD100s003",
+    "procesoId": "ANODIZADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12CDD100s201-op1",
+    "piezaId": "PS12CDD100s201",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12CDD100s202-op1",
+    "piezaId": "PS12CDD100s202",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12CDD100s300-op1",
+    "piezaId": "PS12CDD100s300",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS13AS100s001-op1",
+    "piezaId": "PS13AS100s001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS13AS100s002-op1",
+    "piezaId": "PS13AS100s002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS13AS100s003-op1",
+    "piezaId": "PS13AS100s003",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS13AS100s004-op1",
+    "piezaId": "PS13AS100s004",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS12AS100s005-op1",
+    "piezaId": "PS12AS100s005",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s001-op1",
+    "piezaId": "PS14RED100s001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s001-op2",
+    "piezaId": "PS14RED100s001",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s001-op3",
+    "piezaId": "PS14RED100s001",
+    "procesoId": "TALLER",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s001-op4",
+    "piezaId": "PS14RED100s001",
+    "procesoId": "PAVONADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s002-op1",
+    "piezaId": "PS14RED100s002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s002-op2",
+    "piezaId": "PS14RED100s002",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s002-op3",
+    "piezaId": "PS14RED100s002",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s002-op4",
+    "piezaId": "PS14RED100s002",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s002-op5",
+    "piezaId": "PS14RED100s002",
+    "procesoId": "PAVONADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s003-op1",
+    "piezaId": "PS14RED100s003",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s003-op2",
+    "piezaId": "PS14RED100s003",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s003-op3",
+    "piezaId": "PS14RED100s003",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s003-op4",
+    "piezaId": "PS14RED100s003",
+    "procesoId": "PAVONADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s004-op1",
+    "piezaId": "PS14RED100s004",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s004-op2",
+    "piezaId": "PS14RED100s004",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s004-op3",
+    "piezaId": "PS14RED100s004",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s004-op4",
+    "piezaId": "PS14RED100s004",
+    "procesoId": "PAVONADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s005-op1",
+    "piezaId": "PS14RED100s005",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s005-op2",
+    "piezaId": "PS14RED100s005",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s005-op3",
+    "piezaId": "PS14RED100s005",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s005-op4",
+    "piezaId": "PS14RED100s005",
+    "procesoId": "PAVONADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s006-op1",
+    "piezaId": "PS14RED100s006",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s006-op2",
+    "piezaId": "PS14RED100s006",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s006-op3",
+    "piezaId": "PS14RED100s006",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s006-op4",
+    "piezaId": "PS14RED100s006",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s006-op5",
+    "piezaId": "PS14RED100s006",
+    "procesoId": "SOLDADURA",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s006-op6",
+    "piezaId": "PS14RED100s006",
+    "procesoId": "CROMADO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s007-op1",
+    "piezaId": "PS14RED100s007",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s007-op2",
+    "piezaId": "PS14RED100s007",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s008-op1",
+    "piezaId": "PS14RED100s008",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s008-op2",
+    "piezaId": "PS14RED100s008",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s008-op3",
+    "piezaId": "PS14RED100s008",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s009-op1",
+    "piezaId": "PS14RED100s009",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s009-op2",
+    "piezaId": "PS14RED100s009",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s009-op3",
+    "piezaId": "PS14RED100s009",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s010-op1",
+    "piezaId": "PS14RED100s010",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s010-op2",
+    "piezaId": "PS14RED100s010",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s010-op3",
+    "piezaId": "PS14RED100s010",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s011-op1",
+    "piezaId": "PS14RED100s011",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s011-op2",
+    "piezaId": "PS14RED100s011",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s011-op3",
+    "piezaId": "PS14RED100s011",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s012-op1",
+    "piezaId": "PS14RED100s012",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s013-op1",
+    "piezaId": "PS14RED100s013",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s014-op1",
+    "piezaId": "PS14RED100s014",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s014-op2",
+    "piezaId": "PS14RED100s014",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s014-op3",
+    "piezaId": "PS14RED100s014",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s014-op4",
+    "piezaId": "PS14RED100s014",
+    "procesoId": "PAVONADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s015-op1",
+    "piezaId": "PS14RED100s015",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s015-op2",
+    "piezaId": "PS14RED100s015",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s015-op3",
+    "piezaId": "PS14RED100s015",
+    "procesoId": "PAVONADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s101-op1",
+    "piezaId": "PS14RED100s101",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s101-op2",
+    "piezaId": "PS14RED100s101",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s101-op3",
+    "piezaId": "PS14RED100s101",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s101-op4",
+    "piezaId": "PS14RED100s101",
+    "procesoId": "PAVONADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s101-op5",
+    "piezaId": "PS14RED100s101",
+    "procesoId": "COMPRAS",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s101-op6",
+    "piezaId": "PS14RED100s101",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s101-op7",
+    "piezaId": "PS14RED100s101",
+    "procesoId": "PAVONADO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s006-op7",
+    "piezaId": "PS14RED100s006",
+    "procesoId": "COMPRAS",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s101-op8",
+    "piezaId": "PS14RED100s101",
+    "procesoId": "COMPRAS",
+    "secuencia": 8,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS14RED100s102-op1",
+    "piezaId": "PS14RED100s102",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "WI 150 1.30 con brida-op1",
+    "piezaId": "WI 150 1.30 con brida",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "R_I_150_FL_1_28_SIN_M6_OUTOIL_TypSTM_N-op1",
+    "piezaId": "R_I_150_FL_1_28_SIN_M6_OUTOIL_TypSTM_N",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "CE_VL2 IE3_2_132_S1_B3_2_B3_-_55_21_5_5_4_4_S1_AV_-_-_-_-_-_-_5010-op1",
+    "piezaId": "CE_VL2 IE3_2_132_S1_B3_2_B3_-_55_21_5_5_4_4_S1_AV_-_-_-_-_-_-_5010",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s001-op1",
+    "piezaId": "PS15MP100s001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s001-op2",
+    "piezaId": "PS15MP100s001",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s001-op3",
+    "piezaId": "PS15MP100s001",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s001-op4",
+    "piezaId": "PS15MP100s001",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s001-op5",
+    "piezaId": "PS15MP100s001",
+    "procesoId": "PINTURA",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s002-op1",
+    "piezaId": "PS15MP100s002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s002-op2",
+    "piezaId": "PS15MP100s002",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s002-op3",
+    "piezaId": "PS15MP100s002",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s002-op4",
+    "piezaId": "PS15MP100s002",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s002-op5",
+    "piezaId": "PS15MP100s002",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s002-op6",
+    "piezaId": "PS15MP100s002",
+    "procesoId": "TALLER",
+    "secuencia": 6,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s002-op7",
+    "piezaId": "PS15MP100s002",
+    "procesoId": "CROMADO",
+    "secuencia": 7,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s004-op1",
+    "piezaId": "PS15MP100s004",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s004-op2",
+    "piezaId": "PS15MP100s004",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s004-op3",
+    "piezaId": "PS15MP100s004",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s004-op4",
+    "piezaId": "PS15MP100s004",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s004-op5",
+    "piezaId": "PS15MP100s004",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s005-op1",
+    "piezaId": "PS15MP100s005",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s005-op2",
+    "piezaId": "PS15MP100s005",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s005-op3",
+    "piezaId": "PS15MP100s005",
+    "procesoId": "CNC",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s005-op4",
+    "piezaId": "PS15MP100s005",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s005-op5",
+    "piezaId": "PS15MP100s005",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s006-op1",
+    "piezaId": "PS15MP100s006",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s006-op2",
+    "piezaId": "PS15MP100s006",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s006-op3",
+    "piezaId": "PS15MP100s006",
+    "procesoId": "TEMPLADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15MP100s006-op4",
+    "piezaId": "PS15MP100s006",
+    "procesoId": "RECTIFICADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s001-op1",
+    "piezaId": "PS16ES100s001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s001-op2",
+    "piezaId": "PS16ES100s001",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s001-op3",
+    "piezaId": "PS16ES100s001",
+    "procesoId": "TALLER",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s001-op4",
+    "piezaId": "PS16ES100s001",
+    "procesoId": "CROMADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s002-op1",
+    "piezaId": "PS16ES100s002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s002-op2",
+    "piezaId": "PS16ES100s002",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s002-op3",
+    "piezaId": "PS16ES100s002",
+    "procesoId": "TALLER",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s002-op4",
+    "piezaId": "PS16ES100s002",
+    "procesoId": "CROMADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s003-op1",
+    "piezaId": "PS16ES100s003",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s003-op2",
+    "piezaId": "PS16ES100s003",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s003-op3",
+    "piezaId": "PS16ES100s003",
+    "procesoId": "TALLER",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s003-op4",
+    "piezaId": "PS16ES100s003",
+    "procesoId": "CROMADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s004-op1",
+    "piezaId": "PS16ES100s004",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s004-op2",
+    "piezaId": "PS16ES100s004",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s004-op3",
+    "piezaId": "PS16ES100s004",
+    "procesoId": "TALLER",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s004-op4",
+    "piezaId": "PS16ES100s004",
+    "procesoId": "CROMADO",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s005-op1",
+    "piezaId": "PS16ES100s005",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s005-op2",
+    "piezaId": "PS16ES100s005",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s005-op3",
+    "piezaId": "PS16ES100s005",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s005-op4",
+    "piezaId": "PS16ES100s005",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s005-op5",
+    "piezaId": "PS16ES100s005",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s006-op1",
+    "piezaId": "PS16ES100s006",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s006-op2",
+    "piezaId": "PS16ES100s006",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s006-op3",
+    "piezaId": "PS16ES100s006",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s006-op4",
+    "piezaId": "PS16ES100s006",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s006-op5",
+    "piezaId": "PS16ES100s006",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s007-op1",
+    "piezaId": "PS16ES100s007",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s007-op2",
+    "piezaId": "PS16ES100s007",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s007-op3",
+    "piezaId": "PS16ES100s007",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s007-op4",
+    "piezaId": "PS16ES100s007",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s007-op5",
+    "piezaId": "PS16ES100s007",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s008-op1",
+    "piezaId": "PS16ES100s008",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s008-op2",
+    "piezaId": "PS16ES100s008",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s008-op3",
+    "piezaId": "PS16ES100s008",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s008-op4",
+    "piezaId": "PS16ES100s008",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s008-op5",
+    "piezaId": "PS16ES100s008",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s009-op1",
+    "piezaId": "PS16ES100s009",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s009-op2",
+    "piezaId": "PS16ES100s009",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s009-op3",
+    "piezaId": "PS16ES100s009",
+    "procesoId": "SOLDADURA",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s009-op4",
+    "piezaId": "PS16ES100s009",
+    "procesoId": "TORNO",
+    "secuencia": 4,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s009-op5",
+    "piezaId": "PS16ES100s009",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s010-op1",
+    "piezaId": "PS16ES100s010",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s010-op2",
+    "piezaId": "PS16ES100s010",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS16ES100s010-op3",
+    "piezaId": "PS16ES100s010",
+    "procesoId": "CROMADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15ES100s011-op1",
+    "piezaId": "PS15ES100s011",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15ES100s011-op2",
+    "piezaId": "PS15ES100s011",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15ES100s011-op3",
+    "piezaId": "PS15ES100s011",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15ES100s011-op4",
+    "piezaId": "PS15ES100s011",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15ES100s011-op5",
+    "piezaId": "PS15ES100s011",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15ES100s012-op1",
+    "piezaId": "PS15ES100s012",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15ES100s012-op2",
+    "piezaId": "PS15ES100s012",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15ES100s012-op3",
+    "piezaId": "PS15ES100s012",
+    "procesoId": "TORNO",
+    "secuencia": 3,
+    "ops": 2,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15ES100s012-op4",
+    "piezaId": "PS15ES100s012",
+    "procesoId": "CNC",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS15ES100s012-op5",
+    "piezaId": "PS15ES100s012",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s001-op1",
+    "piezaId": "PS17CE100s001",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s001-op2",
+    "piezaId": "PS17CE100s001",
+    "procesoId": "TALLER",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s002-op1",
+    "piezaId": "PS17CE100s002",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s002-op2",
+    "piezaId": "PS17CE100s002",
+    "procesoId": "TALLER",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s002-op3",
+    "piezaId": "PS17CE100s002",
+    "procesoId": "FRESADO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s003-op1",
+    "piezaId": "PS17CE100s003",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s004-op1",
+    "piezaId": "PS17CE100s004",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s004-op2",
+    "piezaId": "PS17CE100s004",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s005-op1",
+    "piezaId": "PS17CE100s005",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s006-op1",
+    "piezaId": "PS17CE100s006",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s006-op2",
+    "piezaId": "PS17CE100s006",
+    "procesoId": "TALLER",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s007-op1",
+    "piezaId": "PS17CE100s007",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s008-op1",
+    "piezaId": "PS17CE100s008",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s009-op1",
+    "piezaId": "PS17CE100s009",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s010-op1",
+    "piezaId": "PS17CE100s010",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s010-op2",
+    "piezaId": "PS17CE100s010",
+    "procesoId": "TORNO",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s010-op3",
+    "piezaId": "PS17CE100s010",
+    "procesoId": "CORTE_HILO",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s010-op4",
+    "piezaId": "PS17CE100s010",
+    "procesoId": "TALLER",
+    "secuencia": 4,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s010-op5",
+    "piezaId": "PS17CE100s010",
+    "procesoId": "CROMADO",
+    "secuencia": 5,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s011-op1",
+    "piezaId": "PS17CE100s011",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s011-op2",
+    "piezaId": "PS17CE100s011",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s012-op1",
+    "piezaId": "PS17CE100s012",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s012-op2",
+    "piezaId": "PS17CE100s012",
+    "procesoId": "CNC",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s013-op1",
+    "piezaId": "PS17CE100s013",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s014-op1",
+    "piezaId": "PS17CE100s014",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s015-op1",
+    "piezaId": "PS17CE100s015",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s015-op2",
+    "piezaId": "PS17CE100s015",
+    "procesoId": "TALLER",
+    "secuencia": 2,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s015-op3",
+    "piezaId": "PS17CE100s015",
+    "procesoId": "PINTURA",
+    "secuencia": 3,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s017-op1",
+    "piezaId": "PS17CE100s017",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s018-op1",
+    "piezaId": "PS17CE100s018",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s021-op1",
+    "piezaId": "PS17CE100s021",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s022-op1",
+    "piezaId": "PS17CE100s022",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s023-op1",
+    "piezaId": "PS17CE100s023",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD017100S018-op1",
+    "piezaId": "RD017100S018",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD017100S020-op1",
+    "piezaId": "RD017100S020",
+    "procesoId": "TALLER",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD017100S024-op1",
+    "piezaId": "RD017100S024",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD017100S027-op1",
+    "piezaId": "RD017100S027",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD017100S030-op1",
+    "piezaId": "RD017100S030",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "RD017100S031-op1",
+    "piezaId": "RD017100S031",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s100-op1",
+    "piezaId": "PS17CE100s100",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s102-op1",
+    "piezaId": "PS17CE100s102",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  },
+  {
+    "id": "PS17CE100s103-op1",
+    "piezaId": "PS17CE100s103",
+    "procesoId": "COMPRAS",
+    "secuencia": 1,
+    "ops": 1,
+    "dispositivoId": null
+  }
+]

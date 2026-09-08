@@ -1,0 +1,14 @@
+[
+  {
+    "id": "RD",
+    "codigo": "RD",
+    "nombre": "RD",
+    "descripcion": "Primer modelo propio (2018), diseño estabilizado"
+  },
+  {
+    "id": "PS",
+    "codigo": "PS",
+    "nombre": "PS / APS",
+    "descripcion": "Segundo modelo (2019-2020), en proceso de estandarización"
+  }
+]

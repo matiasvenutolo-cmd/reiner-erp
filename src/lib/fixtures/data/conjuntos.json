@@ -1,0 +1,146 @@
+[
+  {
+    "id": "cabezal",
+    "codigo": "C01",
+    "nombre": "Cabezal",
+    "orden": 0
+  },
+  {
+    "id": "compresion",
+    "codigo": "C02",
+    "nombre": "Compresion",
+    "orden": 1
+  },
+  {
+    "id": "precompresion",
+    "codigo": "C03",
+    "nombre": "PreCompresion",
+    "orden": 2
+  },
+  {
+    "id": "carga",
+    "codigo": "C04",
+    "nombre": "Carga",
+    "orden": 3
+  },
+  {
+    "id": "dosificador",
+    "codigo": "C05",
+    "nombre": "Dosificador",
+    "orden": 4
+  },
+  {
+    "id": "eyeccion",
+    "codigo": "C06",
+    "nombre": "Eyeccion",
+    "orden": 5
+  },
+  {
+    "id": "plato-de-levas",
+    "codigo": "C07",
+    "nombre": "Plato de Levas",
+    "orden": 6
+  },
+  {
+    "id": "tolva-de-carga-forzada",
+    "codigo": "C08",
+    "nombre": "Tolva de Carga Forzada",
+    "orden": 7
+  },
+  {
+    "id": "cargadora-forzada",
+    "codigo": "C09",
+    "nombre": "Cargadora Forzada",
+    "orden": 8
+  },
+  {
+    "id": "carga-por-gravedad",
+    "codigo": "C10",
+    "nombre": "Carga por Gravedad",
+    "orden": 9
+  },
+  {
+    "id": "canal-de-descarga",
+    "codigo": "C11",
+    "nombre": "Canal de Descarga",
+    "orden": 10
+  },
+  {
+    "id": "aspiracion",
+    "codigo": "C12",
+    "nombre": "Aspiracion",
+    "orden": 11
+  },
+  {
+    "id": "caja-reductora",
+    "codigo": "C13",
+    "nombre": "Caja Reductora",
+    "orden": 12
+  },
+  {
+    "id": "mando-principal",
+    "codigo": "C14",
+    "nombre": "Mando Principal",
+    "orden": 13
+  },
+  {
+    "id": "estructura",
+    "codigo": "C15",
+    "nombre": "Estructura",
+    "orden": 14
+  },
+  {
+    "id": "cerramiento",
+    "codigo": "C16",
+    "nombre": "Cerramiento",
+    "orden": 15
+  },
+  {
+    "id": "lubricacion",
+    "codigo": "C17",
+    "nombre": "Lubricacion",
+    "orden": 16
+  },
+  {
+    "id": "electronica",
+    "codigo": "C18",
+    "nombre": "Electronica",
+    "orden": 17
+  },
+  {
+    "id": "dosificacion",
+    "codigo": "C19",
+    "nombre": "Dosificacion",
+    "orden": 18
+  },
+  {
+    "id": "tolva-carga-forzada",
+    "codigo": "C20",
+    "nombre": "Tolva Carga Forzada",
+    "orden": 19
+  },
+  {
+    "id": "descartador",
+    "codigo": "C21",
+    "nombre": "Descartador",
+    "orden": 20
+  },
+  {
+    "id": "tolva",
+    "codigo": "C22",
+    "nombre": "Tolva",
+    "orden": 21
+  },
+  {
+    "id": "cargadora-por-gravedad",
+    "codigo": "C23",
+    "nombre": "Cargadora por gravedad",
+    "orden": 22
+  },
+  {
+    "id": "senalizacion",
+    "codigo": "C24",
+    "nombre": "Señalizaciön",
+    "orden": 23
+  }
+]

@@ -1,0 +1,134 @@
+[
+  {
+    "conjuntoId": "cabezal",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "cabezal",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "compresion",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "compresion",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "precompresion",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "precompresion",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "carga",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "carga",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "dosificador",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "dosificador",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "eyeccion",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "eyeccion",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "plato-de-levas",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "plato-de-levas",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "tolva-de-carga-forzada",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "tolva-de-carga-forzada",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "cargadora-forzada",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "cargadora-forzada",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "carga-por-gravedad",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "canal-de-descarga",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "canal-de-descarga",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "aspiracion",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "aspiracion",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "caja-reductora",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "caja-reductora",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "mando-principal",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "mando-principal",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "estructura",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "estructura",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "cerramiento",
+    "modeloId": "RD"
+  },
+  {
+    "conjuntoId": "cerramiento",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "lubricacion",
+    "modeloId": "PS"
+  },
+  {
+    "conjuntoId": "electronica",
+    "modeloId": "PS"
+  }
+]

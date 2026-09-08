@@ -1,0 +1,5062 @@
+[
+  {
+    "piezaId": "PS01CB124s001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB120s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB120s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB120s002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB120s002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB120s003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB120s003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s004",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s004",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s005",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s005",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s005",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s005",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s006",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s006",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s007",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s007",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s007",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s007",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s008",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s008",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s008",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s008",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s009",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS01CB124s009",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS01CB124s010",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS01CB124s010",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS01CB120s004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB120s004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB120s005",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS01CB120s005",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS01CB120s006",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB120s006",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB120s007",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS01CB120s007",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS01CB124s011",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS01CB124s011",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS01CB124s011",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS01CB124s011",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "RD001110S007",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 24
+  },
+  {
+    "piezaId": "RD001110S007",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 24
+  },
+  {
+    "piezaId": "RD001108S007",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 20
+  },
+  {
+    "piezaId": "RD001108S007",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 20
+  },
+  {
+    "piezaId": "PS01CB124s101",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s101",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s101",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s101",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s102",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s102",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s102",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS01CB124s102",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001108S100",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 20
+  },
+  {
+    "piezaId": "RD001108S100",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 20
+  },
+  {
+    "piezaId": "RD001110S012",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 24
+  },
+  {
+    "piezaId": "RD001110S012",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 24
+  },
+  {
+    "piezaId": "RD001108S011",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 20
+  },
+  {
+    "piezaId": "RD001108S011",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 20
+  },
+  {
+    "piezaId": "RD001110S011",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 24
+  },
+  {
+    "piezaId": "RD001110S011",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 24
+  },
+  {
+    "piezaId": "RD001110S008",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 20
+  },
+  {
+    "piezaId": "RD001110S008",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 20
+  },
+  {
+    "piezaId": "RD001110S009",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 20
+  },
+  {
+    "piezaId": "RD001110S009",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 20
+  },
+  {
+    "piezaId": "RD001110S010",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 20
+  },
+  {
+    "piezaId": "RD001110S010",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 20
+  },
+  {
+    "piezaId": "RD001110S008",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 24
+  },
+  {
+    "piezaId": "RD001110S008",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 24
+  },
+  {
+    "piezaId": "RD001110S009",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 24
+  },
+  {
+    "piezaId": "RD001110S009",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 24
+  },
+  {
+    "piezaId": "RD001110S010",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 24
+  },
+  {
+    "piezaId": "RD001110S010",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 24
+  },
+  {
+    "piezaId": "PS02CP100i001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 6
+  },
+  {
+    "piezaId": "PS02CP100i003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 6
+  },
+  {
+    "piezaId": "PS02CP100i003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 6
+  },
+  {
+    "piezaId": "PS02CP100i003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 6
+  },
+  {
+    "piezaId": "PS02CP100i004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS02CP100i004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS02CP100i004",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS02CP100i004",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS02CP100i005",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS02CP100i005",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS02CP100i005",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS02CP100i005",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS02CP100i006",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 8
+  },
+  {
+    "piezaId": "PS02CP100i006",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 8
+  },
+  {
+    "piezaId": "PS02CP100i006",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 8
+  },
+  {
+    "piezaId": "PS02CP100i006",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 8
+  },
+  {
+    "piezaId": "PS02CP100i007",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i007",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i007",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i007",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i008",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i008",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i008",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i008",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i009",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i009",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i009",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i009",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i010",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i010",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i010",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i010",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i011",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i011",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i011",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i011",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i012",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS02CP100i012",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS02CP100i012",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS02CP100i012",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS02CP100i013",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i013",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i013",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i013",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i014",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i014",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i014",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i014",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i101",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i101",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i101",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i101",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i102",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i102",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i102",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i102",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i103",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i103",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i103",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i103",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i104",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i104",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i104",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i104",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i105",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i105",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i105",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i105",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i106",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i106",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i106",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i106",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i107",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i107",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i107",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i107",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i108",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i108",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i108",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i108",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i201",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i201",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i201",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i201",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i202",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i202",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i202",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i202",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i203",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i203",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i203",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i203",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i301",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i301",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i301",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i301",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i302",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i302",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i302",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i302",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i303",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i303",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i303",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i303",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i304",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i304",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i304",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i304",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i305",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i305",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i305",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i305",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i401",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i401",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i401",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i401",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i402",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i402",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i402",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i402",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i403",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i403",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i403",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i403",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i501",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i501",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i501",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i501",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i502",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i502",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i502",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i502",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i503",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i503",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i503",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i503",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i504",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i504",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i504",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i504",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i505",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i505",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i505",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i505",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i506",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i506",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i506",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i506",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS02CP100i507",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i507",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i507",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i507",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i508",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i508",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i508",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS02CP100i508",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i009",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i009",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i009",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i009",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I021",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I021",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I021",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I021",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS04CR124s001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS04CR124s001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS04CR120s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS04CR120s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS04CR124s002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS04CR124s002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS04CR124s002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS04CR124s002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS04CR124s003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS04CR124s003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS04CR124s003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS04CR124s003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS120s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS120s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s004",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s004",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s005",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s005",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s005",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s005",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s006",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s006",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s006",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS05DS124s006",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I217",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I217",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I217",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I217",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I216",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I216",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I216",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I216",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s004",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS06EY100s004",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL120s001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL120s001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL120s002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL120s002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL120s003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL120s003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s004",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s004",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s005",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s005",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s005",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS07PDL124s005",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s004",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s004",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s005",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s005",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s005",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s005",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s006",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s006",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s006",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s006",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s007",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s007",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s007",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s007",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s008",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s008",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s008",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s008",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s009",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s009",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s009",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s009",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s010",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s010",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s010",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s010",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s011",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s011",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s011",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s011",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s012",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s012",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s012",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s012",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s013",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s013",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s013",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s013",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s014",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s014",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s014",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s014",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s015",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s015",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s015",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s015",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s016",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s016",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s016",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s016",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s017",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s017",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s017",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s017",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s018",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s018",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s018",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s018",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "PS09FC100s019",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s019",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s019",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s019",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s020",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s020",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s020",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s020",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s021",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s021",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s021",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s021",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s022",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s022",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s022",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s022",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s023",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s023",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s023",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s023",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s024",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s024",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s024",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s024",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s025",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s025",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s025",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s025",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s026",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s026",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s026",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FC100s026",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD009100S003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD009100S003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD009100S003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD009100S004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD009100S004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD009100S004",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD009100S004",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD003100I021",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD003100I021",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD003100I021",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD003100I021",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS09FDC100s101",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FDC100s101",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FDC100s101",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FDC100s101",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FDC100s102",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FDC100s102",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FDC100s102",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS09FDC100s102",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s004",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s004",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s100",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s100",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s100",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS10TL100s100",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s101",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s101",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s101",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s101",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s102",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s102",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s102",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s102",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s103",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s103",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s103",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s103",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s201",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s201",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s201",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s201",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s202",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s202",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s202",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s202",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s300",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s300",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s300",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12CDD100s300",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s004",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS13AS100s004",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12AS100s005",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12AS100s005",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12AS100s005",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS12AS100s005",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS14RED100s003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS14RED100s003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS14RED100s003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS14RED100s004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s004",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s004",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s005",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s005",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s005",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s005",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s006",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s006",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s006",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s006",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s007",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s007",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s007",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s007",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s008",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s008",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s008",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s008",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s009",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s009",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s009",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s009",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s010",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s010",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s010",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s010",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s011",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s011",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s011",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s011",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s012",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s012",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s012",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s012",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS14RED100s013",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS14RED100s013",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS14RED100s013",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS14RED100s013",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "WI 150 1.30 con brida",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "WI 150 1.30 con brida",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "WI 150 1.30 con brida",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "WI 150 1.30 con brida",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "R_I_150_FL_1_28_SIN_M6_OUTOIL_TypSTM_N",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "R_I_150_FL_1_28_SIN_M6_OUTOIL_TypSTM_N",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "R_I_150_FL_1_28_SIN_M6_OUTOIL_TypSTM_N",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "R_I_150_FL_1_28_SIN_M6_OUTOIL_TypSTM_N",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "CE_VL2 IE3_2_132_S1_B3_2_B3_-_55_21_5_5_4_4_S1_AV_-_-_-_-_-_-_5010",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "CE_VL2 IE3_2_132_S1_B3_2_B3_-_55_21_5_5_4_4_S1_AV_-_-_-_-_-_-_5010",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "CE_VL2 IE3_2_132_S1_B3_2_B3_-_55_21_5_5_4_4_S1_AV_-_-_-_-_-_-_5010",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "CE_VL2 IE3_2_132_S1_B3_2_B3_-_55_21_5_5_4_4_S1_AV_-_-_-_-_-_-_5010",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s004",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s004",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s005",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s005",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s005",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s005",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15MP100s006",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS15MP100s006",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS15MP100s006",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS15MP100s006",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS15MP100s007",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS15MP100s007",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS15MP100s007",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS15MP100s007",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS16ES100s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s004",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s004",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS16ES100s005",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s005",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s005",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s005",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s006",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS16ES100s006",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS16ES100s006",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS16ES100s006",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "PS16ES100s007",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s007",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s007",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s007",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s008",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s008",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s008",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s008",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s009",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s009",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s009",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s009",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s010",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s010",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s010",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS16ES100s010",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "PS15ES100s011",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15ES100s011",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15ES100s011",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15ES100s011",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15ES100s012",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15ES100s012",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15ES100s012",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS15ES100s012",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s001",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s001",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s001",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s001",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s002",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s002",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s002",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s002",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s003",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s003",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s003",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s003",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s004",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s004",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s004",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s004",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s005",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s005",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s005",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s005",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s006",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s006",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s006",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s006",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s007",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s007",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s007",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s007",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s008",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s008",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s008",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s008",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s009",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s009",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s009",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s009",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s010",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s010",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s010",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s010",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s011",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s011",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s011",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s011",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s012",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s012",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s012",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s012",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s013",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s013",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s013",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s013",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s014",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s014",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s014",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s014",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s015",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s015",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s015",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s015",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s017",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s017",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s017",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s017",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s018",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s018",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s018",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s018",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s021",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s021",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s021",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s021",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s022",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s022",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s022",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s022",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s023",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s023",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s023",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "PS17CE100s023",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S018",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S018",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S018",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S018",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S020",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S020",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S020",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S020",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S024",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S024",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S024",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S024",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S027",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S027",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S027",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S027",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S030",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S030",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S030",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S030",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S031",
+    "configuracionId": "ps120i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S031",
+    "configuracionId": "ps120s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S031",
+    "configuracionId": "ps124i",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S031",
+    "configuracionId": "ps124s",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001110S007",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 10
+  },
+  {
+    "piezaId": "RD001108S007",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 8
+  },
+  {
+    "piezaId": "RD001108S100",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001110S012",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001108S011",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 16
+  },
+  {
+    "piezaId": "RD001110S011",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001110S008",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001110S009",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001110S010",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i009",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I021",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I217",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I216",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD009100S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD009100S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD017100S018",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "RD017100S020",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S024",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 7
+  },
+  {
+    "piezaId": "RD017100S027",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S030",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 7
+  },
+  {
+    "piezaId": "RD017100S031",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 8
+  },
+  {
+    "piezaId": "RD001108S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001108S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001108S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001108S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001108S005",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001108S006",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD001108S008",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 8
+  },
+  {
+    "piezaId": "RD001108S009",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 8
+  },
+  {
+    "piezaId": "RD001108S010",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 8
+  },
+  {
+    "piezaId": "RD001108S012",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 8
+  },
+  {
+    "piezaId": "RD001108S101",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001108S102",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001110S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001110S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001110S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001110S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD001110S005",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 10
+  },
+  {
+    "piezaId": "RD001110S006",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 20
+  },
+  {
+    "piezaId": "RD001110S101",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001110S102",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001144S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001144S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001144S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD001144S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD002100i001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD002100i002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD002100i003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD002100i005",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i006",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i007",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i008",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i010",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i011",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i012",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i013",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD002100i014",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i015",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i016",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i017",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i018",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i019",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i020",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD002100i101",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i102",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD002100i103",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD002100i104",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD002100i105",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i106",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i107",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i201",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i202",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i203",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i204",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD002100i021",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I218",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I101",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I102",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I103",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I201",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I202",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I203",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I204",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I205",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I206",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I207",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I208",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I209",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I210",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I211",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD003100I212",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD003100I213",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD003100I214",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD003100I215",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD004100S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD004108S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD004100S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD004100S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD004100S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD005100S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD005100S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD005100S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD005100S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD005100S005",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD005110S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD005100S006",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD005100S007",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD005100S008",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD005100S009",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD006100I001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD006100I002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD006100I003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD006100S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD007110S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD007110S006",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD007108S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD007108S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD007108S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD007108S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD007110S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD007110S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD007110S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD007110S005",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD008100S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD008100S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD008100S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD008100S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD008100S005",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD008100S006",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S005",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S006",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S007",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S008",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S009",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S010",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S011",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S012",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S013",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S014",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S015",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S016",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S017",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S018",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S101",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S102",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S103",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD009100S104",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "RD009100S105",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD009100S106",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD009100S107",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "RD009100S108",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD009100S109",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S110",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD009100S111",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD009100S112",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD011100S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD011100S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD011100S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD011100S100",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD012100S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD012100S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD012100S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD012100S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD012100S005",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD012100S006",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD012100S007",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD012100S008",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD013100S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD013100S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD013100S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD013100S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD014100S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD014100S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD014100S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD014100S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD014100S006",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD014100S101",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD014100S102",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD014100S009",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD014100S005",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD014100S007",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD014100S008",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD014100S103",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD014100S201",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD014100S202",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD015100S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD015100S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD015100S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD015100S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD015100S005",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD015100S006",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD016100S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD016100S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD016100S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD016100S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD016100S005",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD016100S006",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD016100S007",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD016100S008",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD016100S009",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD016100S010",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD016100S011",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD016100S012",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD016100S013",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD016100S014",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD016100S015",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S001",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "RD017100S002",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S003",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S004",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "RD017100S005",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S006",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S007",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S008",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S009",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S010",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S011",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S012",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S013",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 4
+  },
+  {
+    "piezaId": "RD017100S014",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S015",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S016",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S017",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "RD017100S019",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 2
+  },
+  {
+    "piezaId": "RD017100S021",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 8
+  },
+  {
+    "piezaId": "RD017100S022",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S023",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S025",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 3
+  },
+  {
+    "piezaId": "RD017100S026",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S028",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  },
+  {
+    "piezaId": "RD017100S029",
+    "configuracionId": "rd-std",
+    "cantidadNecesaria": 1
+  }
+]

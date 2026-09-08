@@ -1,0 +1,170 @@
+[
+  {
+    "id": "COMPRAS",
+    "codigo": "COMPRAS",
+    "nombre": "Compras",
+    "ordenFlujo": 0,
+    "esExterno": true
+  },
+  {
+    "id": "FUNDICION",
+    "codigo": "FUNDICION",
+    "nombre": "Fundición",
+    "ordenFlujo": 10,
+    "esExterno": false
+  },
+  {
+    "id": "FIERRO",
+    "codigo": "FIERRO",
+    "nombre": "Fierro",
+    "ordenFlujo": 20,
+    "esExterno": false
+  },
+  {
+    "id": "TORNO",
+    "codigo": "TORNO",
+    "nombre": "Torno",
+    "ordenFlujo": 30,
+    "esExterno": false
+  },
+  {
+    "id": "CNC",
+    "codigo": "CNC",
+    "nombre": "Centro CNC",
+    "ordenFlujo": 40,
+    "esExterno": false
+  },
+  {
+    "id": "CORTE_HILO",
+    "codigo": "CORTE_HILO",
+    "nombre": "Corte por hilo",
+    "ordenFlujo": 50,
+    "esExterno": false
+  },
+  {
+    "id": "FRESADO",
+    "codigo": "FRESADO",
+    "nombre": "Fresado",
+    "ordenFlujo": 60,
+    "esExterno": false
+  },
+  {
+    "id": "MECANIZADO",
+    "codigo": "MECANIZADO",
+    "nombre": "Mecanizado",
+    "ordenFlujo": 70,
+    "esExterno": false
+  },
+  {
+    "id": "ROSCADO",
+    "codigo": "ROSCADO",
+    "nombre": "Roscado",
+    "ordenFlujo": 75,
+    "esExterno": false
+  },
+  {
+    "id": "CHAVETERO",
+    "codigo": "CHAVETERO",
+    "nombre": "Chavetero",
+    "ordenFlujo": 76,
+    "esExterno": false
+  },
+  {
+    "id": "TALLADO",
+    "codigo": "TALLADO",
+    "nombre": "Tallado",
+    "ordenFlujo": 80,
+    "esExterno": false
+  },
+  {
+    "id": "SOLDADURA",
+    "codigo": "SOLDADURA",
+    "nombre": "Soldadura",
+    "ordenFlujo": 90,
+    "esExterno": false
+  },
+  {
+    "id": "TEMPLADO",
+    "codigo": "TEMPLADO",
+    "nombre": "Templado",
+    "ordenFlujo": 100,
+    "esExterno": false
+  },
+  {
+    "id": "RECTIFICADO",
+    "codigo": "RECTIFICADO",
+    "nombre": "Rectificado",
+    "ordenFlujo": 110,
+    "esExterno": false
+  },
+  {
+    "id": "ARENADO",
+    "codigo": "ARENADO",
+    "nombre": "Arenado",
+    "ordenFlujo": 115,
+    "esExterno": false
+  },
+  {
+    "id": "PULIDO",
+    "codigo": "PULIDO",
+    "nombre": "Pulido",
+    "ordenFlujo": 120,
+    "esExterno": false
+  },
+  {
+    "id": "ANODIZADO",
+    "codigo": "ANODIZADO",
+    "nombre": "Anodizado",
+    "ordenFlujo": 130,
+    "esExterno": true
+  },
+  {
+    "id": "PAVONADO",
+    "codigo": "PAVONADO",
+    "nombre": "Pavonado",
+    "ordenFlujo": 140,
+    "esExterno": true
+  },
+  {
+    "id": "CROMADO",
+    "codigo": "CROMADO",
+    "nombre": "Cromado",
+    "ordenFlujo": 150,
+    "esExterno": true
+  },
+  {
+    "id": "CROMADO_ANODIZADO",
+    "codigo": "CROMADO_ANODIZADO",
+    "nombre": "Cromado/anodizado",
+    "ordenFlujo": 155,
+    "esExterno": true
+  },
+  {
+    "id": "GRABADO_LASER",
+    "codigo": "GRABADO_LASER",
+    "nombre": "Grabado láser",
+    "ordenFlujo": 160,
+    "esExterno": false
+  },
+  {
+    "id": "IMPRESION_3D",
+    "codigo": "IMPRESION_3D",
+    "nombre": "Impresión 3D",
+    "ordenFlujo": 165,
+    "esExterno": false
+  },
+  {
+    "id": "PINTURA",
+    "codigo": "PINTURA",
+    "nombre": "Pintura",
+    "ordenFlujo": 170,
+    "esExterno": false
+  },
+  {
+    "id": "TALLER",
+    "codigo": "TALLER",
+    "nombre": "Taller (armado)",
+    "ordenFlujo": 180,
+    "esExterno": false
+  }
+]

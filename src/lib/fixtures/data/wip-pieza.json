@@ -1,0 +1,102 @@
+[
+  {
+    "piezaId": "RD003100I102",
+    "procesoId": "CROMADO",
+    "cantidad": 2
+  },
+  {
+    "piezaId": "RD003100I206",
+    "procesoId": "CORTE_HILO",
+    "cantidad": 3
+  },
+  {
+    "piezaId": "RD006100S001",
+    "procesoId": "PAVONADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "RD006100S001",
+    "procesoId": "CROMADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "RD007108S002",
+    "procesoId": "MECANIZADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "RD008100S004",
+    "procesoId": "TORNO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "RD009100S106",
+    "procesoId": "TORNO",
+    "cantidad": 14
+  },
+  {
+    "piezaId": "RD016100S001",
+    "procesoId": "MECANIZADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "RD016100S002",
+    "procesoId": "MECANIZADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "RD016100S003",
+    "procesoId": "MECANIZADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "RD016100S004",
+    "procesoId": "MECANIZADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "PS01CB120s001",
+    "procesoId": "MECANIZADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "PS01CB120s002",
+    "procesoId": "MECANIZADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "PS01CB120s003",
+    "procesoId": "MECANIZADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "PS01CB124s006",
+    "procesoId": "RECTIFICADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "PS02CP100i501",
+    "procesoId": "PAVONADO",
+    "cantidad": 2
+  },
+  {
+    "piezaId": "PS05DS124s001",
+    "procesoId": "FRESADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "PS09FC100s009",
+    "procesoId": "MECANIZADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "PS14RED100s006",
+    "procesoId": "PAVONADO",
+    "cantidad": 1
+  },
+  {
+    "piezaId": "PS15MP100s004",
+    "procesoId": "CORTE_HILO",
+    "cantidad": 1
+  }
+]
