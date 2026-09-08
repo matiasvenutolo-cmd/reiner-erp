@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { getResumenWipPorProceso } from "@/lib/data/stock";
-import { FIXTURES } from "@/lib/data/fixtures-loader";
+import { getResumenWipPorProceso, getStockDisponible } from "@/lib/data/stock";
+import { buscarPiezas } from "@/lib/data/maestros";
 
 export default async function StockPage({
   searchParams,
@@ -10,16 +10,11 @@ export default async function StockPage({
   const { q } = await searchParams;
   const wip = await getResumenWipPorProceso();
 
-  const query = (q ?? "").trim().toLowerCase();
-  const resultados = query
-    ? FIXTURES.piezas
-        .filter((p) => p.codigo.toLowerCase().includes(query) || p.nombre.toLowerCase().includes(query))
-        .slice(0, 30)
-        .map((p) => ({
-          pieza: p,
-          stock: FIXTURES.stockPieza.find((s) => s.piezaId === p.id)?.cantidadDisponible ?? 0,
-        }))
-    : [];
+  const query = (q ?? "").trim();
+  const piezasEncontradas = query ? await buscarPiezas(query) : [];
+  const resultados = await Promise.all(
+    piezasEncontradas.map(async (p) => ({ pieza: p, stock: await getStockDisponible(p.id) })),
+  );
 
   return (
     <div className="space-y-8">

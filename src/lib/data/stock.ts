@@ -6,58 +6,60 @@
  * Ninguna de las dos es la foto completa por sí sola: para saber cuánto
  * existe TOTAL de una pieza (disponible + en proceso) hay que sumar ambas.
  */
-import { FIXTURES } from "./fixtures-loader";
-import { getProceso } from "./maestros";
+import { eq, lt, sql } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { stockPieza, wipPieza, pieza, proceso } from "@/lib/db/schema";
 
 export async function getStockDisponible(piezaId: string): Promise<number> {
-  return FIXTURES.stockPieza.find((s) => s.piezaId === piezaId)?.cantidadDisponible ?? 0;
+  const [row] = await db
+    .select({ cantidad: stockPieza.cantidadDisponible })
+    .from(stockPieza)
+    .where(eq(stockPieza.piezaId, piezaId));
+  return row?.cantidad ?? 0;
 }
 
 export type WipEtapa = { procesoId: string; procesoNombre: string; cantidad: number };
 
 export async function getWipPorPieza(piezaId: string): Promise<WipEtapa[]> {
-  const filas = FIXTURES.wipPieza.filter((w) => w.piezaId === piezaId);
-  const conNombre = await Promise.all(
-    filas.map(async (f) => ({
-      procesoId: f.procesoId,
-      procesoNombre: (await getProceso(f.procesoId))?.nombre ?? f.procesoId,
-      cantidad: f.cantidad,
-    })),
-  );
-  return conNombre;
+  const rows = await db
+    .select({ procesoId: wipPieza.procesoId, procesoNombre: proceso.nombre, cantidad: wipPieza.cantidad })
+    .from(wipPieza)
+    .innerJoin(proceso, eq(proceso.id, wipPieza.procesoId))
+    .where(eq(wipPieza.piezaId, piezaId));
+  return rows;
 }
 
 export async function getWipTotalPorPieza(piezaId: string): Promise<number> {
-  return FIXTURES.wipPieza.filter((w) => w.piezaId === piezaId).reduce((acc, w) => acc + w.cantidad, 0);
+  const [row] = await db
+    .select({ total: sql<number>`coalesce(sum(${wipPieza.cantidad}), 0)`.mapWith(Number) })
+    .from(wipPieza)
+    .where(eq(wipPieza.piezaId, piezaId));
+  return row?.total ?? 0;
 }
 
 /** Piezas con stock disponible por debajo de su mínimo (RF sugerido, Fase 2). */
 export async function getPiezasStockBajo(): Promise<{ piezaId: string; disponible: number; minimo: number }[]> {
-  return FIXTURES.piezas
-    .filter((p) => p.stockMinimo > 0)
-    .map((p) => ({
-      piezaId: p.id,
-      disponible: FIXTURES.stockPieza.find((s) => s.piezaId === p.id)?.cantidadDisponible ?? 0,
-      minimo: p.stockMinimo,
-    }))
-    .filter((r) => r.disponible < r.minimo);
+  const rows = await db
+    .select({ piezaId: pieza.id, disponible: stockPieza.cantidadDisponible, minimo: pieza.stockMinimo })
+    .from(pieza)
+    .innerJoin(stockPieza, eq(stockPieza.piezaId, pieza.id))
+    .where(lt(stockPieza.cantidadDisponible, pieza.stockMinimo));
+  return rows.map((r) => ({ piezaId: r.piezaId, disponible: r.disponible, minimo: r.minimo }));
 }
 
 /** Resumen de WIP agrupado por proceso, para un tablero general (todas las piezas). */
-export async function getResumenWipPorProceso(): Promise<{ procesoId: string; procesoNombre: string; piezas: number; unidades: number }[]> {
-  const porProceso = new Map<string, { piezas: number; unidades: number }>();
-  for (const w of FIXTURES.wipPieza) {
-    const acc = porProceso.get(w.procesoId) ?? { piezas: 0, unidades: 0 };
-    acc.piezas += 1;
-    acc.unidades += w.cantidad;
-    porProceso.set(w.procesoId, acc);
-  }
-  const resultado = await Promise.all(
-    [...porProceso.entries()].map(async ([procesoId, v]) => ({
-      procesoId,
-      procesoNombre: (await getProceso(procesoId))?.nombre ?? procesoId,
-      ...v,
-    })),
-  );
-  return resultado;
+export async function getResumenWipPorProceso(): Promise<
+  { procesoId: string; procesoNombre: string; piezas: number; unidades: number }[]
+> {
+  const rows = await db
+    .select({
+      procesoId: wipPieza.procesoId,
+      procesoNombre: proceso.nombre,
+      piezas: sql<number>`count(distinct ${wipPieza.piezaId})`.mapWith(Number),
+      unidades: sql<number>`coalesce(sum(${wipPieza.cantidad}), 0)`.mapWith(Number),
+    })
+    .from(wipPieza)
+    .innerJoin(proceso, eq(proceso.id, wipPieza.procesoId))
+    .groupBy(wipPieza.procesoId, proceso.nombre);
+  return rows;
 }

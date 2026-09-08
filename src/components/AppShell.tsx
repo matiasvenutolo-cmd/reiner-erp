@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getUsuarioActual } from "@/lib/session";
 import { getUsuarios } from "@/lib/data/usuarios";
 import { NAV_POR_ROL } from "@/lib/nav";
@@ -21,12 +22,10 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-border bg-surface">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded bg-accent text-accent-foreground grid place-items-center font-bold text-sm">
-              R
-            </div>
-            <div className="leading-tight">
-              <div className="font-semibold text-sm">REINER · Producción</div>
+          <div className="flex items-center gap-3">
+            <Image src="/reiner-logo.png" alt="REINER" width={112} height={24} priority />
+            <div className="leading-tight border-l border-border pl-3 hidden sm:block">
+              <div className="font-semibold text-sm">Producción</div>
               <div className="text-xs text-foreground-muted">mockup navegable — Fase 1</div>
             </div>
           </div>

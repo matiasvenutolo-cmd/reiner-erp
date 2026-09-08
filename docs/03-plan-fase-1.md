@@ -5,10 +5,13 @@ cargado con los datos reales de los Excel de REINER.
 
 ## Orden de construcción
 
-**✅ 0 · Andamiaje** — Next.js 16 + TS + Tailwind v4, layout con navegación por rol. Capa de datos
-detrás de una interfaz (`src/lib/data/`) para que el cambio de fixtures → Postgres sea un reemplazo
-de implementación, no una reescritura. Schema Drizzle ya escrito (`src/lib/db/schema.ts`) aunque
-todavía no hay conexión real. Pendiente: repo en GitHub y deploy a Vercel con preview por rama.
+**✅ 0 · Andamiaje** — Next.js 16 + TS + Tailwind v4, layout con navegación por rol. Repo en
+[GitHub](https://github.com/matiasvenutolo-cmd/reiner-erp), deploy en
+[reiner-erp.vercel.app](https://reiner-erp.vercel.app). Base real: Postgres en Neon conectado vía
+la integración de Storage de Vercel — se adelantó respecto del plan original (docs/01 §5.1 preveía
+conectarla recién en octubre) porque el store en memoria no sobrevive al modelo serverless de
+Vercel: cada request puede caer en una instancia distinta, así que una OT generada podía
+"desaparecer" en el siguiente request. Detectado y corregido en el primer deploy real.
 
 **✅ 1 · Migración de los Excel a fixtures tipadas** — `scripts/migrate-excel.ts`. Normaliza procesos
 (hallazgo 3.5), unifica el universo de piezas por prefijo de código (no por hoja de origen — hay
@@ -43,13 +46,17 @@ Auth.js al conectar Postgres).
 
 ## Cómo seguir desde acá
 
-- Repo en GitHub + deploy a Vercel (cierra el paso 0).
 - Código QR en la OT impresa para elegir la pieza en `/taller` sin buscar en la lista (mencionado
   como mejora en la reunión, §12 del PDF).
 - RF-11 (foto de pieza) y RF-08 en su forma completa (el cálculo de tiempo estándar ya existe en
   `src/lib/data/ejecucion.ts`, falta exponerlo de forma más visible en `/maestros/pieza/[id]`).
 - Validar con Julián/Horacio las asunciones del reporte de migración antes de mostrar la demo como
   definitiva — son suposiciones razonables, no confirmaciones.
+- El sitio hoy es público sin contraseña (decisión consciente para esta etapa, ver conversación con
+  Matías). Revisar si conviene activar Vercel Deployment Protection antes de que el link circule
+  más ampliamente.
+- Autenticación real (Auth.js) y control de acceso por rol quedan para la conexión definitiva —
+  hoy el selector de usuario es sólo wayfinding, cualquiera puede actuar como cualquier rol.
 
 ## Reglas de diseño no negociables
 

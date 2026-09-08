@@ -52,7 +52,7 @@ export default async function OtPage() {
                     <div className="text-xs text-foreground-muted">Serie {ot.numeroSerie}</div>
                   </td>
                   <td className="px-4 py-2.5">{ot.configuracion?.nombre ?? "—"}</td>
-                  <td className="px-4 py-2.5">{ot.observaciones ?? "—"}</td>
+                  <td className="px-4 py-2.5">{ot.clienteNombre ?? "—"}</td>
                   <td className="px-4 py-2.5 text-foreground-muted">{ot.plazoEntrega ?? "—"}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">
                     {ot.piezasTerminadas} / {ot.totalPiezasAFabricar}

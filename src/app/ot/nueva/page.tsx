@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { getConfiguraciones, getModelos } from "@/lib/data/maestros";
 import { getUsuarioActual } from "@/lib/session";
-import { CLIENTES_DEMO } from "@/lib/data/ot";
+import { getClientes } from "@/lib/data/clientes";
 import { crearOtMaquinaAction } from "@/app/actions/ot";
 
 export default async function NuevaOtPage() {
-  const [configuraciones, modelos, usuario] = await Promise.all([
+  const [configuraciones, modelos, usuario, clientes] = await Promise.all([
     getConfiguraciones(),
     getModelos(),
     getUsuarioActual(),
+    getClientes(),
   ]);
 
   return (
@@ -47,9 +48,9 @@ export default async function NuevaOtPage() {
         </Field>
 
         <Field label="Cliente">
-          <select name="clienteNombre" className="input">
-            {CLIENTES_DEMO.map((c) => (
-              <option key={c.id} value={c.razonSocial}>
+          <select name="clienteId" required className="input">
+            {clientes.map((c) => (
+              <option key={c.id} value={c.id}>
                 {c.razonSocial}
               </option>
             ))}

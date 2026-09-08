@@ -9,7 +9,7 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const detalle = await getOtMaquinaDetalle(id);
   if (!detalle) notFound();
-  const { otMaquina, configuracion, conjuntos, estadoCalculado } = detalle;
+  const { otMaquina, clienteNombre, configuracion, conjuntos, estadoCalculado } = detalle;
 
   const conjuntosConPiezas = await Promise.all(
     conjuntos
@@ -37,7 +37,7 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
           </Link>
           <h1 className="text-xl font-semibold mt-1">{otMaquina.codigo}</h1>
           <p className="text-sm text-foreground-muted">
-            {configuracion?.nombre} · Serie {otMaquina.numeroSerie} · {otMaquina.observaciones}
+            {configuracion?.nombre} · Serie {otMaquina.numeroSerie} · {clienteNombre}
           </p>
         </div>
         <EstadoBadge estado={estadoCalculado} />

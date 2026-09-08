@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getConjunto, getPiezasPorConjunto, getRoutingPieza } from "@/lib/data/maestros";
+import { getConjunto, getPiezasPorConjunto, getRoutingPieza, modeloDeCodigo } from "@/lib/data/maestros";
 import { getStockDisponible, getWipTotalPorPieza } from "@/lib/data/stock";
 
 export default async function ConjuntoPage({ params }: { params: Promise<{ conjuntoId: string }> }) {
@@ -52,7 +52,7 @@ export default async function ConjuntoPage({ params }: { params: Promise<{ conju
                   </Link>
                 </td>
                 <td className="px-4 py-2.5">{pieza.nombre}</td>
-                <td className="px-4 py-2.5 text-foreground-muted">{pieza.modeloId}</td>
+                <td className="px-4 py-2.5 text-foreground-muted">{modeloDeCodigo(pieza.codigo)}</td>
                 <td className="px-4 py-2.5 text-right tabular-nums">{stock}</td>
                 <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">{wip || "—"}</td>
                 <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">

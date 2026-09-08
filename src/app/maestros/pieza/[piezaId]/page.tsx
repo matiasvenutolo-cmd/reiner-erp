@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPieza, getConjunto, getRoutingPieza } from "@/lib/data/maestros";
+import { getPieza, getConjunto, getRoutingPieza, modeloDeCodigo } from "@/lib/data/maestros";
 import { getStockDisponible, getWipPorPieza } from "@/lib/data/stock";
 
 export default async function PiezaPage({ params }: { params: Promise<{ piezaId: string }> }) {
@@ -26,7 +26,7 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Metric label="Modelo" value={pieza.modeloId} />
+        <Metric label="Modelo" value={modeloDeCodigo(pieza.codigo)} />
         <Metric label="Revisión" value={pieza.revision ?? "—"} />
         <Metric label="Stock disponible" value={String(stock)} />
         <Metric label="En proceso" value={String(wip.reduce((a, w) => a + w.cantidad, 0)) || "0"} />

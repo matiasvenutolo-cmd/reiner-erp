@@ -7,19 +7,19 @@ import { generarOtMaquina, actualizarCantidadAFabricar } from "@/lib/data/ot";
 export async function crearOtMaquinaAction(formData: FormData) {
   const configuracionId = String(formData.get("configuracionId") ?? "");
   const numeroSerie = String(formData.get("numeroSerie") ?? "").trim();
-  const clienteNombre = String(formData.get("clienteNombre") ?? "").trim();
+  const clienteId = String(formData.get("clienteId") ?? "").trim();
   const ordenCompra = String(formData.get("ordenCompra") ?? "").trim();
   const plazoEntrega = String(formData.get("plazoEntrega") ?? "").trim();
   const emitidoPor = String(formData.get("emitidoPor") ?? "").trim();
 
-  if (!configuracionId || !numeroSerie || !emitidoPor) {
-    throw new Error("Faltan datos obligatorios: configuración, número de serie y emitido por.");
+  if (!configuracionId || !numeroSerie || !clienteId || !emitidoPor) {
+    throw new Error("Faltan datos obligatorios: configuración, número de serie, cliente y emitido por.");
   }
 
   const id = await generarOtMaquina({
     configuracionId,
     numeroSerie,
-    clienteNombre: clienteNombre || "Sin especificar",
+    clienteId,
     ordenCompra: ordenCompra || undefined,
     plazoEntrega: plazoEntrega || undefined,
     emitidoPor,

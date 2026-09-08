@@ -2,17 +2,17 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUsuarioActual } from "@/lib/session";
 import { getOperacionAbierta } from "@/lib/data/ejecucion";
-import { store } from "@/lib/data/store";
 import { getPieza, getConjunto, getRoutingPieza } from "@/lib/data/maestros";
-import { estadoDePieza } from "@/lib/data/ot";
+import { estadoDePieza, listarTodasLasOtPieza } from "@/lib/data/ot";
 
 export default async function TallerPage() {
   const usuario = await getUsuarioActual();
   const abierta = await getOperacionAbierta(usuario.id);
   if (abierta) redirect(`/taller/${abierta.otPiezaId}`);
 
+  const todasLasOtPieza = await listarTodasLasOtPieza();
   const candidatas = await Promise.all(
-    store.otPieza.map(async (otPieza) => {
+    todasLasOtPieza.map(async (otPieza) => {
       const { estado, sinRouting } = await estadoDePieza(otPieza);
       if (estado === "terminada") return null;
       const pieza = await getPieza(otPieza.piezaId);
