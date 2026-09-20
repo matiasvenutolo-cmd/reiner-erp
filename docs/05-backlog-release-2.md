@@ -284,5 +284,32 @@ clientes: REINER no mandó su maestro real todavía.
 (sin control de calidad, que sólo aplica al ingresar) para que el "panel de ingresos y egresos"
 del pedido original sea funcional en ambos sentidos, no sólo de lectura.
 
-**Sin empezar:** el resto del orden de §8 (OT de conjunto/pieza suelta, panel de indicadores,
-tareas de revisión de retrabajo, control de armado, remitos).
+**✅ Paquete 6 — OT de conjunto o pieza suelta (2026-09-20).** En `/ot/[id]`: cada conjunto con
+piezas a fabricar tiene ahora un formulario "+ Pieza suelta" al pie de su tabla (elegir una pieza
+del BOM de ese conjunto + cantidad, sin pasar por ningún cálculo — la cantidad la decide quien la
+pide, para un repuesto o una pieza rota a refabricar). Los conjuntos que habían quedado "sin
+piezas a fabricar" (el stock los cubría al generar la OT) tienen un botón "Generar OT de todas
+formas →" que vuelve a correr la explosión de piezas de ESE conjunto puntual contra el stock
+actual — probado en el navegador: ejecuta sin error; para el conjunto probado no generó piezas
+nuevas porque esa combinación no tenía piezas en el BOM de esa configuración específica en
+particular, no porque el botón falle.
+
+**La pregunta que quedó abierta en §7 y cómo se resolvió — a confirmar con Julián:** "¿la OT
+suelta debe colgar de una máquina existente para trazabilidad, o es un tipo de orden
+independiente? ¿Cómo se codifica?" Se resolvió que **siempre cuelga de una OT de máquina ya
+existente** — no es un tipo de orden nuevo. La razón: preserva la trazabilidad por máquina que
+el propio proyecto se propuso como objetivo (docs/01-analisis.md §5.1) sin tocar el esquema de
+códigos. Un hallazgo que simplificó todavía más el diseño: `generarOtMaquina` ya crea una fila
+`ot_conjunto` para **todos** los conjuntos del modelo al generar la OT de máquina, no sólo para
+los que terminan con piezas — así que "generar una OT de conjunto suelta" nunca fue crear una
+fila nueva, es volver a correr la explosión sobre una que ya existía vacía. Eso resolvió también
+la pregunta de codificación: se sigue usando el mismo código de conjunto que ya tenía asignado,
+y las piezas siguen la numeración secuencial `P1, P2...` de siempre.
+
+**Límite conocido, no resuelto:** esto no cubre una máquina entregada antes de que existiera
+este sistema (no tiene fila en `ot_maquina`). Si Horacio necesita generar un repuesto para una
+máquina vieja que REINER fabricó hace años, hoy no hay forma de hacerlo sin antes cargar esa
+máquina como una OT retroactiva — queda para cuando surja el caso real.
+
+**Sin empezar:** el resto del orden de §8 (panel de indicadores, tareas de revisión de
+retrabajo, control de armado, remitos).

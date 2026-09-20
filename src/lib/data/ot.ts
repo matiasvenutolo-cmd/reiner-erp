@@ -197,6 +197,99 @@ export async function generarOtMaquina(input: NuevaOtMaquinaInput): Promise<stri
   return nuevaOt.id;
 }
 
+/**
+ * OT de conjunto o de pieza sueltas (Release 2, paquete 6 — pedido de
+ * Horacio: "que se puedan generar OT tanto de conjuntos y de piezas, no
+ * solo OT de máquina"). Decisión de diseño, no confirmada con Julián (ver
+ * docs/05-backlog-release-2.md §9): la OT suelta siempre cuelga de una OT de
+ * máquina YA EXISTENTE — no es un tipo de orden independiente. Se eligió así
+ * porque preserva la trazabilidad por máquina que el propio proyecto se
+ * propone (docs/01-analisis.md §5.1: "el sistema va a ser la única fuente de
+ * trazabilidad de máquinas que quedan en servicio 8+ años") sin tocar el
+ * esquema de códigos ni requerir una tabla nueva. Límite conocido: no cubre
+ * una máquina entregada antes de que existiera este sistema, que no tiene
+ * fila en `ot_maquina` — queda para cuando surja el caso real.
+ *
+ * A nivel de conjunto no hace falta "crear" nada: `generarOtMaquina` ya
+ * inserta una fila en `ot_conjunto` para TODOS los conjuntos del modelo, no
+ * sólo los que terminan con piezas a fabricar — los que el stock cubría
+ * quedan con la fila pero sin piezas (`conjuntosSinFabricar` en
+ * `/ot/[id]`). Por eso "generar OT de conjunto suelta" es, en los hechos,
+ * volver a correr la explosión de piezas sobre ese `ot_conjunto` ya
+ * existente, no crear uno nuevo.
+ */
+
+/**
+ * Vuelve a correr la explosión de piezas de un conjunto que quedó sin
+ * fabricar (el `ot_conjunto` ya existe desde que se generó la OT de máquina
+ * — TODOS los conjuntos del modelo la tienen, sólo que algunos quedan sin
+ * piezas si el stock alcanzaba en ese momento). Re-chequea el stock actual,
+ * no lo fuerza: si otras OT consumieron stock desde entonces, esto puede
+ * generar piezas que antes no hacían falta — mismo cálculo y misma regla
+ * que `generarOtMaquina` (PI-04 §4.2.1).
+ */
+export async function completarOtConjunto(otConjuntoId: string): Promise<number> {
+  const [otc] = await db.select().from(otConjunto).where(eq(otConjunto.id, otConjuntoId));
+  if (!otc) throw new Error("OT de conjunto inexistente.");
+
+  const existentes = await db.select({ id: otPieza.id }).from(otPieza).where(eq(otPieza.otConjuntoId, otConjuntoId));
+  if (existentes.length > 0) {
+    throw new Error("Este conjunto ya tiene piezas a fabricar — para sumar una puntual, agregá una pieza suelta.");
+  }
+
+  const [maquina] = await db.select().from(otMaquina).where(eq(otMaquina.id, otc.otMaquinaId));
+  if (!maquina) throw new Error("OT de máquina inexistente.");
+
+  const piezasConfig = (await getPiezasPorConfiguracion(maquina.configuracionId)).filter((p) => p.conjuntoId === otc.conjuntoId);
+  const piezasAInsertar: (typeof otPieza.$inferInsert)[] = [];
+  let seq = 0;
+  for (const pieza of piezasConfig) {
+    const stockDisponible = await getStockDisponible(pieza.id);
+    const propuesta = Math.max(pieza.cantidadNecesaria - stockDisponible, 0);
+    if (propuesta <= 0) continue;
+    seq += 1;
+    piezasAInsertar.push({
+      codigo: `${otc.codigo}P${seq}`,
+      otConjuntoId: otc.id,
+      piezaId: pieza.id,
+      material: pieza.material,
+      cantidadNecesaria: pieza.cantidadNecesaria,
+      stockAlGenerar: stockDisponible,
+      cantidadAFabricar: propuesta,
+      estado: "pendiente",
+    });
+  }
+  if (piezasAInsertar.length) await db.insert(otPieza).values(piezasAInsertar);
+
+  return piezasAInsertar.length;
+}
+
+/** Agrega una pieza suelta a una OT de conjunto ya existente (repuesto,
+ * pieza rota a refabricar, etc.) — la cantidad la decide quien la pide, no
+ * sale de ningún cálculo de BOM. */
+export async function generarOtPiezaSuelta(input: { otConjuntoId: string; piezaId: string; cantidadAFabricar: number }): Promise<string> {
+  const [otc] = await db.select().from(otConjunto).where(eq(otConjunto.id, input.otConjuntoId));
+  if (!otc) throw new Error("OT de conjunto inexistente.");
+
+  const piezasExistentes = await db.select({ id: otPieza.id }).from(otPieza).where(eq(otPieza.otConjuntoId, input.otConjuntoId));
+  const stockDisponible = await getStockDisponible(input.piezaId);
+
+  const [nueva] = await db
+    .insert(otPieza)
+    .values({
+      codigo: `${otc.codigo}P${piezasExistentes.length + 1}`,
+      otConjuntoId: otc.id,
+      piezaId: input.piezaId,
+      cantidadNecesaria: input.cantidadAFabricar,
+      stockAlGenerar: stockDisponible,
+      cantidadAFabricar: input.cantidadAFabricar,
+      estado: "pendiente",
+    })
+    .returning();
+
+  return nueva.id;
+}
+
 export async function listarOtMaquinas() {
   const maquinas = await db
     .select({ otMaquina, clienteNombre: cliente.razonSocial })
