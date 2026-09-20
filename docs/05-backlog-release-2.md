@@ -265,5 +265,24 @@ que se corrigió ahí mismo con el mismo patrón de queries batched — bajó a 
 sacó también un N+1 más chico en `/ot/[id]` (`getPieza` una vez por fila en vez de
 `getPiezasPorIds`, que ya existía sin usar).
 
-**Sin empezar:** el resto del orden de §8 (control de calidad en ingresos, OT de conjunto/pieza
-suelta, panel de indicadores, etc.).
+**✅ Paquete 5 — Logística: control de calidad en ingresos + panel (2026-09-20).** Nueva pantalla
+`/logistica` (ingeniería, dirección, taller): buscar una pieza y registrar un ingreso (con
+proveedor y resultado de control OK/NO OK) o un egreso; abajo, "piezas fuera de fábrica" (en un
+proceso tercerizado — se apoya en `proceso.esExterno`, dato que ya existía) y el historial de
+movimientos filtrable por tipo. Regla de negocio clave, probada explícitamente: si el control da
+**NO OK, el movimiento queda igual asentado** (para poder reclamarle al proveedor — el motivo
+real detrás del pedido, según confirmó Julián al validar la hoja de ruta de B-24) **pero el
+stock disponible no se incrementa** — lo que llegó mal no está listo para armar. Se probaron
+ambos casos en el navegador: un ingreso OK sí sumó al stock, uno NO OK quedó registrado con el
+proveedor y el motivo pero el stock no se movió.
+
+Primera pantalla que usa la tabla `proveedor` (existía en el schema desde el arranque del
+proyecto, sin ningún dato ni UI) — se sembraron 3 proveedores de demo, mismo caso que los
+clientes: REINER no mandó su maestro real todavía.
+
+*Decisión de diseño no pedida explícitamente:* se agregó también un registro de egreso simple
+(sin control de calidad, que sólo aplica al ingresar) para que el "panel de ingresos y egresos"
+del pedido original sea funcional en ambos sentidos, no sólo de lectura.
+
+**Sin empezar:** el resto del orden de §8 (OT de conjunto/pieza suelta, panel de indicadores,
+tareas de revisión de retrabajo, control de armado, remitos).

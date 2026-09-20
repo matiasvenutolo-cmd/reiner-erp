@@ -302,6 +302,15 @@ export const movimientoStock = pgTable("movimiento_stock", {
     .notNull()
     .references(() => usuario.id),
   ubicacionId: text("ubicacion_id").references(() => ubicacion.id),
+  // Control de calidad en ingresos (Release 2, pedido de Horacio/Julián en la
+  // devolución del 2026-09-19 — docs/05-backlog-release-2.md §4): sólo
+  // aplica a tipo "ingreso" (materia prima o vuelta de un proceso
+  // tercerizado). `proveedorId` permite reclamar a tiempo si el control da
+  // no_ok — que es justo lo que pidió Julián al confirmar la hoja de ruta
+  // de B-24. Reusa `resultadoControlEnum`, ya definido para el control de
+  // calidad de fabricación (misma semántica ok/no_ok).
+  proveedorId: text("proveedor_id").references(() => proveedor.id),
+  controlResultado: resultadoControlEnum("control_resultado"),
   observacion: text("observacion"),
   fecha: timestamp("fecha").notNull().defaultNow(),
 });

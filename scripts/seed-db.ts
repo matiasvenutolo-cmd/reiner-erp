@@ -128,6 +128,17 @@ async function main() {
   ];
   await db.insert(schema.cliente).values(CLIENTES_DEMO).onConflictDoNothing();
 
+  console.log("Sembrando proveedores de demo...");
+  // REINER todavía no envió su maestro real de proveedores — mismo caso que
+  // clientes arriba. Necesarios recién ahora (Release 2, paquete 5) para el
+  // control de calidad en ingresos, ver docs/05-backlog-release-2.md §4.
+  const PROVEEDORES_DEMO = [
+    { id: "acero-sa", razonSocial: "Aceros SA", rubro: "Materia prima" },
+    { id: "cromados-nte", razonSocial: "Cromados del Norte", rubro: "Tercerizado — cromado" },
+    { id: "otro-proveedor", razonSocial: "Otro proveedor" },
+  ];
+  await db.insert(schema.proveedor).values(PROVEEDORES_DEMO).onConflictDoNothing();
+
   const counts = await Promise.all([
     db.$count(schema.pieza),
     db.$count(schema.conjunto),

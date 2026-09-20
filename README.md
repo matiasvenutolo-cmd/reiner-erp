@@ -65,6 +65,7 @@ pasar a `db:generate` + migraciones versionadas — ver el runbook.
 | Avance | `/avance` | RF-09 — semáforo de fabricación por máquina |
 | Usuarios | `/usuarios` | RF-12 — login real, accesos administrados por ingeniería/dirección/taller (Release 2) |
 | Centros de trabajo | `/centros-trabajo` | Cola de producción por centro: disponible ahora / a futuro, reordenable (Release 2) |
+| Logística | `/logistica` | Ingresos/egresos + control de calidad al recibir materia prima o proceso tercerizado (Release 2) |
 
 Los datos maestros son reales: 454 piezas, 24 conjuntos y 627 operaciones
 migrados de los Excel del cliente. Ver
