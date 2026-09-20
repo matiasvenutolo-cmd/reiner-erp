@@ -8,7 +8,7 @@
  */
 import { eq, lt, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { stockPieza, wipPieza, pieza, proceso } from "@/lib/db/schema";
+import { stockPieza, wipPieza, pieza, proceso, movimientoStock } from "@/lib/db/schema";
 
 export async function getStockDisponible(piezaId: string): Promise<number> {
   const [row] = await db
@@ -35,6 +35,44 @@ export async function getWipTotalPorPieza(piezaId: string): Promise<number> {
     .from(wipPieza)
     .where(eq(wipPieza.piezaId, piezaId));
   return row?.total ?? 0;
+}
+
+/**
+ * Ajuste manual del stock disponible ("Finalizado") de una pieza — pedido de
+ * Horacio en la devolución del 2026-09-19 ("que Horacio también pueda
+ * modificar el stock de ser necesario", docs/05-backlog-release-2.md §3).
+ *
+ * Es el primer lugar de toda la app que escribe en `stock_pieza` y
+ * `movimiento_stock` — hasta ahora ambas tablas sólo se leían: el stock
+ * migrado de los Excel es una foto fija, cerrar una operación en taller
+ * todavía no la actualiza (eso es la próxima pieza natural de este backlog,
+ * no estaba pedida todavía). El ajuste no reemplaza el número sin dejar
+ * rastro: guarda el delta en `movimiento_stock` (tipo "ajuste") para que
+ * quede quién lo cambió y por qué, y recién después actualiza el saldo.
+ */
+export async function ajustarStock(input: {
+  piezaId: string;
+  cantidadNueva: number;
+  observacion?: string;
+  usuarioId: string;
+}): Promise<void> {
+  const actual = await getStockDisponible(input.piezaId);
+  const delta = input.cantidadNueva - actual;
+  if (delta === 0) return;
+
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(stockPieza)
+      .values({ piezaId: input.piezaId, cantidadDisponible: input.cantidadNueva })
+      .onConflictDoUpdate({ target: stockPieza.piezaId, set: { cantidadDisponible: input.cantidadNueva, updatedAt: new Date() } });
+    await tx.insert(movimientoStock).values({
+      piezaId: input.piezaId,
+      tipo: "ajuste",
+      cantidad: delta,
+      usuarioId: input.usuarioId,
+      observacion: input.observacion,
+    });
+  });
 }
 
 /** Piezas con stock disponible por debajo de su mínimo (RF sugerido, Fase 2). */

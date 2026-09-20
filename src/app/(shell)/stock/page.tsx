@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getResumenWipPorProceso, getStockDisponible } from "@/lib/data/stock";
 import { buscarPiezas } from "@/lib/data/maestros";
+import { getUsuarioActual } from "@/lib/session";
+import { ajustarStockAction } from "@/app/actions/stock";
 
 export default async function StockPage({
   searchParams,
@@ -8,7 +10,8 @@ export default async function StockPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const wip = await getResumenWipPorProceso();
+  const [usuario, wip] = await Promise.all([getUsuarioActual(), getResumenWipPorProceso()]);
+  const puedeAjustar = usuario.rol === "taller";
 
   const query = (q ?? "").trim();
   const piezasEncontradas = query ? await buscarPiezas(query) : [];
@@ -44,12 +47,13 @@ export default async function StockPage({
                 <th className="text-left px-4 py-2 font-medium">Código</th>
                 <th className="text-left px-4 py-2 font-medium">Nombre</th>
                 <th className="text-right px-4 py-2 font-medium">Stock disponible</th>
+                {puedeAjustar && <th className="text-left px-4 py-2 font-medium">Ajustar</th>}
               </tr>
             </thead>
             <tbody>
               {resultados.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-foreground-muted">
+                  <td colSpan={puedeAjustar ? 4 : 3} className="px-4 py-6 text-center text-foreground-muted">
                     Sin resultados para &ldquo;{q}&rdquo;
                   </td>
                 </tr>
@@ -63,6 +67,29 @@ export default async function StockPage({
                     </td>
                     <td className="px-4 py-2.5">{pieza.nombre}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums">{stock}</td>
+                    {puedeAjustar && (
+                      <td className="px-4 py-2.5">
+                        <form action={ajustarStockAction} className="flex items-center gap-1.5">
+                          <input type="hidden" name="piezaId" value={pieza.id} />
+                          <input
+                            name="cantidadNueva"
+                            type="number"
+                            min={0}
+                            defaultValue={stock}
+                            className="input w-16 text-xs py-1"
+                          />
+                          <input
+                            name="observacion"
+                            type="text"
+                            placeholder="Motivo (opcional)"
+                            className="input w-32 text-xs py-1"
+                          />
+                          <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
+                            Guardar
+                          </button>
+                        </form>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOtMaquinaDetalle } from "@/lib/data/ot";
-import { getPieza } from "@/lib/data/maestros";
+import { getPiezasPorIds } from "@/lib/data/maestros";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import { CantidadAFabricarForm } from "@/components/CantidadAFabricarForm";
 
@@ -11,21 +11,20 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
   if (!detalle) notFound();
   const { otMaquina, clienteNombre, configuracion, conjuntos, estadoCalculado } = detalle;
 
-  const conjuntosConPiezas = await Promise.all(
-    conjuntos
-      .filter((c) => c.piezas.length > 0)
-      .map(async (c) => ({
-        ...c,
-        filas: await Promise.all(
-          c.piezas.map(async ({ otPieza, estado, sinRouting }) => ({
-            otPieza,
-            estado,
-            sinRouting,
-            pieza: await getPieza(otPieza.piezaId),
-          })),
-        ),
+  const piezaIds = conjuntos.flatMap((c) => c.piezas.map((p) => p.otPieza.piezaId));
+  const piezasPorId = await getPiezasPorIds(piezaIds);
+
+  const conjuntosConPiezas = conjuntos
+    .filter((c) => c.piezas.length > 0)
+    .map((c) => ({
+      ...c,
+      filas: c.piezas.map(({ otPieza, estado, sinRouting }) => ({
+        otPieza,
+        estado,
+        sinRouting,
+        pieza: piezasPorId.get(otPieza.piezaId),
       })),
-  );
+    }));
   const conjuntosSinFabricar = conjuntos.filter((c) => c.piezas.length === 0);
 
   return (

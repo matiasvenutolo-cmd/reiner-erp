@@ -234,5 +234,36 @@ corrigió listando cada pieza una sola vez por centro, en su primera aparición.
   Horacio a mano cada vez que alguien cambia de puesto, o conviene que el propio operario lo
   elija al loguearse?
 
-**Sin empezar:** el resto del orden de §8 (ajuste manual de stock, control de calidad en
-ingresos, OT de conjunto/pieza suelta, panel de indicadores, etc.).
+**✅ Paquete 4 — Ajuste manual de stock (2026-09-20).** En `/stock`, cada pieza buscada tiene
+ahora una columna "Ajustar" (sólo visible y habilitada para taller): se escribe la cantidad
+correcta y se guarda, con un motivo opcional. Es la primera escritura de toda la app sobre
+`stock_pieza` y `movimiento_stock` (tipo `ajuste`) — hasta ahora ambas tablas sólo se leían, el
+stock migrado de los Excel es una foto fija y cerrar una operación en taller todavía no la
+actualiza (esa es la próxima pieza natural de este backlog, no estaba pedida todavía). El ajuste
+no pisa el número sin dejar rastro: guarda el delta en `movimiento_stock` con quién lo cambió y
+por qué antes de actualizar el saldo.
+
+*Interpretación de un pedido ambiguo, a confirmar con Horacio:* el comentario original mezclaba
+dos ideas — "editar los estados de las piezas... desde la lista" y, dos líneas después,
+"que Horacio también pueda modificar el stock". Se implementaron como una sola funcionalidad
+(editar la cantidad de stock disponible inline, desde `/stock`) porque el estado de una OT de
+pieza no es un campo que se pueda editar a mano — se deriva siempre del histórico de
+operaciones (ver §9 del paquete 3) — así que "editar el estado de una pieza" sólo tiene sentido
+hoy si se refiere a su cantidad de stock. Falta confirmar con Horacio si esto cubre lo que
+pedía o si hay algo más específico detrás de esa frase.
+
+*Gateado a rol "taller", literal del pedido ("esto solo lo podria hacer horacio digamos")* —
+ni ingeniería ni dirección pueden ajustar stock hoy, algo inusual que vale la pena confirmar:
+¿Adrián o Julián deberían poder hacerlo también, o realmente sólo Horacio?
+
+**Deuda técnica encontrada y corregida de paso, no pedida en ningún paquete:** al probar este
+paquete, `/avance` tardaba 15 a 37 segundos en cargar — el mismo patrón de N+1 que ya había
+tumbado el build de `/centros-trabajo` (`listarOtMaquinas`/`getOtMaquinaDetalle` en
+`src/lib/data/ot.ts` llamaban una consulta por cada OT de pieza, ~450 piezas × 3 máquinas
+sembradas). Bloqueaba probar cualquier otra pantalla como Horacio (su home es `/avance`), así
+que se corrigió ahí mismo con el mismo patrón de queries batched — bajó a 1.8-3s. De paso se
+sacó también un N+1 más chico en `/ot/[id]` (`getPieza` una vez por fila en vez de
+`getPiezasPorIds`, que ya existía sin usar).
+
+**Sin empezar:** el resto del orden de §8 (control de calidad en ingresos, OT de conjunto/pieza
+suelta, panel de indicadores, etc.).
