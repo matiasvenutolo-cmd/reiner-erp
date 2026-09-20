@@ -311,5 +311,42 @@ este sistema (no tiene fila en `ot_maquina`). Si Horacio necesita generar un rep
 máquina vieja que REINER fabricó hace años, hoy no hay forma de hacerlo sin antes cargar esa
 máquina como una OT retroactiva — queda para cuando surja el caso real.
 
-**Sin empezar:** el resto del orden de §8 (panel de indicadores, tareas de revisión de
-retrabajo, control de armado, remitos).
+**✅ Paquete 7 — Indicadores, revisión de retrabajo, control de armado, remitos (2026-09-20).**
+Las cuatro pantallas de valor alto sin dependencias cruzadas de §8, todas construidas y probadas
+en el navegador:
+
+- **`/indicadores`** — sólo lectura, agrega lo que ya se carga en `/taller` desde Fase 1
+  (`registro_operacion`, `parada`): horas de setup/fabricación, piezas OK/rechazadas/NO OK/
+  defectuosas/retrabajadas, paradas por tipo, tiempo por operario y por proceso. No agrega
+  ningún dato nuevo a cargar — probado con los datos reales acumulados en la sesión.
+- **`/revision`** — las tareas de revisión de retrabajo se generan solas: `finalizarOperacion`
+  (src/lib/data/ejecucion.ts) inserta una fila en `tarea_revision` cuando el cierre de una pieza
+  reporta `piezasDefectuosas` o `piezasRetrabajadas` > 0. Nadie las carga a mano. Probado el ciclo
+  completo (pendiente → resolver con motivo → pasa a resueltas).
+- **Control de armado**, integrado en `/ot/[id]`: se habilita sólo cuando todas las piezas de un
+  conjunto están terminadas — probado que el gate funciona en los dos sentidos (un conjunto que
+  se "des-termina" al agregarle una pieza suelta pierde la sección; un conjunto genuinamente
+  terminado la muestra y el registro con procedimiento PI-04 quedó guardado). Primera pantalla
+  que usa la tabla `procedimiento` (existía vacía) — se sembró PI-04 como demo, el procedimiento
+  real que es el insumo de todo el proyecto.
+- **Remitos** (`/logistica` → generar → `/remitos/[id]`) — numeración secuencial simple, vista
+  imprimible con `window.print()` (el header de la app se oculta con `print:hidden`, no hace
+  falta ninguna librería de PDF). MVP de una pieza por remito — varias piezas en un mismo remito
+  no estaba pedido explícitamente, ver decisión abajo.
+
+*Decisiones de diseño no confirmadas, a validar con Julián/Horacio:*
+- Remitos: cada uno lleva una sola pieza con su cantidad. Si en la práctica un remito real
+  necesita agrupar varias piezas en un mismo envío, hace falta una tabla `remito_item` — el
+  schema actual no lo permite sin un cambio.
+- Control de armado: cualquier rol con acceso a `/ot/[id]` puede registrar un control (no se
+  restringió a un rol específico, a diferencia del ajuste de stock del paquete 4). Confirmar si
+  eso está bien o si sólo taller/ingeniería deberían poder hacerlo.
+- La numeración de remitos es un `max(numero)+1` simple, no una secuencia de Postgres — con un
+  solo usuario generando remitos a la vez (como es hoy) no hay riesgo de colisión, pero si se
+  usa desde varios lugares a la vez podría duplicarse un número.
+
+**Con esto, los 7 puntos de §8 dentro de Release 2 están completos.** Sólo queda Fase 3
+(Gantt por pieza, simulador de cotización), fuera de alcance de este release por decisión ya
+tomada. El resto de preguntas abiertas para la próxima reunión con Julián/Horacio está en §7 de
+este documento, más las que se sumaron en cada paquete — conviene armar un resumen único antes
+de la reunión (mismo formato que funcionó en Fase 1 con el informe Word).

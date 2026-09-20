@@ -74,6 +74,8 @@ export const resultadoControlEnum = pgEnum("resultado_control", ["ok", "no_ok"])
 
 export const tipoNotaPiezaEnum = pgEnum("tipo_nota_pieza", ["ingenieria", "produccion"]);
 
+export const estadoTareaRevisionEnum = pgEnum("estado_tarea_revision", ["pendiente", "resuelta"]);
+
 // ── Transversales ────────────────────────────────────────────────────────
 
 export const usuario = pgTable("usuario", {
@@ -436,6 +438,73 @@ export const controlCalidad = pgTable("control_calidad", {
   revisadoPor: text("revisado_por"),
 });
 
+/**
+ * Tarea de revisión de retrabajo (Release 2, paquete 7 — pedido de Horacio:
+ * "que cuando se fabriquen piezas por retrabajar o piezas defectuosas se
+ * genere en otro panel tareas de revisión de proceso para darles
+ * seguimiento"). Se crea sola, no a mano: `finalizarOperacion` inserta una
+ * fila acá cuando el cierre de una OT de pieza (la última operación de su
+ * hoja de ruta) reporta `piezasDefectuosas` o `piezasRetrabajadas` > 0. Ver
+ * docs/05-backlog-release-2.md §9.
+ */
+export const tareaRevision = pgTable("tarea_revision", {
+  id: id(),
+  otPiezaId: text("ot_pieza_id")
+    .notNull()
+    .references(() => otPieza.id),
+  piezasDefectuosas: integer("piezas_defectuosas").notNull().default(0),
+  piezasRetrabajadas: integer("piezas_retrabajadas").notNull().default(0),
+  estado: estadoTareaRevisionEnum("estado").notNull().default("pendiente"),
+  resolucion: text("resolucion"),
+  resueltoPorId: text("resuelto_por_id").references(() => usuario.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+/**
+ * Control de armado (Release 2, paquete 7 — pedido de Horacio: "que cuando
+ * todas las piezas de un conjunto estén listas se habilite una sección de
+ * control de armado, donde también podamos poner procedimientos de armado y
+ * control en donde se asiente que todo el conjunto funciona bien"). Reusa
+ * `resultadoControlEnum` (ok/no_ok) igual que `controlCalidad`.
+ */
+export const controlArmado = pgTable("control_armado", {
+  id: id(),
+  otConjuntoId: text("ot_conjunto_id")
+    .notNull()
+    .references(() => otConjunto.id),
+  procedimientoId: text("procedimiento_id").references(() => procedimiento.id),
+  resultado: resultadoControlEnum("resultado").notNull(),
+  observacion: text("observacion"),
+  revisadoPorId: text("revisado_por_id")
+    .notNull()
+    .references(() => usuario.id),
+  fecha: timestamp("fecha").notNull().defaultNow(),
+});
+
+/**
+ * Remito (Release 2, paquete 7 — pedido de Horacio: "generación de remitos
+ * para movimiento de piezas"). Un remito = un movimiento físico de piezas
+ * hacia afuera de la fábrica (a un cliente o a un proceso tercerizado), con
+ * numeración propia y vista imprimible en `/remitos/[id]`. MVP: un remito
+ * por movimiento — varias piezas en un mismo remito queda para cuando haga
+ * falta (no lo pidieron explícitamente, ver docs/05-backlog-release-2.md §9).
+ */
+export const remito = pgTable("remito", {
+  id: id(),
+  numero: integer("numero").notNull().unique(),
+  piezaId: text("pieza_id")
+    .notNull()
+    .references(() => pieza.id),
+  cantidad: integer("cantidad").notNull(),
+  destino: text("destino").notNull(),
+  observacion: text("observacion"),
+  usuarioId: text("usuario_id")
+    .notNull()
+    .references(() => usuario.id),
+  fecha: timestamp("fecha").notNull().defaultNow(),
+});
+
 // Nota: `tiempo_estandar` (RF-08) no es tabla: es una consulta agregada
 // sobre `registro_operacion` agrupada por pieza × proceso × tipo, con
 // promedio, mínimo, máximo y n_observaciones (ver docs/02-modelo-datos.md).
@@ -464,6 +533,9 @@ export type TipoParada = typeof tipoParada.$inferSelect;
 export type RegistroOperacion = typeof registroOperacion.$inferSelect;
 export type Parada = typeof parada.$inferSelect;
 export type ControlCalidad = typeof controlCalidad.$inferSelect;
+export type TareaRevision = typeof tareaRevision.$inferSelect;
+export type ControlArmado = typeof controlArmado.$inferSelect;
+export type Remito = typeof remito.$inferSelect;
 export type Usuario = typeof usuario.$inferSelect;
 export type Cliente = typeof cliente.$inferSelect;
 export type Proveedor = typeof proveedor.$inferSelect;

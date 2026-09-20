@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOtMaquinaDetalle } from "@/lib/data/ot";
 import { getPiezasPorIds, getPiezasPorConfiguracion } from "@/lib/data/maestros";
+import { getControlesArmado, getProcedimientos } from "@/lib/data/armado";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import { CantidadAFabricarForm } from "@/components/CantidadAFabricarForm";
 import { completarOtConjuntoAction, agregarPiezaSueltaAction } from "@/app/actions/ot";
+import { registrarControlArmadoAction } from "@/app/actions/armado";
 
 export default async function OtMaquinaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,9 +15,10 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
   const { otMaquina, clienteNombre, configuracion, conjuntos, estadoCalculado } = detalle;
 
   const piezaIds = conjuntos.flatMap((c) => c.piezas.map((p) => p.otPieza.piezaId));
-  const [piezasPorId, piezasConfigTodas] = await Promise.all([
+  const [piezasPorId, piezasConfigTodas, procedimientos] = await Promise.all([
     getPiezasPorIds(piezaIds),
     configuracion ? getPiezasPorConfiguracion(configuracion.id) : Promise.resolve([]),
+    getProcedimientos(),
   ]);
   const piezasConfigPorConjunto = new Map<string, typeof piezasConfigTodas>();
   for (const p of piezasConfigTodas) {
@@ -24,17 +27,22 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
     piezasConfigPorConjunto.set(p.conjuntoId, arr);
   }
 
-  const conjuntosConPiezas = conjuntos
-    .filter((c) => c.piezas.length > 0)
-    .map((c) => ({
-      ...c,
-      filas: c.piezas.map(({ otPieza, estado, sinRouting }) => ({
-        otPieza,
-        estado,
-        sinRouting,
-        pieza: piezasPorId.get(otPieza.piezaId),
+  const conjuntosConPiezas = await Promise.all(
+    conjuntos
+      .filter((c) => c.piezas.length > 0)
+      .map(async (c) => ({
+        ...c,
+        filas: c.piezas.map(({ otPieza, estado, sinRouting }) => ({
+          otPieza,
+          estado,
+          sinRouting,
+          pieza: piezasPorId.get(otPieza.piezaId),
+        })),
+        // Control de armado (docs/05-backlog-release-2.md §3, §9): sólo tiene
+        // sentido cuando el conjunto está terminado — ahí se habilita.
+        controlesArmado: c.estadoConjunto === "terminada" ? await getControlesArmado(c.otConjunto.id) : [],
       })),
-    }));
+  );
   const conjuntosSinFabricar = conjuntos.filter((c) => c.piezas.length === 0);
 
   return (
@@ -60,7 +68,7 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
       </div>
 
       <div className="space-y-4">
-        {conjuntosConPiezas.map(({ otConjunto, conjunto, filas, estadoConjunto }) => (
+        {conjuntosConPiezas.map(({ otConjunto, conjunto, filas, estadoConjunto, controlesArmado }) => (
           <div key={otConjunto.id} className="bg-surface border border-border rounded-lg overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2.5 bg-surface-muted">
               <div>
@@ -132,6 +140,51 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
                 Agregar
               </button>
             </form>
+
+            {estadoConjunto === "terminada" && (
+              <div className="px-4 py-3 border-t border-border bg-surface-muted/30 space-y-3">
+                <h3 className="text-xs font-semibold text-foreground-muted uppercase">Control de armado</h3>
+                {controlesArmado.length > 0 && (
+                  <ul className="space-y-1.5">
+                    {controlesArmado.map((c) => (
+                      <li key={c.id} className="flex items-center gap-2 text-sm">
+                        <span className={`badge-estado ${c.resultado === "ok" ? "badge-terminada" : "badge-alerta"}`}>
+                          {c.resultado === "ok" ? "Funciona OK" : "NO OK"}
+                        </span>
+                        <span className="text-foreground-muted">
+                          {c.revisadoPorNombre} · {new Date(c.fecha).toLocaleDateString("es-AR")}
+                          {c.procedimientoCodigo ? ` · ${c.procedimientoCodigo}` : ""}
+                        </span>
+                        {c.observacion && <span>— {c.observacion}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <form action={registrarControlArmadoAction} className="flex flex-wrap items-center gap-1.5">
+                  <input type="hidden" name="otMaquinaId" value={otMaquina.id} />
+                  <input type="hidden" name="otConjuntoId" value={otConjunto.id} />
+                  <select name="procedimientoId" className="input text-xs py-1" defaultValue="">
+                    <option value="">Sin procedimiento</option>
+                    {procedimientos.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.codigo} — {p.titulo}
+                      </option>
+                    ))}
+                  </select>
+                  <select name="resultado" required className="input text-xs py-1" defaultValue="">
+                    <option value="" disabled>
+                      Resultado…
+                    </option>
+                    <option value="ok">Funciona OK</option>
+                    <option value="no_ok">NO OK</option>
+                  </select>
+                  <input name="observacion" placeholder="Observación" className="input text-xs py-1 flex-1 min-w-[8rem]" />
+                  <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
+                    Registrar control
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
         ))}
       </div>

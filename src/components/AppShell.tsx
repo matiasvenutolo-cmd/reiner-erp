@@ -17,7 +17,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-border bg-surface">
+      <header className="border-b border-border bg-surface print:hidden">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Image src="/reiner-logo.png" alt="REINER" width={112} height={24} priority />

@@ -12,7 +12,7 @@
  */
 import { eq, and, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { registroOperacion, parada, tipoParada, otPieza } from "@/lib/db/schema";
+import { registroOperacion, parada, tipoParada, otPieza, tareaRevision } from "@/lib/db/schema";
 import { getRoutingPieza } from "./maestros";
 import type { RegistroOperacion, Parada, TipoParada } from "@/lib/db/schema";
 
@@ -118,6 +118,19 @@ export async function finalizarOperacion(input: FinalizarOperacionInput): Promis
         updatedAt: fin,
       })
       .where(eq(otPieza.id, registro.otPiezaId));
+
+    // Release 2, paquete 7 — pedido de Horacio: "que cuando se fabriquen
+    // piezas por retrabajar o piezas defectuosas se genere en otro panel
+    // tareas de revisión de proceso para darles seguimiento". Se dispara
+    // sola acá, nadie la carga a mano — ver docs/05-backlog-release-2.md §9.
+    if (input.cierrePieza.piezasDefectuosas > 0 || input.cierrePieza.piezasRetrabajadas > 0) {
+      await db.insert(tareaRevision).values({
+        otPiezaId: registro.otPiezaId,
+        piezasDefectuosas: input.cierrePieza.piezasDefectuosas,
+        piezasRetrabajadas: input.cierrePieza.piezasRetrabajadas,
+        estado: "pendiente",
+      });
+    }
   }
 }
 

@@ -66,6 +66,13 @@ pasar a `db:generate` + migraciones versionadas — ver el runbook.
 | Usuarios | `/usuarios` | RF-12 — login real, accesos administrados por ingeniería/dirección/taller (Release 2) |
 | Centros de trabajo | `/centros-trabajo` | Cola de producción por centro: disponible ahora / a futuro, reordenable (Release 2) |
 | Logística | `/logistica` | Ingresos/egresos + control de calidad al recibir materia prima o proceso tercerizado (Release 2) |
+| Indicadores | `/indicadores` | Tiempos, paradas y errores de fabricación (Release 2) |
+| Revisión | `/revision` | Tareas de revisión de retrabajo, generadas solas al cerrar piezas defectuosas (Release 2) |
+| Remitos | `/remitos` | Remitos numerados con vista imprimible, generados desde Logística (Release 2) |
+
+Release 2 (devolución del cliente del 2026-09-19) está completa — ver
+[docs/05-backlog-release-2.md](docs/05-backlog-release-2.md) para el detalle de cada paquete,
+las decisiones tomadas y las preguntas pendientes para la próxima reunión.
 
 Los datos maestros son reales: 454 piezas, 24 conjuntos y 627 operaciones
 migrados de los Excel del cliente. Ver

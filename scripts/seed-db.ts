@@ -139,6 +139,16 @@ async function main() {
   ];
   await db.insert(schema.proveedor).values(PROVEEDORES_DEMO).onConflictDoNothing();
 
+  console.log("Sembrando procedimientos de demo...");
+  // Necesario recién ahora (Release 2, paquete 7) para el control de armado,
+  // que referencia un procedimiento — ver docs/05-backlog-release-2.md §7.
+  // PI-04 es el procedimiento real de OT que el cliente mandó como insumo
+  // (docs/01-analisis.md), así que no es un dato inventado.
+  await db
+    .insert(schema.procedimiento)
+    .values({ id: "pi-04", codigo: "PI-04", titulo: "Procedimiento de Órdenes de Trabajo" })
+    .onConflictDoNothing();
+
   const counts = await Promise.all([
     db.$count(schema.pieza),
     db.$count(schema.conjunto),
