@@ -192,4 +192,47 @@ end-to-end sobre PS01CB124s001 (la misma pieza del informe de validación).
   el rol a sí mismo salvo que otro con acceso lo haga). ¿Adrián quiere ser el único que dé de
   alta usuarios nuevos, o está bien que Julián/Horacio también puedan?
 
-**Sin empezar:** `centro_trabajo` (paquete 3) y el resto del orden de §8.
+**✅ Paquete 3 — Centros de trabajo (2026-09-20).** Nueva pantalla `/centros-trabajo`
+(ingeniería, dirección, taller): por cada centro, qué piezas están disponibles para arrancar
+ahora y cuáles van a llegar más adelante (dependen de que termine un paso anterior), con
+flechas para reordenar manualmente la cola de "ahora" — el pedido literal de Horacio. En
+`/usuarios`, cada operario puede quedar "parado" en un centro; con eso asignado, su `/taller`
+sólo muestra las piezas cuya operación actual cae en ese centro (antes veía todo, sigue viendo
+todo si no tiene centro asignado).
+
+*Asunción de arranque, no confirmación:* los centros de trabajo se sembraron 1:1 desde los 24
+procesos ya normalizados (hallazgo 3.5), **excepto** los marcados `esExterno` (Compras,
+Cromado, Pavonado, Anodizado, Cromado/Anodizado) — no son un puesto físico de taller con un
+operario que reordene una cola, son trabajo tercerizado o de compras. Se detectó probando la
+pantalla real: "Compras" acumulaba 276 piezas "disponibles ahora" en una sola tarjeta con
+flechas de a una, inmanejable. Confirmar con Julián/Horacio si el resto de los 19 centros
+restantes corresponde 1:1 a un puesto físico real, o si conviene agrupar algunos (ej. Torno y
+Torno CNC bajo un mismo centro) — se puede reagrupar después sin tocar datos de ejecución, sólo
+reapuntando `proceso.centroTrabajoId`.
+
+*Refactor incidental:* `estadoDePieza` y la pantalla `/taller/[otPiezaId]` calculaban cada una
+por su cuenta "cuál es la operación actual de esta pieza" con la misma lógica duplicada. Se
+unificó en `getEstadoYOperacionActual` (`src/lib/data/ot.ts`) — un solo lugar, y de paso una
+consulta menos por carga de pantalla.
+
+*Bug encontrado y corregido probando en el navegador (no en el diseño):* la primera versión de
+`getColaPorCentroTrabajo` llamaba a `getEstadoYOperacionActual` una vez por cada OT de pieza
+dentro de un for-loop — con las ~450 piezas × 3 máquinas ya sembradas, eso son miles de
+consultas secuenciales a Neon y **tumbó el build de producción** (Next intenta prerenderizar
+la página y Vercel corta a los 60s). Se reescribió a 3 consultas batched siempre, sin importar
+cuántas OT de pieza haya. Un segundo bug — piezas cuya hoja de ruta pasa dos veces por el mismo
+centro aparecían duplicadas en "a futuro" (React tiraba warnings de keys repetidas) — se
+corrigió listando cada pieza una sola vez por centro, en su primera aparición.
+
+**Pendiente de decidir con Julián/Horacio, surgido al construir esto:**
+- ¿Los 19 centros internos restantes son cada uno un puesto físico real, o hay que agrupar
+  alguno? (ver asunción arriba)
+- El trabajo tercerizado/de compras excluido de esta cola necesita igual algún seguimiento —
+  ya está pedido en §4 ("control de calidad en ingresos de materia prima o proceso
+  tercerizado"). ¿Alcanza con esa pantalla, o Horacio espera verlo también acá de alguna forma?
+- El operario queda "parado" en un centro manualmente desde `/usuarios` — ¿eso lo asigna
+  Horacio a mano cada vez que alguien cambia de puesto, o conviene que el propio operario lo
+  elija al loguearse?
+
+**Sin empezar:** el resto del orden de §8 (ajuste manual de stock, control de calidad en
+ingresos, OT de conjunto/pieza suelta, panel de indicadores, etc.).

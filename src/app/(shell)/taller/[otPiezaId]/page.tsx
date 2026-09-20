@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getUsuarioActual } from "@/lib/session";
-import { getOtPieza, estadoDePieza } from "@/lib/data/ot";
-import { getPieza, getConjunto, getRoutingPieza } from "@/lib/data/maestros";
-import { getOperacionAbierta, getParadaAbierta, getTiposParada, getHistorialOtPieza, esUltimaOperacion } from "@/lib/data/ejecucion";
+import { getOtPieza, getEstadoYOperacionActual } from "@/lib/data/ot";
+import { getPieza, getConjunto } from "@/lib/data/maestros";
+import { getOperacionAbierta, getParadaAbierta, getTiposParada, esUltimaOperacion } from "@/lib/data/ejecucion";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import {
   iniciarOperacionAction,
@@ -22,12 +22,10 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
   if (!otPieza) notFound();
 
   const usuario = await getUsuarioActual();
-  const [pieza, routing, { estado, sinRouting }, abierta, historial, tiposParada] = await Promise.all([
+  const [pieza, { estado, sinRouting, operacionActual, routing }, abierta, tiposParada] = await Promise.all([
     getPieza(otPieza.piezaId),
-    getRoutingPieza(otPieza.piezaId),
-    estadoDePieza(otPieza),
+    getEstadoYOperacionActual(otPieza),
     getOperacionAbierta(usuario.id),
-    getHistorialOtPieza(otPieza.id),
     getTiposParada(),
   ]);
   const conjunto = pieza ? await getConjunto(pieza.conjuntoId) : null;
@@ -52,10 +50,9 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
     );
   }
 
-  const completadas = new Set(
-    historial.filter((h) => h.registro.tipo === "ejecucion" && h.registro.fin).map((h) => h.registro.operacionId),
-  );
-  const operacionActual = routing.find((op) => !completadas.has(op.id)) ?? null;
+  // Todo lo que va antes de la operación actual en la hoja de ruta ya está
+  // completado — las operaciones se hacen en orden, sin saltos.
+  const posActual = operacionActual ? routing.findIndex((op) => op.id === operacionActual.id) : routing.length;
   const registroAbiertoAqui = abierta && abierta.otPiezaId === otPieza.id ? abierta : null;
   const paradaAbierta = registroAbiertoAqui ? await getParadaAbierta(registroAbiertoAqui.id) : null;
   const operacionDelRegistroAbierto = registroAbiertoAqui
@@ -190,12 +187,12 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
       <details className="text-sm text-foreground-muted">
         <summary className="cursor-pointer hover:text-foreground">Ver hoja de ruta completa</summary>
         <ol className="mt-2 space-y-1">
-          {routing.map((op) => (
+          {routing.map((op, i) => (
             <li key={op.id} className="flex items-center justify-between px-2 py-1">
               <span>
                 {op.secuencia}. {op.proceso.nombre}
               </span>
-              {completadas.has(op.id) ? (
+              {i < posActual ? (
                 <span className="text-estado-terminada-fg">✓</span>
               ) : (
                 <span>—</span>

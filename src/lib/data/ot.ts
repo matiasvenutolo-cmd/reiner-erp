@@ -17,6 +17,7 @@ import {
   getPiezasPorConfiguracion,
   getConfiguracion,
   getRoutingPieza,
+  type OperacionConDetalle,
 } from "./maestros";
 import { getStockDisponible } from "./stock";
 
@@ -32,9 +33,23 @@ export type NuevaOtMaquinaInput = {
 
 export type EstadoCalculado = "pendiente" | "en_curso" | "terminada";
 
-async function estadoDePieza(pieza: OtPieza): Promise<{ estado: EstadoCalculado; sinRouting: boolean }> {
+export type EstadoYOperacion = {
+  estado: EstadoCalculado;
+  sinRouting: boolean;
+  /** Primer paso de la hoja de ruta sin un registro de ejecución cerrado — null si terminada o sin routing. */
+  operacionActual: OperacionConDetalle | null;
+  /** Hoja de ruta completa, ya cargada — evita que el caller la vuelva a pedir. */
+  routing: OperacionConDetalle[];
+};
+
+/** Estado + operación actual de una OT de pieza, derivados siempre del
+ * histórico de `registro_operacion` (nunca de `ot_pieza.estado`, que sólo se
+ * escribe al crear la fila y después queda desactualizado — ver
+ * docs/05-backlog-release-2.md §9). Único lugar que hace este cálculo: antes
+ * vivía duplicado acá y en /taller/[otPiezaId]. */
+export async function getEstadoYOperacionActual(pieza: OtPieza): Promise<EstadoYOperacion> {
   const routing = await getRoutingPieza(pieza.piezaId);
-  if (routing.length === 0) return { estado: "pendiente", sinRouting: true };
+  if (routing.length === 0) return { estado: "pendiente", sinRouting: true, operacionActual: null, routing };
 
   const registros = await db
     .select()
@@ -43,9 +58,17 @@ async function estadoDePieza(pieza: OtPieza): Promise<{ estado: EstadoCalculado;
 
   const operacionesCompletadas = new Set(registros.filter((r) => r.fin).map((r) => r.operacionId));
   const hayAbierto = registros.some((r) => !r.fin);
-  if (operacionesCompletadas.size >= routing.length) return { estado: "terminada", sinRouting: false };
-  if (operacionesCompletadas.size > 0 || hayAbierto) return { estado: "en_curso", sinRouting: false };
-  return { estado: "pendiente", sinRouting: false };
+  const operacionActual = routing.find((op) => !operacionesCompletadas.has(op.id)) ?? null;
+
+  const estado: EstadoCalculado =
+    operacionesCompletadas.size >= routing.length ? "terminada" : operacionesCompletadas.size > 0 || hayAbierto ? "en_curso" : "pendiente";
+
+  return { estado, sinRouting: false, operacionActual, routing };
+}
+
+async function estadoDePieza(pieza: OtPieza): Promise<{ estado: EstadoCalculado; sinRouting: boolean }> {
+  const { estado, sinRouting } = await getEstadoYOperacionActual(pieza);
+  return { estado, sinRouting };
 }
 
 function agregarEstados(estados: EstadoCalculado[]): EstadoCalculado {

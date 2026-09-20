@@ -12,6 +12,7 @@ if (!process.env.DATABASE_URL_UNPOOLED) {
   process.loadEnvFile(".env.local");
 }
 
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "../src/lib/db/schema";
@@ -36,6 +37,34 @@ async function main() {
   await db.insert(schema.conjunto).values(FIXTURES.conjuntos).onConflictDoNothing();
   await db.insert(schema.conjuntoModelo).values(FIXTURES.conjuntoModelo).onConflictDoNothing();
   await db.insert(schema.proceso).values(FIXTURES.procesos).onConflictDoNothing();
+
+  // Centro de trabajo (Release 2, docs/05-backlog-release-2.md §1, §3, §9):
+  // arranca 1:1 con cada proceso INTERNO — asunción de arranque a validar con
+  // Julián/Horacio, no una confirmación (puede haber procesos que en la
+  // planta comparten un mismo centro físico). onConflictDoUpdate porque el
+  // nombre puede cambiar si se re-corre migrate-excel.
+  //
+  // Los procesos `esExterno` (Compras, Cromado, Pavonado, Anodizado...) NO
+  // generan centro de trabajo: no hay un operario de REINER parado ahí para
+  // reordenar una cola — es trabajo tercerizado o de compras, no un puesto
+  // físico de taller. Se detectó probando la pantalla: "Compras" solo
+  // acumulaba 276 piezas "disponibles ahora" en una sola tarjeta, inmanejable
+  // con flechas de a una. Deja pendiente la pregunta real: ese trabajo
+  // necesita su PROPIO seguimiento (que ya está pedido en el backlog, §4
+  // "control de calidad en ingresos" / procesos externos), no esta cola.
+  console.log("Sembrando centros de trabajo...");
+  for (const p of FIXTURES.procesos) {
+    if (p.esExterno) {
+      await db.update(schema.proceso).set({ centroTrabajoId: null }).where(eq(schema.proceso.id, p.id));
+      await db.delete(schema.centroTrabajo).where(eq(schema.centroTrabajo.id, p.id)); // limpia siembras previas a este cambio
+      continue;
+    }
+    await db
+      .insert(schema.centroTrabajo)
+      .values({ id: p.id, codigo: p.codigo, nombre: p.nombre, orden: p.ordenFlujo })
+      .onConflictDoUpdate({ target: schema.centroTrabajo.id, set: { nombre: p.nombre, orden: p.ordenFlujo } });
+    await db.update(schema.proceso).set({ centroTrabajoId: p.id }).where(eq(schema.proceso.id, p.id));
+  }
   if (FIXTURES.dispositivos.length) {
     await db.insert(schema.dispositivo).values(FIXTURES.dispositivos).onConflictDoNothing();
   }

@@ -21,6 +21,7 @@ import {
   timestamp,
   primaryKey,
   pgEnum,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 const id = () =>
@@ -83,6 +84,10 @@ export const usuario = pgTable("usuario", {
   passwordHash: text("password_hash"),
   rol: rolUsuarioEnum("rol").notNull(),
   activo: boolean("activo").notNull().default(true),
+  // Dónde está parado hoy (Release 2, pedido de Horacio en taller): filtra la
+  // cola de /taller a las piezas cuya operación actual cae en ese centro. Sin
+  // asignar, el operario sigue viendo todas las piezas (comportamiento previo).
+  centroTrabajoId: text("centro_trabajo_id").references((): AnyPgColumn => centroTrabajo.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -148,12 +153,29 @@ export const conjuntoModelo = pgTable(
   (t) => [primaryKey({ columns: [t.conjuntoId, t.modeloId] })],
 );
 
+/**
+ * Centro de trabajo (Release 2, pedido de Horacio — docs/05-backlog-release-2.md
+ * §1, §3): lugar físico de taller con su propia cola de tareas. Sembrado 1:1
+ * desde `proceso` por `scripts/seed-db.ts` — es una asunción de arranque, no
+ * una confirmación de Julián/Horacio (ver §7 del backlog): puede haber
+ * procesos que en la planta real comparten un mismo centro físico (ej. Torno
+ * y Torno CNC bajo un único "Tornos"). Se puede reagrupar después sin tocar
+ * `operacion` ni `registro_operacion`, sólo reapuntando `proceso.centroTrabajoId`.
+ */
+export const centroTrabajo = pgTable("centro_trabajo", {
+  id: text("id").primaryKey(),
+  codigo: text("codigo").notNull().unique(),
+  nombre: text("nombre").notNull(),
+  orden: integer("orden").notNull().default(0),
+});
+
 export const proceso = pgTable("proceso", {
   id: text("id").primaryKey(), // código normalizado, ej. "CNC" (ver hallazgo 3.5)
   codigo: text("codigo").notNull().unique(),
   nombre: text("nombre").notNull(),
   ordenFlujo: integer("orden_flujo").notNull().default(0),
   esExterno: boolean("es_externo").notNull().default(false), // ej. Compras, Cromado tercerizado
+  centroTrabajoId: text("centro_trabajo_id").references(() => centroTrabajo.id),
 });
 
 export const dispositivo = pgTable("dispositivo", {
@@ -342,6 +364,11 @@ export const otPieza = pgTable("ot_pieza", {
   piezasNoOk: integer("piezas_no_ok").notNull().default(0),
   piezasDefectuosas: integer("piezas_defectuosas").notNull().default(0),
   piezasRetrabajadas: integer("piezas_retrabajadas").notNull().default(0),
+  // Orden manual dentro de la cola de "disponible ahora" de su centro de
+  // trabajo (Release 2, pedido de Horacio: "que se puedan ordenar según cuál
+  // se quiere hacer primero"). Menor = primero. No es prioridad de negocio,
+  // sólo el orden que taller eligió — ver /centros-trabajo.
+  prioridad: integer("prioridad").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -409,6 +436,7 @@ export const controlCalidad = pgTable("control_calidad", {
 export type Modelo = typeof modelo.$inferSelect;
 export type Configuracion = typeof configuracion.$inferSelect;
 export type Conjunto = typeof conjunto.$inferSelect;
+export type CentroTrabajo = typeof centroTrabajo.$inferSelect;
 export type Proceso = typeof proceso.$inferSelect;
 export type Dispositivo = typeof dispositivo.$inferSelect;
 export type Procedimiento = typeof procedimiento.$inferSelect;

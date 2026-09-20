@@ -12,6 +12,7 @@ export type ItemNav = { href: string; label: string };
 export const NAV_POR_ROL: Record<Usuario["rol"], ItemNav[]> = {
   direccion: [
     { href: "/avance", label: "Avance" },
+    { href: "/centros-trabajo", label: "Centros de trabajo" },
     { href: "/ot", label: "Órdenes de trabajo" },
     { href: "/stock", label: "Stock" },
     { href: "/maestros", label: "Maestros" },
@@ -22,10 +23,12 @@ export const NAV_POR_ROL: Record<Usuario["rol"], ItemNav[]> = {
     { href: "/ot", label: "Órdenes de trabajo" },
     { href: "/stock", label: "Stock" },
     { href: "/avance", label: "Avance" },
+    { href: "/centros-trabajo", label: "Centros de trabajo" },
     { href: "/usuarios", label: "Usuarios" },
   ],
   taller: [
     { href: "/avance", label: "Avance" },
+    { href: "/centros-trabajo", label: "Centros de trabajo" },
     { href: "/ot", label: "Órdenes de trabajo" },
     { href: "/stock", label: "Stock" },
     { href: "/usuarios", label: "Usuarios" },

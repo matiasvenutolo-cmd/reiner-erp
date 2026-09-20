@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUsuarioActual } from "@/lib/session";
 import { getOperacionAbierta } from "@/lib/data/ejecucion";
-import { getPieza, getConjunto, getRoutingPieza } from "@/lib/data/maestros";
-import { estadoDePieza, listarTodasLasOtPieza } from "@/lib/data/ot";
+import { getPieza, getConjunto } from "@/lib/data/maestros";
+import { getEstadoYOperacionActual, listarTodasLasOtPieza } from "@/lib/data/ot";
 
 export default async function TallerPage() {
   const usuario = await getUsuarioActual();
@@ -13,11 +13,18 @@ export default async function TallerPage() {
   const todasLasOtPieza = await listarTodasLasOtPieza();
   const candidatas = await Promise.all(
     todasLasOtPieza.map(async (otPieza) => {
-      const { estado, sinRouting } = await estadoDePieza(otPieza);
+      const { estado, sinRouting, operacionActual, routing } = await getEstadoYOperacionActual(otPieza);
       if (estado === "terminada") return null;
+      // Filtro por centro de trabajo (Release 2, pedido de Horacio en taller,
+      // docs/05-backlog-release-2.md §5): sin centro asignado el operario ve
+      // todo, como antes. Con centro asignado, sólo lo que está en su centro
+      // ahora mismo — no lo que va a llegar más adelante (eso se ve en
+      // /centros-trabajo, pensado para producción, no para el operario).
+      if (usuario.centroTrabajoId && operacionActual?.proceso.centroTrabajoId !== usuario.centroTrabajoId) {
+        return null;
+      }
       const pieza = await getPieza(otPieza.piezaId);
       const conjunto = pieza ? await getConjunto(pieza.conjuntoId) : null;
-      const routing = await getRoutingPieza(otPieza.piezaId);
       return { otPieza, pieza, conjunto, estado, sinRouting, pasos: routing.length };
     }),
   );
