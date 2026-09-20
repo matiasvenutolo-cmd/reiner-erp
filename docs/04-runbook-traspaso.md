@@ -75,9 +75,15 @@ Si esto no está resuelto antes, el traspaso deja de ser un trámite.
       Si quedan las anteriores, la integración nueva **prefija todas sus variables** y la app
       no encuentra ninguna de las que espera.
 - [ ] Setear las env vars apuntando a la base y al store nuevos (Production, Preview y Development).
-- [ ] Revisar `AUTH_URL` / `NEXTAUTH_URL` con el dominio definitivo.
 - [ ] Regenerar `AUTH_SECRET`. Invalida sesiones abiertas — irrelevante en esta etapa, y es
       buena higiene que el secreto de producción nunca haya existido en la cuenta de desarrollo.
+      (No hay `AUTH_URL`/`NEXTAUTH_URL`: la sesión real se implementó a mano con `jose` + Proxy,
+      no con Auth.js/next-auth — ver docs/05-backlog-release-2.md §9 por qué.)
+- [ ] **Rotar la contraseña/PIN de los 4 usuarios de demo** (`reiner2026` para Adrián/Julián/
+      Horacio, `1234` para Nico — sembrados por `scripts/seed-db.ts`). Regenerar `AUTH_SECRET`
+      invalida las sesiones abiertas pero NO cambia estas credenciales: viajan con los datos en el
+      `pg_dump`/`pg_restore` de C2. Hacerlo desde `/usuarios` (ingeniería, dirección o taller
+      pueden restablecer la clave/PIN de cualquiera) antes de repartir accesos reales.
 
 ### C5 · Repositorio
 - [ ] Transferir el repo de GitHub a la organización de REINER.

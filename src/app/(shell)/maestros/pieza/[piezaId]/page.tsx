@@ -1,18 +1,25 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPieza, getConjunto, getRoutingPieza, modeloDeCodigo } from "@/lib/data/maestros";
+import { getPieza, getConjunto, getRoutingPieza, modeloDeCodigo, getNotasPieza } from "@/lib/data/maestros";
 import { getStockDisponible, getWipPorPieza } from "@/lib/data/stock";
+import { actualizarMaterialAction, crearNotaPiezaAction } from "@/app/actions/maestros";
+
+const TIPO_NOTA_LABEL: Record<string, string> = {
+  ingenieria: "Ingeniería",
+  produccion: "Producción",
+};
 
 export default async function PiezaPage({ params }: { params: Promise<{ piezaId: string }> }) {
   const { piezaId } = await params;
   const pieza = await getPieza(piezaId);
   if (!pieza) notFound();
 
-  const [conjunto, routing, stock, wip] = await Promise.all([
+  const [conjunto, routing, stock, wip, notas] = await Promise.all([
     getConjunto(pieza.conjuntoId),
     getRoutingPieza(pieza.id),
     getStockDisponible(pieza.id),
     getWipPorPieza(pieza.id),
+    getNotasPieza(pieza.id),
   ]);
 
   return (
@@ -30,6 +37,19 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
         <Metric label="Revisión" value={pieza.revision ?? "—"} />
         <Metric label="Stock disponible" value={String(stock)} />
         <Metric label="En proceso" value={String(wip.reduce((a, w) => a + w.cantidad, 0)) || "0"} />
+      </div>
+
+      <div className="bg-surface border border-border rounded-lg p-3">
+        <form action={actualizarMaterialAction} className="flex items-end gap-2">
+          <input type="hidden" name="piezaId" value={pieza.id} />
+          <label className="flex-1 block">
+            <span className="block text-xs font-medium text-foreground-muted mb-1">Material</span>
+            <input name="material" defaultValue={pieza.material ?? ""} placeholder="ej. Acero SAE 1045" className="input" />
+          </label>
+          <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
+            Guardar
+          </button>
+        </form>
       </div>
 
       {wip.length > 0 && (
@@ -80,6 +100,60 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
             </table>
           </div>
         )}
+      </div>
+
+      <div>
+        <h2 className="text-sm font-semibold mb-2">
+          Bitácora — versiones, cambios de diseño y observaciones de producción
+        </h2>
+        <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+          <form action={crearNotaPiezaAction} className="space-y-2">
+            <input type="hidden" name="piezaId" value={pieza.id} />
+            <div className="flex gap-3">
+              <textarea
+                name="texto"
+                required
+                rows={2}
+                placeholder="Nueva observación…"
+                className="input flex-1 resize-none"
+              />
+              <div className="flex flex-col gap-2">
+                <select name="tipo" defaultValue="ingenieria" className="input">
+                  <option value="ingenieria">Ingeniería</option>
+                  <option value="produccion">Producción</option>
+                </select>
+                <button
+                  type="submit"
+                  className="bg-accent text-accent-foreground font-medium text-sm py-1.5 rounded-md hover:opacity-90"
+                >
+                  Agregar
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {notas.length === 0 ? (
+            <p className="text-sm text-foreground-muted">Todavía no hay observaciones cargadas.</p>
+          ) : (
+            <ul className="space-y-3">
+              {notas.map((nota) => (
+                <li key={nota.id} className="border-t border-border pt-3 first:border-t-0 first:pt-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span
+                      className={`badge-estado ${nota.tipo === "ingenieria" ? "bg-accent-soft text-accent" : "badge-terminada"}`}
+                    >
+                      {TIPO_NOTA_LABEL[nota.tipo]}
+                    </span>
+                    <span className="text-xs text-foreground-muted">
+                      {nota.autorNombre} · {new Date(nota.createdAt).toLocaleDateString("es-AR")}
+                    </span>
+                  </div>
+                  <p className="text-sm whitespace-pre-wrap">{nota.texto}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );

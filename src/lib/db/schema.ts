@@ -71,6 +71,8 @@ export const tipoControlCalidadEnum = pgEnum("tipo_control_calidad", [
 
 export const resultadoControlEnum = pgEnum("resultado_control", ["ok", "no_ok"]);
 
+export const tipoNotaPiezaEnum = pgEnum("tipo_nota_pieza", ["ingenieria", "produccion"]);
+
 // ── Transversales ────────────────────────────────────────────────────────
 
 export const usuario = pgTable("usuario", {
@@ -185,6 +187,27 @@ export const pieza = pgTable("pieza", {
   stockMinimo: integer("stock_minimo").notNull().default(0),
   // Pathname del blob, no URL completa (ver runbook §A5).
   fotoPathname: text("foto_pathname"),
+});
+
+/**
+ * Bitácora por pieza (RF nuevo, devolución del cliente 2026-09-19): Julián
+ * pidió tres casillas separadas (material, observaciones de versión/diseño,
+ * observaciones de producción) — `material` ya estaba en `pieza`; las otras
+ * dos se unifican acá en una sola tabla append-only con `tipo`, así ingeniería
+ * ve el historial completo de cambios en vez de un campo que se sobrescribe
+ * (ver docs/05-backlog-release-2.md §1 y §2).
+ */
+export const piezaNota = pgTable("pieza_nota", {
+  id: id(),
+  piezaId: text("pieza_id")
+    .notNull()
+    .references(() => pieza.id),
+  tipo: tipoNotaPiezaEnum("tipo").notNull(),
+  texto: text("texto").notNull(),
+  usuarioId: text("usuario_id")
+    .notNull()
+    .references(() => usuario.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const piezaConfiguracion = pgTable(
@@ -390,6 +413,7 @@ export type Proceso = typeof proceso.$inferSelect;
 export type Dispositivo = typeof dispositivo.$inferSelect;
 export type Procedimiento = typeof procedimiento.$inferSelect;
 export type Pieza = typeof pieza.$inferSelect;
+export type PiezaNota = typeof piezaNota.$inferSelect;
 export type PiezaConfiguracion = typeof piezaConfiguracion.$inferSelect;
 export type Operacion = typeof operacion.$inferSelect;
 export type Ubicacion = typeof ubicacion.$inferSelect;

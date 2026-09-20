@@ -44,6 +44,15 @@ navegación propia. Es sólo wayfinding, no seguridad: cualquier ruta es accesib
 sin importar el rol activo — no hay que confundirlo con control de acceso real (eso llega con
 Auth.js al conectar Postgres).
 
+## Devolución del cliente (2026-09-19)
+
+Julián y Horacio validaron el circuito de Fase 1 completo: la explosión de OTM12, los 5
+conjuntos cubiertos por stock y la hoja de ruta de ejemplo son correctos, y confirmaron que
+la cantidad a fabricar debe seguir siempre editable. El circuito **no requiere cambios**.
+
+El resto de sus comentarios es backlog de Release 2 (nuevas pantallas y campos, no
+correcciones), reordenado en [`05-backlog-release-2.md`](05-backlog-release-2.md).
+
 ## Cómo seguir desde acá
 
 - Código QR en la OT impresa para elegir la pieza en `/taller` sin buscar en la lista (mencionado

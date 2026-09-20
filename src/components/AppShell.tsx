@@ -1,10 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getUsuarioActual } from "@/lib/session";
-import { getUsuarios } from "@/lib/data/usuarios";
 import { NAV_POR_ROL } from "@/lib/nav";
-import { cambiarUsuarioAction } from "@/app/actions/sesion";
-import { UsuarioSwitcher } from "@/components/UsuarioSwitcher";
+import { cerrarSesionAction } from "@/app/actions/sesion";
 
 const ROL_LABEL: Record<string, string> = {
   operario: "Operario",
@@ -15,7 +13,6 @@ const ROL_LABEL: Record<string, string> = {
 
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const usuario = await getUsuarioActual();
-  const usuarios = await getUsuarios();
   const nav = NAV_POR_ROL[usuario.rol];
 
   return (
@@ -30,12 +27,20 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <form action={cambiarUsuarioAction} className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <span className="badge-estado bg-surface-muted text-foreground-muted hidden sm:inline-flex">
               {ROL_LABEL[usuario.rol]}
             </span>
-            <UsuarioSwitcher usuarios={usuarios} usuarioId={usuario.id} />
-          </form>
+            <span className="text-sm font-medium hidden sm:inline">{usuario.nombre}</span>
+            <form action={cerrarSesionAction}>
+              <button
+                type="submit"
+                className="text-sm text-foreground-muted hover:text-foreground border border-border rounded-md px-2.5 py-1.5"
+              >
+                Cerrar sesión
+              </button>
+            </form>
+          </div>
         </div>
         {nav.length > 1 && (
           <nav className="mx-auto max-w-6xl px-4 flex gap-1 overflow-x-auto">

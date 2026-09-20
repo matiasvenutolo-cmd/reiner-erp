@@ -16,6 +16,12 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "../src/lib/db/schema";
 import { FIXTURES } from "../src/lib/data/fixtures-loader";
+import { hashSecret } from "../src/lib/auth/hash";
+
+// Credenciales de demo — ver docs/05-backlog-release-2.md §6. Rotar antes del
+// traspaso a la cuenta de REINER (docs/04-runbook-traspaso.md).
+const PASSWORD_DEMO_STAFF = "reiner2026";
+const PIN_DEMO_OPERARIO = "1234";
 
 async function main() {
   const url = process.env.DATABASE_URL_UNPOOLED;
@@ -53,13 +59,26 @@ async function main() {
   }
 
   console.log("Sembrando usuarios de demo...");
+  const passwordHashDemo = await hashSecret(PASSWORD_DEMO_STAFF);
+  const pinHashDemo = await hashSecret(PIN_DEMO_OPERARIO);
   const USUARIOS_DEMO = [
-    { id: "adrian", nombre: "Adrián", email: "adrian@reiner.com.ar", rol: "direccion" as const },
-    { id: "julian", nombre: "Julián", email: "julian@reiner.com.ar", rol: "ingenieria" as const },
-    { id: "horacio", nombre: "Horacio", email: "horacio@reiner.com.ar", rol: "taller" as const },
-    { id: "nico", nombre: "Nico", email: null, rol: "operario" as const },
+    { id: "adrian", nombre: "Adrián", email: "adrian@reiner.com.ar", rol: "direccion" as const, passwordHash: passwordHashDemo, pinHash: null },
+    { id: "julian", nombre: "Julián", email: "julian@reiner.com.ar", rol: "ingenieria" as const, passwordHash: passwordHashDemo, pinHash: null },
+    { id: "horacio", nombre: "Horacio", email: "horacio@reiner.com.ar", rol: "taller" as const, passwordHash: passwordHashDemo, pinHash: null },
+    { id: "nico", nombre: "Nico", email: null, rol: "operario" as const, passwordHash: null, pinHash: pinHashDemo },
   ];
-  await db.insert(schema.usuario).values(USUARIOS_DEMO).onConflictDoNothing();
+  // onConflictDoUpdate (no DoNothing): si ya existían de una siembra previa a
+  // que hubiera credenciales, esto les asigna la clave/PIN de demo en vez de
+  // dejarlos sin poder loguearse.
+  for (const u of USUARIOS_DEMO) {
+    await db
+      .insert(schema.usuario)
+      .values(u)
+      .onConflictDoUpdate({
+        target: schema.usuario.id,
+        set: { passwordHash: u.passwordHash, pinHash: u.pinHash },
+      });
+  }
 
   console.log("Sembrando tipos de parada...");
   const TIPOS_PARADA = [

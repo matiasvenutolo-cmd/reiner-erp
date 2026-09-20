@@ -7,7 +7,7 @@
  * un array en memoria cargado de fixtures JSON — la firma de cada función
  * no cambió, así que ninguna pantalla tuvo que tocarse (ver docs/01 §6).
  */
-import { eq, inArray, asc, or, ilike } from "drizzle-orm";
+import { eq, inArray, asc, desc, or, ilike } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   modelo,
@@ -17,10 +17,12 @@ import {
   proceso,
   dispositivo,
   pieza,
+  piezaNota,
   piezaConfiguracion,
   operacion,
+  usuario,
 } from "@/lib/db/schema";
-import type { Modelo, Configuracion, Conjunto, Pieza, Proceso } from "@/lib/db/schema";
+import type { Modelo, Configuracion, Conjunto, Pieza, Proceso, PiezaNota } from "@/lib/db/schema";
 
 /**
  * El modelo de una pieza no es un campo propio en la base (una pieza puede
@@ -117,6 +119,36 @@ export async function getPiezasPorConjunto(conjuntoId: string, modeloId?: string
 export async function getPieza(id: string): Promise<Pieza | undefined> {
   const [row] = await db.select().from(pieza).where(eq(pieza.id, id));
   return row;
+}
+
+export async function actualizarMaterialPieza(piezaId: string, material: string): Promise<void> {
+  await db
+    .update(pieza)
+    .set({ material: material || null })
+    .where(eq(pieza.id, piezaId));
+}
+
+export type NotaPiezaConAutor = PiezaNota & { autorNombre: string };
+
+/** Bitácora de una pieza (docs/05-backlog-release-2.md §1, §2): notas de
+ * ingeniería (versión/diseño) y de producción, más recientes primero. */
+export async function getNotasPieza(piezaId: string): Promise<NotaPiezaConAutor[]> {
+  const rows = await db
+    .select({ nota: piezaNota, autorNombre: usuario.nombre })
+    .from(piezaNota)
+    .innerJoin(usuario, eq(usuario.id, piezaNota.usuarioId))
+    .where(eq(piezaNota.piezaId, piezaId))
+    .orderBy(desc(piezaNota.createdAt));
+  return rows.map((r) => ({ ...r.nota, autorNombre: r.autorNombre }));
+}
+
+export async function crearNotaPieza(input: {
+  piezaId: string;
+  tipo: "ingenieria" | "produccion";
+  texto: string;
+  usuarioId: string;
+}): Promise<void> {
+  await db.insert(piezaNota).values(input);
 }
 
 export async function getPiezas(modeloId?: string): Promise<Pieza[]> {

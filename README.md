@@ -20,10 +20,23 @@ npx vercel env pull .env.local --environment=preview
 npm run dev
 ```
 
-El selector de usuario arriba a la derecha cambia entre los cuatro roles
-(RF-12): dirección, ingeniería, taller y operario — cada uno ve una
-navegación distinta. **Operario** es la pantalla mobile (`/taller`), pensada
-para probarse en un celular real o con el emulador angosto del navegador.
+Login real (RF-12, desde la devolución del cliente del 2026-09-19 — ver
+[docs/05-backlog-release-2.md §9](docs/05-backlog-release-2.md)): ingeniería,
+dirección y taller entran con email + contraseña; operario elige su nombre y
+entra con PIN. Credenciales de demo (sembradas por `db:seed`):
+
+| Usuario | Rol | Acceso |
+|---|---|---|
+| adrian@reiner.com.ar | Dirección | contraseña `reiner2026` |
+| julian@reiner.com.ar | Ingeniería | contraseña `reiner2026` |
+| horacio@reiner.com.ar | Taller | contraseña `reiner2026` |
+| Nico | Operario | PIN `1234` |
+
+Son sólo para esta etapa — rotarlas antes del traspaso (`docs/04-runbook-traspaso.md` C4).
+Cada rol ve una navegación distinta y sólo puede entrar a sus propias rutas —
+antes era wayfinding, ahora el acceso se controla de verdad. **Operario** es
+la pantalla mobile (`/taller`), pensada para probarse en un celular real o
+con el emulador angosto del navegador.
 
 ## Base de datos
 
@@ -50,6 +63,7 @@ pasar a `db:generate` + migraciones versionadas — ver el runbook.
 | Taller (operario) | `/taller` | RF-05, RF-06, RF-07 — carga de tiempos en 2-3 toques, paradas, piezas OK/rechazadas |
 | Stock | `/stock` | RF-10 — stock disponible + WIP por etapa de proceso (hallazgo 3.1) |
 | Avance | `/avance` | RF-09 — semáforo de fabricación por máquina |
+| Usuarios | `/usuarios` | RF-12 — login real, accesos administrados por ingeniería/dirección/taller (Release 2) |
 
 Los datos maestros son reales: 454 piezas, 24 conjuntos y 627 operaciones
 migrados de los Excel del cliente. Ver
@@ -86,3 +100,4 @@ npm run db:seed            # vuelve a sembrar Postgres (usa onConflictDoNothing,
 - [docs/03-plan-fase-1.md](docs/03-plan-fase-1.md) — plan de construcción
 - [docs/04-runbook-traspaso.md](docs/04-runbook-traspaso.md) — checklist de traspaso a la cuenta de REINER
 - [docs/migracion-datos.md](docs/migracion-datos.md) — reporte de la migración (auto-generado)
+- [docs/05-backlog-release-2.md](docs/05-backlog-release-2.md) — devolución del cliente y backlog de Release 2
