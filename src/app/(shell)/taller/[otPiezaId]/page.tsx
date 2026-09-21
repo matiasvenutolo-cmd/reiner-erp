@@ -147,6 +147,10 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
                     </label>
                   </div>
                 )}
+                <label className="text-xs text-foreground-muted block">
+                  Observaciones (opcional)
+                  <textarea name="observacion" rows={2} className="input mt-0.5 resize-none" placeholder="Algo a anotar sobre esta operación…" />
+                </label>
                 <button type="submit" className="btn-lg w-full bg-brand-teal text-white">
                   ✔ Finalizar {esUltima ? "pieza" : "operación"}
                 </button>
