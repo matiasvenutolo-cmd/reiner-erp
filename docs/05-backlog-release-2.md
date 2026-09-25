@@ -365,3 +365,15 @@ que ya tiene links internos:** auditar todos los `<Link>` del código contra el 
 permisos, no sólo los ítems de `NAV_POR_ROL` — un link visible en una pantalla ya accesible
 puede apuntar a una ruta que el rol no tiene permitida, y no hay ningún error, sólo un redirect
 silencioso.
+
+Esa auditoría (grepear todos los `href=` de `src/app` y cruzarlos contra `NAV_POR_ROL` de cada
+rol) encontró dos casos más de la misma familia, corregidos en el momento:
+- `/stock` linkea el código de cada pieza a `/maestros/pieza/[id]` — pero taller no tenía
+  `/maestros` en su nav, así que a Horacio ese link le rebotaba en silencio igual que el de
+  arriba. Se agregó `/maestros` al nav de taller (de paso le da acceso a la bitácora de pieza,
+  algo que ya estaba como pregunta abierta: si producción debería poder sumar notas ahí).
+- El link "← Mi trabajo" de `/taller/[otPiezaId]` apuntaba siempre a `/taller` (la lista), pero
+  para ingeniería/dirección/taller esa lista sigue sin ser accesible — quedaba un callejón sin
+  salida después de entrar por el link de arriba. Se resolvió con un botón "← Volver" que usa el
+  historial del navegador (`router.back()`, componente nuevo `VolverBoton`) para todo rol que no
+  sea operario; operario sigue viendo el link fijo a `/taller` de siempre.

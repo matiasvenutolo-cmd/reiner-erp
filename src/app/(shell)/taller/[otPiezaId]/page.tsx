@@ -5,6 +5,7 @@ import { getOtPieza, getEstadoYOperacionActual } from "@/lib/data/ot";
 import { getPieza, getConjunto } from "@/lib/data/maestros";
 import { getOperacionAbierta, getParadaAbierta, getTiposParada, esUltimaOperacion } from "@/lib/data/ejecucion";
 import { EstadoBadge } from "@/components/EstadoBadge";
+import { VolverBoton } from "@/components/VolverBoton";
 import {
   iniciarOperacionAction,
   pausarOperacionAction,
@@ -34,9 +35,13 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
   if (abierta && abierta.otPiezaId !== otPieza.id) {
     return (
       <div className="max-w-md mx-auto space-y-4">
-        <Link href="/taller" className="text-sm text-accent hover:underline">
-          ← Mi trabajo
-        </Link>
+        {usuario.rol === "operario" ? (
+          <Link href="/taller" className="text-sm text-accent hover:underline">
+            ← Mi trabajo
+          </Link>
+        ) : (
+          <VolverBoton className="text-sm text-accent hover:underline">← Volver</VolverBoton>
+        )}
         <div className="badge-estado badge-alerta block text-center py-4 text-sm">
           Tenés una operación abierta en otra pieza. Cerrala antes de empezar acá.
         </div>
@@ -63,9 +68,13 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
   return (
     <div className="max-w-md mx-auto space-y-4">
       <div>
-        <Link href="/taller" className="text-sm text-accent hover:underline">
-          ← Mi trabajo
-        </Link>
+        {usuario.rol === "operario" ? (
+          <Link href="/taller" className="text-sm text-accent hover:underline">
+            ← Mi trabajo
+          </Link>
+        ) : (
+          <VolverBoton className="text-sm text-accent hover:underline">← Volver</VolverBoton>
+        )}
         <h1 className="text-lg font-semibold mt-1">{pieza?.nombre}</h1>
         <p className="text-sm text-foreground-muted font-mono">
           {otPieza.codigo} · {conjunto?.nombre}

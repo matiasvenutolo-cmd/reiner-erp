@@ -43,6 +43,10 @@ export const NAV_POR_ROL: Record<Usuario["rol"], ItemNav[]> = {
     { href: "/stock", label: "Stock" },
     { href: "/logistica", label: "Logística" },
     { href: "/remitos", label: "Remitos" },
+    // Faltaba: /stock linkea el código de cada pieza a /maestros/pieza/[id]
+    // (ver auditoría de links del 2026-09-25, misma clase de bug que "Abrir
+    // en taller") — sin esto, a Horacio ese link le rebotaba en silencio.
+    { href: "/maestros", label: "Maestros" },
     { href: "/usuarios", label: "Usuarios" },
   ],
   operario: [{ href: "/taller", label: "Mi trabajo" }],
