@@ -54,5 +54,15 @@ export const NAV_POR_ROL: Record<Usuario["rol"], ItemNav[]> = {
  * NAV_POR_ROL por prefijo, así una sola lista gobierna menú y autorización. */
 export function rutaPermitida(rol: Usuario["rol"], pathname: string): boolean {
   if (pathname === "/" || pathname === "/login") return true;
+
+  // El botón "Abrir en taller →" de /ot/[id]/pieza/[otPiezaId] existe desde
+  // Fase 1 y lleva a /taller/[otPiezaId] — quedó roto para todo el que no
+  // fuera operario cuando se agregó el control de acceso real (Release 2,
+  // detectado por Matías el 2026-09-25). Se habilita el detalle de UNA
+  // pieza puntual para el resto de los roles; la lista /taller (la cola
+  // personal del operario) sigue siendo sólo de operario — el equivalente
+  // para el resto es /centros-trabajo.
+  if (rol !== "operario" && /^\/taller\/[^/]+$/.test(pathname)) return true;
+
   return NAV_POR_ROL[rol].some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
 }

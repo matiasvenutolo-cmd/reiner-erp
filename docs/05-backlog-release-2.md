@@ -350,3 +350,18 @@ en el navegador:
 tomada. El resto de preguntas abiertas para la próxima reunión con Julián/Horacio está en §7 de
 este documento, más las que se sumaron en cada paquete — conviene armar un resumen único antes
 de la reunión (mismo formato que funcionó en Fase 1 con el informe Word).
+
+**🐛 Bug encontrado por Matías (2026-09-25) — "Abrir en taller →" no abría nada para
+ingeniería/dirección/taller.** El botón existe desde Fase 1 en `/ot/[id]/pieza/[otPiezaId]` y
+lleva a `/taller/[otPiezaId]`, pensado para saltar directo a la ejecución de una pieza puntual.
+Al agregar el control de acceso real en el paquete 1 (`rutaPermitida` en `src/lib/nav.ts`), esa
+ruta nunca se agregó a `NAV_POR_ROL` de ningún rol salvo operario — el link quedó roto para
+cualquiera que no fuera operario, sin ningún error visible: `proxy.ts` simplemente redirigía de
+vuelta a la home de cada rol. Corregido permitiendo `/taller/<id>` (el detalle de una pieza
+puntual) para ingeniería, dirección y taller — la lista `/taller` en sí (la cola personal del
+operario) sigue siendo sólo de operario, ya que el equivalente para el resto de los roles es
+`/centros-trabajo`. **Lección para la próxima vez que se agregue control de acceso sobre una app
+que ya tiene links internos:** auditar todos los `<Link>` del código contra el nuevo modelo de
+permisos, no sólo los ítems de `NAV_POR_ROL` — un link visible en una pantalla ya accesible
+puede apuntar a una ruta que el rol no tiene permitida, y no hay ningún error, sólo un redirect
+silencioso.
