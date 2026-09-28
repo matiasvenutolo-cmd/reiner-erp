@@ -557,4 +557,26 @@ no tenía nada para mostrar porque nada podía estar "por debajo de 0". Se agreg
 en `/maestros/pieza/[id]`, probado end-to-end (se cargó un mínimo real, apareció en la
 alerta, se revirtió).
 
+**✅ Paquete extra 5 — /stock: drill-down por etapa + selector de piezas (2026-09-28).**
+Tercer comentario seguido de Matías sobre esta misma pantalla: *"pensá que no tenemos el
+detalle del stock en ningún lado si no"* — las barras de "por etapa" mostraban un número
+agregado (ej. "Compras: 517 u. · 105 piezas") sin ningún lugar donde ver CUÁLES piezas lo
+componen.
+
+- Cada barra de etapa es ahora un link a `/stock/etapa/[procesoId]` (nuevo): el detalle
+  pieza por pieza de esa etapa puntual — código, nombre, OT pieza y máquina, cada uno
+  linkeado a su ficha. Nueva `getPiezasEnEtapa` en `stock.ts`, mismo cálculo batcheado que
+  `getResumenWipEnCursoPorProceso` pero sin agregar al final.
+  - *Bug encontrado y corregido en el momento:* la página de detalle mostraba
+    "289 piezas distintas" (= cantidad de líneas de OT) mientras el agregado de origen
+    decía "105 piezas" (= piezas de catálogo distintas, deduplicadas) — mismo dato, dos
+    definiciones de "pieza" distintas mostrando números que no coinciden entre pantallas,
+    exactamente el tipo de inconsistencia que motivó reconstruir Stock en primer lugar. Se
+    corrigió mostrando ambos números con su propia etiqueta ("105 piezas distintas en 289
+    órdenes de trabajo").
+- Selector de piezas (`PiezaSelect`, nuevo) al lado del buscador de texto: pedido de
+  Matías, *"podríamos poner un seleccionable de todo lo que se puede buscar"* — un
+  `<select>` con las ~450 piezas del catálogo (código — nombre), elegir una navega igual
+  que si se hubiera escrito el código a mano.
+
 Pendiente: el resto de los paquetes de §18 (adjuntos de ingeniería, indicadores).

@@ -23,7 +23,7 @@
  */
 import { asc, eq, and, inArray, isNotNull, lt } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { stockPieza, pieza, proceso, movimientoStock, otPieza, operacion, registroOperacion } from "@/lib/db/schema";
+import { stockPieza, pieza, proceso, movimientoStock, otPieza, otConjunto, otMaquina, operacion, registroOperacion } from "@/lib/db/schema";
 
 export async function getStockDisponible(piezaId: string): Promise<number> {
   const [row] = await db
@@ -153,6 +153,88 @@ export async function getResumenWipEnCursoPorProceso(): Promise<WipEtapaResumen[
     piezas: v.piezas.size,
     unidades: v.unidades,
   }));
+}
+
+export type ItemEnEtapa = {
+  otPiezaId: string;
+  otPiezaCodigo: string;
+  piezaId: string;
+  piezaCodigo: string;
+  piezaNombre: string;
+  otMaquinaId: string;
+  otMaquinaCodigo: string;
+  cantidad: number;
+};
+
+/**
+ * Detalle pieza por pieza de una etapa puntual — antes de esto, el número
+ * de "En proceso ahora mismo, por etapa" no tenía ningún lugar donde ver
+ * QUÉ piezas lo componen (pedido de Matías: "no tenemos el detalle del
+ * stock en ningún lado"). Mismo cálculo batcheado que
+ * getResumenWipEnCursoPorProceso, sin agregar al final.
+ */
+export async function getPiezasEnEtapa(procesoId: string): Promise<ItemEnEtapa[]> {
+  const filas = await db
+    .select({ otPieza, piezaId: pieza.id, piezaCodigo: pieza.codigo, piezaNombre: pieza.nombre, otMaquinaId: otMaquina.id, otMaquinaCodigo: otMaquina.codigo })
+    .from(otPieza)
+    .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
+    .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
+    .innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId));
+  if (filas.length === 0) return [];
+
+  const piezaIds = [...new Set(filas.map((f) => f.piezaId))];
+  const otPiezaIds = filas.map((f) => f.otPieza.id);
+
+  const [rutaRows, completadasRows] = await Promise.all([
+    db
+      .select({ piezaId: operacion.piezaId, id: operacion.id, secuencia: operacion.secuencia, procesoId: proceso.id })
+      .from(operacion)
+      .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
+      .where(inArray(operacion.piezaId, piezaIds))
+      .orderBy(asc(operacion.piezaId), asc(operacion.secuencia)),
+    db
+      .select({ otPiezaId: registroOperacion.otPiezaId, operacionId: registroOperacion.operacionId })
+      .from(registroOperacion)
+      .where(
+        and(inArray(registroOperacion.otPiezaId, otPiezaIds), eq(registroOperacion.tipo, "ejecucion"), isNotNull(registroOperacion.fin)),
+      ),
+  ]);
+
+  const rutaPorPieza = new Map<string, { id: string; procesoId: string }[]>();
+  for (const r of rutaRows) {
+    const arr = rutaPorPieza.get(r.piezaId) ?? [];
+    arr.push({ id: r.id, procesoId: r.procesoId });
+    rutaPorPieza.set(r.piezaId, arr);
+  }
+
+  const completadasPorOtPieza = new Map<string, Set<string>>();
+  for (const c of completadasRows) {
+    const set = completadasPorOtPieza.get(c.otPiezaId) ?? new Set<string>();
+    set.add(c.operacionId);
+    completadasPorOtPieza.set(c.otPiezaId, set);
+  }
+
+  const resultado: ItemEnEtapa[] = [];
+  for (const fila of filas) {
+    const routing = rutaPorPieza.get(fila.piezaId) ?? [];
+    if (routing.length === 0) continue;
+    const completadas = completadasPorOtPieza.get(fila.otPieza.id) ?? new Set<string>();
+    if (completadas.size >= routing.length) continue;
+    const actual = routing.find((op) => !completadas.has(op.id));
+    if (!actual || actual.procesoId !== procesoId) continue;
+
+    resultado.push({
+      otPiezaId: fila.otPieza.id,
+      otPiezaCodigo: fila.otPieza.codigo,
+      piezaId: fila.piezaId,
+      piezaCodigo: fila.piezaCodigo,
+      piezaNombre: fila.piezaNombre,
+      otMaquinaId: fila.otMaquinaId,
+      otMaquinaCodigo: fila.otMaquinaCodigo,
+      cantidad: fila.otPieza.cantidadAFabricar,
+    });
+  }
+  return resultado;
 }
 
 /**
