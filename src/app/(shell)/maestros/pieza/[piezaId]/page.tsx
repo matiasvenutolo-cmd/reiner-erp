@@ -27,11 +27,13 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <Link href={`/maestros/${pieza.conjuntoId}`} className="text-sm text-accent hover:underline">
-          ← {conjunto?.nombre ?? pieza.conjuntoId}
+        <Link href="/maestros" className="text-sm text-accent hover:underline">
+          ← Maestros
         </Link>
         <h1 className="text-xl font-semibold mt-1">{pieza.nombre}</h1>
-        <p className="text-sm text-foreground-muted font-mono">{pieza.codigo}</p>
+        <p className="text-sm text-foreground-muted">
+          <span className="font-mono">{pieza.codigo}</span> · {conjunto?.nombre ?? pieza.conjuntoId}
+        </p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

@@ -241,6 +241,61 @@ export async function contarPiezasPorConjunto(modeloId?: string): Promise<Record
   return conteo;
 }
 
+/** Cantidad de piezas distintas que aplican a cada configuración (máquina) —
+ * para el índice de Maestros, que ahora entra por máquina (devolución del
+ * cliente, docs/06-backlog-release-3.md: "que aparezca por Máquina, no por
+ * conjunto"). */
+export async function contarPiezasPorConfiguracion(): Promise<Record<string, number>> {
+  const rows = await db.select({ configuracionId: piezaConfiguracion.configuracionId }).from(piezaConfiguracion);
+  const conteo: Record<string, number> = {};
+  for (const r of rows) conteo[r.configuracionId] = (conteo[r.configuracionId] ?? 0) + 1;
+  return conteo;
+}
+
+export type ResumenConjuntoDeConfiguracion = {
+  conjunto: Conjunto;
+  totalPiezas: number;
+  aProducir: number;
+  aComprar: number;
+};
+
+/**
+ * Conjuntos que aparecen en una configuración (máquina) puntual, con cuántas
+ * de sus piezas son a producir vs. a comprar — devolución del cliente: "que
+ * de cada conjunto diferencie piezas a comprar y a producir". Se apoya en
+ * `getPiezasPorConfiguracion`, el mismo vínculo que usa la explosión de OT.
+ */
+export async function getResumenConjuntosDeConfiguracion(configuracionId: string): Promise<ResumenConjuntoDeConfiguracion[]> {
+  const piezas = await getPiezasPorConfiguracion(configuracionId);
+  if (piezas.length === 0) return [];
+
+  const conteoPorConjunto = new Map<string, { aProducir: number; aComprar: number }>();
+  for (const p of piezas) {
+    const acc = conteoPorConjunto.get(p.conjuntoId) ?? { aProducir: 0, aComprar: 0 };
+    if (p.tipo === "comprada") acc.aComprar += 1;
+    else acc.aProducir += 1;
+    conteoPorConjunto.set(p.conjuntoId, acc);
+  }
+
+  const conjuntos = await db.select().from(conjunto).where(inArray(conjunto.id, [...conteoPorConjunto.keys()]));
+  return conjuntos
+    .map((c) => {
+      const counts = conteoPorConjunto.get(c.id)!;
+      return { conjunto: c, totalPiezas: counts.aProducir + counts.aComprar, aProducir: counts.aProducir, aComprar: counts.aComprar };
+    })
+    .sort((a, b) => a.conjunto.orden - b.conjunto.orden);
+}
+
+/** Piezas de un conjunto puntual dentro de una configuración (máquina)
+ * puntual — el mismo par que gobierna `/maestros/[configuracionId]/[conjuntoId]`. */
+export async function getPiezasPorConfiguracionYConjunto(
+  configuracionId: string,
+  conjuntoId: string,
+): Promise<(Pieza & { cantidadNecesaria: number })[]> {
+  const piezas = await getPiezasPorConfiguracion(configuracionId);
+  return piezas.filter((p) => p.conjuntoId === conjuntoId);
+}
+
 /** Busca piezas por código o nombre (usado en /stock). */
 export async function buscarPiezas(query: string, limite = 30): Promise<Pieza[]> {
   const patron = `%${query}%`;
