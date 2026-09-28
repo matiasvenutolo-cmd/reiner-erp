@@ -3,19 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { getUsuarioActual } from "@/lib/session";
-import { moverPrioridad } from "@/lib/data/produccion";
+import { reordenarCola } from "@/lib/data/produccion";
 import { db } from "@/lib/db/client";
 import { usuario } from "@/lib/db/schema";
 
-export async function moverPrioridadAction(formData: FormData) {
+/** Reordena la cola de "disponible ahora" de un centro a partir de un
+ * arrastre en la UI (Release 3 — reemplaza las flechas de subir/bajar de
+ * Release 2, ver docs/06-backlog-release-3.md §13: "se consideró incómodo
+ * ese mecanismo"). Recibe la lista completa ya reordenada, no un solo paso. */
+export async function reordenarColaAction(centroTrabajoId: string, ordenOtPiezaIds: string[]) {
   await getUsuarioActual(); // exige sesión válida
-  const otPiezaId = String(formData.get("otPiezaId") ?? "");
-  const centroTrabajoId = String(formData.get("centroTrabajoId") ?? "");
-  const direccion = String(formData.get("direccion") ?? "");
-  if (!otPiezaId || !centroTrabajoId || (direccion !== "subir" && direccion !== "bajar")) {
-    throw new Error("Datos inválidos.");
-  }
-  await moverPrioridad(otPiezaId, centroTrabajoId, direccion);
+  if (!centroTrabajoId || ordenOtPiezaIds.length === 0) return;
+  await reordenarCola(centroTrabajoId, ordenOtPiezaIds);
   revalidatePath("/centros-trabajo");
 }
 

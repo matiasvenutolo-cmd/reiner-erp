@@ -1,5 +1,5 @@
 import { getColaPorCentroTrabajo } from "@/lib/data/produccion";
-import { moverPrioridadAction } from "@/app/actions/produccion";
+import { ColaDisponibleAhora } from "@/components/ColaDisponibleAhora";
 import type { ItemCola } from "@/lib/data/produccion";
 
 // Datos en vivo (stock/OT cambian todo el tiempo) — nunca prerenderizar en build.
@@ -15,9 +15,8 @@ export default async function CentrosTrabajoPage() {
         <h1 className="text-xl font-semibold">Centros de trabajo</h1>
         <p className="text-sm text-foreground-muted mt-1">
           Por cada centro: qué está disponible para arrancar ahora y qué va a llegar más adelante,
-          una vez que termine el paso anterior (pedido de Horacio en la devolución del 2026-09-19,
-          ver docs/05-backlog-release-2.md §3). Las flechas reordenan la cola de &quot;disponible
-          ahora&quot;.
+          una vez que termine el paso anterior. Arrastrá una pieza de &quot;disponible ahora&quot;
+          para cambiar qué se hace primero.
         </p>
       </div>
 
@@ -39,41 +38,7 @@ export default async function CentrosTrabajoPage() {
               {disponibleAhora.length === 0 ? (
                 <p className="text-sm text-foreground-muted">Nada disponible para arrancar ahora.</p>
               ) : (
-                <ul className="space-y-1.5">
-                  {disponibleAhora.map((item, i) => (
-                    <li key={item.otPieza.id} className="flex items-center gap-2 bg-surface-muted rounded-md px-2.5 py-2">
-                      <div className="flex flex-col gap-0.5 shrink-0">
-                        <form action={moverPrioridadAction}>
-                          <input type="hidden" name="otPiezaId" value={item.otPieza.id} />
-                          <input type="hidden" name="centroTrabajoId" value={centro.id} />
-                          <input type="hidden" name="direccion" value="subir" />
-                          <button
-                            type="submit"
-                            disabled={i === 0}
-                            className="block leading-none text-xs text-foreground-muted hover:text-accent disabled:opacity-25 disabled:hover:text-foreground-muted"
-                            aria-label="Subir prioridad"
-                          >
-                            ▲
-                          </button>
-                        </form>
-                        <form action={moverPrioridadAction}>
-                          <input type="hidden" name="otPiezaId" value={item.otPieza.id} />
-                          <input type="hidden" name="centroTrabajoId" value={centro.id} />
-                          <input type="hidden" name="direccion" value="bajar" />
-                          <button
-                            type="submit"
-                            disabled={i === disponibleAhora.length - 1}
-                            className="block leading-none text-xs text-foreground-muted hover:text-accent disabled:opacity-25 disabled:hover:text-foreground-muted"
-                            aria-label="Bajar prioridad"
-                          >
-                            ▼
-                          </button>
-                        </form>
-                      </div>
-                      <ItemColaTexto item={item} />
-                    </li>
-                  ))}
-                </ul>
+                <ColaDisponibleAhora centroId={centro.id} items={disponibleAhora} />
               )}
 
               {aFuturo.length > 0 && (

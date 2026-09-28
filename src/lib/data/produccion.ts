@@ -150,22 +150,14 @@ export async function getColaPorCentroTrabajo(): Promise<ColaCentro[]> {
   return centros.map((c) => porCentro.get(c.id)!);
 }
 
-/** Reordena manualmente la cola de "disponible ahora" de un centro (pedido de
- * Horacio: "que se puedan ordenar según cuál se quiere hacer primero").
- * Renumera toda la cola visible como enteros secuenciales en vez de sólo
- * intercambiar el valor con el vecino — así el cambio se nota aunque haya
- * empates de prioridad, que es el caso normal (todas las piezas arrancan en 0). */
-export async function moverPrioridad(otPiezaId: string, centroTrabajoId: string, direccion: "subir" | "bajar"): Promise<void> {
-  const colas = await getColaPorCentroTrabajo();
-  const cola = colas.find((c) => c.centro.id === centroTrabajoId);
-  if (!cola) return;
-
-  const lista = [...cola.disponibleAhora];
-  const idx = lista.findIndex((item) => item.otPieza.id === otPiezaId);
-  if (idx === -1) return;
-  const vecinoIdx = direccion === "subir" ? idx - 1 : idx + 1;
-  if (vecinoIdx < 0 || vecinoIdx >= lista.length) return;
-
-  [lista[idx], lista[vecinoIdx]] = [lista[vecinoIdx], lista[idx]];
-  await Promise.all(lista.map((item, i) => db.update(otPieza).set({ prioridad: i }).where(eq(otPieza.id, item.otPieza.id))));
+/** Reordena la cola completa de "disponible ahora" de un centro a partir del
+ * arrastre en la UI (Release 3 — reemplaza las flechas de subir/bajar de
+ * Release 2, pedido explícito del cliente: "sería mucho mejor poder agarrar
+ * y arrastrar los elementos para modificar el orden de prioridad"). Se
+ * renumera toda la lista como enteros secuenciales en el orden recibido —
+ * así el cambio se nota aunque haya empates de prioridad, que es el caso
+ * normal (todas las piezas arrancan en 0). */
+export async function reordenarCola(centroTrabajoId: string, ordenOtPiezaIds: string[]): Promise<void> {
+  void centroTrabajoId; // la prioridad es global por OT de pieza, no por centro — se mantiene el parámetro por claridad de la acción que la llama
+  await Promise.all(ordenOtPiezaIds.map((id, i) => db.update(otPieza).set({ prioridad: i }).where(eq(otPieza.id, id))));
 }
