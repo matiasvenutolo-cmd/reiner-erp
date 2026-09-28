@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getOtMaquinaDetalle } from "@/lib/data/ot";
 import { getPiezasPorIds, getPiezasPorConfiguracion } from "@/lib/data/maestros";
 import { getControlesArmado, getProcedimientos } from "@/lib/data/armado";
+import { getOtPiezaIdsConRevisionPendiente } from "@/lib/data/revision";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import { CantidadAFabricarForm } from "@/components/CantidadAFabricarForm";
 import { completarOtConjuntoAction, agregarPiezaSueltaAction } from "@/app/actions/ot";
@@ -15,10 +16,11 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
   const { otMaquina, clienteNombre, configuracion, conjuntos, estadoCalculado } = detalle;
 
   const piezaIds = conjuntos.flatMap((c) => c.piezas.map((p) => p.otPieza.piezaId));
-  const [piezasPorId, piezasConfigTodas, procedimientos] = await Promise.all([
+  const [piezasPorId, piezasConfigTodas, procedimientos, otPiezaIdsConRevision] = await Promise.all([
     getPiezasPorIds(piezaIds),
     configuracion ? getPiezasPorConfiguracion(configuracion.id) : Promise.resolve([]),
     getProcedimientos(),
+    getOtPiezaIdsConRevisionPendiente(otMaquina.id),
   ]);
   const piezasConfigPorConjunto = new Map<string, typeof piezasConfigTodas>();
   for (const p of piezasConfigTodas) {
@@ -112,7 +114,14 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
                       />
                     </td>
                     <td className="px-4 py-2.5">
-                      <EstadoBadge estado={estado} sinRouting={sinRouting} />
+                      <div className="flex items-center gap-1.5">
+                        <EstadoBadge estado={estado} sinRouting={sinRouting} />
+                        {otPiezaIdsConRevision.has(otPieza.id) && (
+                          <Link href={`/ot/${otMaquina.id}/pieza/${otPieza.id}`} className="badge-estado badge-alerta hover:opacity-80">
+                            revisión pendiente
+                          </Link>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

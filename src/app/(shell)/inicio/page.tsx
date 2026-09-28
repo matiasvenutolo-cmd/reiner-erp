@@ -73,19 +73,24 @@ export default async function InicioPage() {
       )}
 
       {(usuario.rol === "ingenieria" || usuario.rol === "direccion") && revisionPendiente.length > 0 && (
-        <Tarjeta titulo={`Revisión pendiente (${revisionPendiente.length})`} href="/revision" hrefLabel="Ver todas">
+        <Tarjeta titulo={`Revisión pendiente (${revisionPendiente.length})`}>
           <ul className="divide-y divide-border">
             {revisionPendiente.slice(0, 5).map((t) => (
-              <li key={t.id} className="py-2 flex items-center justify-between gap-3 text-sm">
-                <div className="min-w-0">
-                  <span className="font-medium">{t.piezaNombre}</span>{" "}
-                  <span className="text-foreground-muted font-mono text-xs">{t.otPiezaCodigo}</span>
-                </div>
-                <span className="text-xs text-foreground-muted shrink-0">
-                  {t.piezasDefectuosas > 0 && `${t.piezasDefectuosas} defectuosas`}
-                  {t.piezasDefectuosas > 0 && t.piezasRetrabajadas > 0 && " · "}
-                  {t.piezasRetrabajadas > 0 && `${t.piezasRetrabajadas} a retrabajar`}
-                </span>
+              <li key={t.id} className="py-2">
+                <Link
+                  href={`/ot/${t.otMaquinaId}/pieza/${t.otPiezaId}`}
+                  className="flex items-center justify-between gap-3 text-sm hover:text-accent"
+                >
+                  <div className="min-w-0">
+                    <span className="font-medium">{t.piezaNombre}</span>{" "}
+                    <span className="text-foreground-muted font-mono text-xs">{t.otPiezaCodigo}</span>
+                  </div>
+                  <span className="text-xs text-foreground-muted shrink-0">
+                    {t.piezasDefectuosas > 0 && `${t.piezasDefectuosas} defectuosas`}
+                    {t.piezasDefectuosas > 0 && t.piezasRetrabajadas > 0 && " · "}
+                    {t.piezasRetrabajadas > 0 && `${t.piezasRetrabajadas} a retrabajar`}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
@@ -194,17 +199,19 @@ function Tarjeta({
   children,
 }: {
   titulo: string;
-  href: string;
-  hrefLabel: string;
+  href?: string;
+  hrefLabel?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="bg-surface border border-border rounded-lg p-4">
       <div className="flex items-center justify-between mb-1">
         <h2 className="font-semibold text-sm">{titulo}</h2>
-        <Link href={href} className="text-xs text-accent hover:underline whitespace-nowrap">
-          {hrefLabel} →
-        </Link>
+        {href && (
+          <Link href={href} className="text-xs text-accent hover:underline whitespace-nowrap">
+            {hrefLabel} →
+          </Link>
+        )}
       </div>
       {children}
     </div>

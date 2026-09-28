@@ -348,6 +348,23 @@ cada perfil — ver pregunta en §17):
 Operario no cambia (sigue en `/taller`, ver §8). "Inicio" se agregó como primer ítem del
 sidebar para poder volver. Probado en el navegador con Adrián, Julián y Horacio.
 
+**✅ Paquete 10 — Revisión integrada en la OT, ya no es un módulo aparte (2026-09-28).**
+Revierte una decisión de Release 2 (paquete 7): se sacó `/revision` del menú y se borró la
+pantalla — pedido explícito del cliente (§10 más arriba). Ahora, cuando una pieza se cierra
+con defectuosas o retrabajadas:
+- En `/ot/[id]` (listado de piezas del conjunto), la fila de esa pieza muestra un badge
+  "revisión pendiente" que lleva directo a su ficha.
+- En `/ot/[id]/pieza/[otPiezaId]` (donde Julián/Horacio ya están mirando esa pieza
+  puntual) aparece una tarjeta "Revisión / retrabajo" con el detalle y el mismo formulario
+  de resolución que tenía la pantalla vieja — resolver ahí mismo, sin ir a otro lado.
+- En `/inicio`, la tarjeta "Revisión pendiente" ahora linkea cada fila directo a la ficha
+  de la pieza en vez de a un índice separado.
+`src/lib/data/revision.ts` sigue siendo el único lugar que lee/escribe `tarea_revision`
+(se agregaron `getTareasRevisionDePieza` y `getOtPiezaIdsConRevisionPendiente`) — sólo
+cambió desde dónde se llama. Probado de punta a punta: se cerró una pieza real como Nico
+con 2 defectuosas, apareció el badge en la OT y la tarjeta en el home de Julián, se
+resolvió desde la ficha de la pieza, y las tres pantallas se actualizaron.
+
 Pendiente: el resto de los paquetes de §18 (órdenes de trabajo/planificación semanal,
-integrar Revisión en la OT, unificar Logística+Remitos+tercerización, detalle de
-operaciones específico, adjuntos, flag compra/fabricación, indicadores).
+unificar Logística+Remitos+tercerización, detalle de operaciones específico, adjuntos,
+flag compra/fabricación, indicadores).

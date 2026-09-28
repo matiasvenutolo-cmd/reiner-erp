@@ -36,7 +36,6 @@ const NAV_ITEMS: NavEntry[] = [
   { href: "/stock", label: "Stock", roles: STAFF },
   { href: "/logistica", label: "Logística", roles: STAFF },
   { href: "/remitos", label: "Remitos", roles: STAFF },
-  { href: "/revision", label: "Revisión", roles: STAFF },
   { href: "/indicadores", label: "Indicadores", roles: STAFF },
   { href: "/maestros", label: "Maestros", roles: STAFF, grupo: "admin" },
   { href: "/usuarios", label: "Usuarios", roles: STAFF, grupo: "admin" },

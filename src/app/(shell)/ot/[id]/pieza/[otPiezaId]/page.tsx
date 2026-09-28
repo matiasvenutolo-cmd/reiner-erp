@@ -4,6 +4,8 @@ import { getOtPieza, estadoDePieza } from "@/lib/data/ot";
 import { getPieza, getRoutingPieza, getConjunto } from "@/lib/data/maestros";
 import { getHistorialOtPieza, getTiempoEstandar } from "@/lib/data/ejecucion";
 import { getUsuario } from "@/lib/data/usuarios";
+import { getTareasRevisionDePieza } from "@/lib/data/revision";
+import { resolverTareaRevisionAction } from "@/app/actions/revision";
 import { EstadoBadge } from "@/components/EstadoBadge";
 
 function formatearDuracion(seg: number | null): string {
@@ -18,13 +20,16 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
   const otPieza = await getOtPieza(otPiezaId);
   if (!otPieza) notFound();
 
-  const [pieza, routing, historial, { estado, sinRouting }] = await Promise.all([
+  const [pieza, routing, historial, { estado, sinRouting }, tareasRevision] = await Promise.all([
     getPieza(otPieza.piezaId),
     getRoutingPieza(otPieza.piezaId),
     getHistorialOtPieza(otPieza.id),
     estadoDePieza(otPieza),
+    getTareasRevisionDePieza(otPieza.id),
   ]);
   const conjunto = pieza ? await getConjunto(pieza.conjuntoId) : null;
+  const revisionPendiente = tareasRevision.filter((t) => t.estado === "pendiente");
+  const revisionResuelta = tareasRevision.filter((t) => t.estado === "resuelta");
 
   const registrosPorOperacion = new Map(historial.map((h) => [h.registro.operacionId, h]));
   const tiempos = await Promise.all(
@@ -65,6 +70,58 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
         <Metric label="Piezas OK" value={String(otPieza.piezasOk)} />
         <Metric label="Piezas no OK" value={String(otPieza.piezasNoOk)} />
       </div>
+
+      {(revisionPendiente.length > 0 || revisionResuelta.length > 0) && (
+        <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
+          <h2 className="text-sm font-semibold">Revisión / retrabajo</h2>
+          {revisionPendiente.map((t) => (
+            <div key={t.id} className="space-y-2">
+              <div className="flex flex-wrap gap-1.5">
+                {t.piezasDefectuosas > 0 && (
+                  <span className="badge-estado badge-alerta">{t.piezasDefectuosas} defectuosas</span>
+                )}
+                {t.piezasRetrabajadas > 0 && (
+                  <span className="badge-estado badge-en_curso">{t.piezasRetrabajadas} a retrabajar</span>
+                )}
+                <span className="text-xs text-foreground-muted self-center">
+                  desde {new Date(t.createdAt).toLocaleString("es-AR")}
+                </span>
+              </div>
+              <form action={resolverTareaRevisionAction} className="flex gap-2">
+                <input type="hidden" name="id" value={t.id} />
+                <input type="hidden" name="otMaquinaId" value={id} />
+                <input type="hidden" name="otPiezaId" value={otPieza.id} />
+                <input
+                  name="resolucion"
+                  required
+                  placeholder="¿Qué se hizo? (ej. se refabricaron 2, se reprocesó 1)"
+                  className="input flex-1 text-sm"
+                />
+                <button
+                  type="submit"
+                  className="bg-accent text-accent-foreground text-sm font-medium px-3 rounded-md hover:opacity-90"
+                >
+                  Resolver
+                </button>
+              </form>
+            </div>
+          ))}
+          {revisionResuelta.length > 0 && (
+            <details className="text-sm">
+              <summary className="cursor-pointer text-foreground-muted hover:text-foreground">
+                {revisionResuelta.length} resuelta{revisionResuelta.length === 1 ? "" : "s"}
+              </summary>
+              <ul className="mt-2 space-y-1.5">
+                {revisionResuelta.map((t) => (
+                  <li key={t.id} className="text-foreground-muted">
+                    {t.resolucion}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
 
       <div>
         <h2 className="text-sm font-semibold mb-2">Hoja de ruta</h2>
