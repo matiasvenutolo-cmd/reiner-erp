@@ -35,7 +35,7 @@ const NAV_ITEMS: NavEntry[] = [
   { href: "/centros-trabajo", label: "Centros de trabajo", roles: STAFF },
   { href: "/planificacion", label: "Planificación", roles: STAFF },
   { href: "/stock", label: "Stock", roles: STAFF },
-  { href: "/logistica", label: "Logística", roles: STAFF },
+  { href: "/tercerizados", label: "Tercerizados", roles: STAFF },
   { href: "/indicadores", label: "Indicadores", roles: STAFF },
   { href: "/maestros", label: "Maestros", roles: STAFF, grupo: "admin" },
   { href: "/usuarios", label: "Usuarios", roles: STAFF, grupo: "admin" },
@@ -66,10 +66,10 @@ export function rutaPermitida(rol: Usuario["rol"], pathname: string): boolean {
   // para el resto es /centros-trabajo.
   if (rol !== "operario" && /^\/taller\/[^/]+$/.test(pathname)) return true;
 
-  // Release 3: Remitos se fusionó con Logística en el menú (docs/06-
-  // backlog-release-3.md §12), pero /remitos sigue existiendo como
-  // historial + vista imprimible — accesible para todo el que ya puede
-  // entrar a Logística, aunque no tenga su propio ítem de menú.
+  // Release 3: Remitos se fusionó con Tercerizados (antes "Logística") en el
+  // menú (docs/06-backlog-release-3.md §12), pero /remitos sigue existiendo
+  // como historial + vista imprimible — accesible para todo el que ya puede
+  // entrar a Tercerizados, aunque no tenga su propio ítem de menú.
   if (STAFF.includes(rol) && /^\/remitos(\/|$)/.test(pathname)) return true;
 
   return NAV_ITEMS.filter((item) => item.roles.includes(rol)).some(

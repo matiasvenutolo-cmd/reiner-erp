@@ -105,8 +105,11 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
                     <td className="px-4 py-2.5 text-foreground-muted">{op.secuencia}</td>
                     <td className="px-4 py-2.5">
                       {op.proceso.nombre}
-                      {op.proceso.esExterno && (
+                      {op.proceso.tipo === "tercerizado" && (
                         <span className="ml-2 text-xs text-foreground-muted">(tercerizado)</span>
+                      )}
+                      {op.proceso.tipo === "compras" && (
+                        <span className="ml-2 text-xs text-foreground-muted">(compra)</span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 min-w-[12rem]">

@@ -60,12 +60,18 @@ export type PiezaFueraDeFabrica = { piezaId: string; piezaCodigo: string; piezaN
 
 /**
  * Piezas hoy "afuera" en un proceso tercerizado (Cromado, Pavonado,
- * Compras...) — se apoya en `proceso.esExterno`, que ya existía (hallazgo
- * 3.5). Antes salía de `wip_pieza` (la foto fija migrada del Excel, que
- * ningún flujo de la app vuelve a actualizar); ahora se calcula en vivo
- * desde la misma ejecución real que ya usan /avance, /centros-trabajo y
- * /stock (ver src/lib/data/stock.ts) — evita que este panel muestre piezas
- * que ya volvieron del proveedor hace meses.
+ * Anodizado...) — se apoya en `proceso.tipo === "tercerizado"`. Antes salía
+ * de `wip_pieza` (la foto fija migrada del Excel, que ningún flujo de la app
+ * vuelve a actualizar); ahora se calcula en vivo desde la misma ejecución
+ * real que ya usan /avance, /centros-trabajo y /stock (ver
+ * src/lib/data/stock.ts) — evita que este panel muestre piezas que ya
+ * volvieron del proveedor hace meses.
+ *
+ * "Compras" (`proceso.tipo === "compras"`) queda afuera a propósito
+ * (devolución del cliente, docs/06-backlog-release-3.md): una pieza
+ * esperando una compra nunca salió físicamente de la fábrica, así que no es
+ * "fuera de fábrica" ni tercerizado — es un tema de stock, no de Logística.
+ * Se ve en `getPiezasCompraPendientes` (produccion.ts).
  */
 export async function getPiezasFueraDeFabrica(): Promise<PiezaFueraDeFabrica[]> {
   const filas = await db
@@ -85,7 +91,7 @@ export async function getPiezasFueraDeFabrica(): Promise<PiezaFueraDeFabrica[]> 
         secuencia: operacion.secuencia,
         procesoId: proceso.id,
         procesoNombre: proceso.nombre,
-        esExterno: proceso.esExterno,
+        tipo: proceso.tipo,
       })
       .from(operacion)
       .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
@@ -99,10 +105,10 @@ export async function getPiezasFueraDeFabrica(): Promise<PiezaFueraDeFabrica[]> 
       ),
   ]);
 
-  const rutaPorPieza = new Map<string, { id: string; procesoId: string; procesoNombre: string; esExterno: boolean }[]>();
+  const rutaPorPieza = new Map<string, { id: string; procesoId: string; procesoNombre: string; tipo: "interno" | "tercerizado" | "compras" }[]>();
   for (const r of rutaRows) {
     const arr = rutaPorPieza.get(r.piezaId) ?? [];
-    arr.push({ id: r.id, procesoId: r.procesoId, procesoNombre: r.procesoNombre, esExterno: r.esExterno });
+    arr.push({ id: r.id, procesoId: r.procesoId, procesoNombre: r.procesoNombre, tipo: r.tipo });
     rutaPorPieza.set(r.piezaId, arr);
   }
 
@@ -120,7 +126,7 @@ export async function getPiezasFueraDeFabrica(): Promise<PiezaFueraDeFabrica[]> 
     const completadas = completadasPorOtPieza.get(fila.otPieza.id) ?? new Set<string>();
     if (completadas.size >= routing.length) continue;
     const actual = routing.find((op) => !completadas.has(op.id));
-    if (!actual || !actual.esExterno) continue;
+    if (!actual || actual.tipo !== "tercerizado") continue;
 
     const clave = `${fila.piezaId}::${actual.procesoId}`;
     const acc = acumulado.get(clave) ?? {

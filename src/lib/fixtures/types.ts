@@ -42,7 +42,7 @@ export type ProcesoFx = {
   codigo: string;
   nombre: string;
   ordenFlujo: number;
-  esExterno: boolean;
+  tipo: "interno" | "tercerizado" | "compras";
 };
 
 export type DispositivoFx = {

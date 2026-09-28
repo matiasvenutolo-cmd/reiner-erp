@@ -48,6 +48,18 @@ export const instrumentacionEnum = pgEnum("instrumentacion", [
 
 export const tipoPiezaEnum = pgEnum("tipo_pieza", ["fabricada", "comprada"]);
 
+/**
+ * `interno`: paso hecho en la planta, con centro de trabajo propio.
+ * `tercerizado`: se manda a otra empresa (Cromado, Pavonado, Anodizado...) y
+ * vuelve — es lo que se ve en Tercerizados/remitos.
+ * `compras`: no se manda a ningún lado, es una compra directa (material o
+ * componente) que hace falta antes de seguir — se vincula con stock, no con
+ * Tercerizados (devolución del cliente, ver docs/06-backlog-release-3.md).
+ * Reemplaza el booleano `esExterno`, que trataba "Compras" y "Cromado" como
+ * la misma cosa.
+ */
+export const tipoProcesoEnum = pgEnum("tipo_proceso", ["interno", "tercerizado", "compras"]);
+
 export const estadoOtEnum = pgEnum("estado_ot", [
   "pendiente",
   "en_curso",
@@ -177,7 +189,7 @@ export const proceso = pgTable("proceso", {
   codigo: text("codigo").notNull().unique(),
   nombre: text("nombre").notNull(),
   ordenFlujo: integer("orden_flujo").notNull().default(0),
-  esExterno: boolean("es_externo").notNull().default(false), // ej. Compras, Cromado tercerizado
+  tipo: tipoProcesoEnum("tipo").notNull().default("interno"),
   centroTrabajoId: text("centro_trabajo_id").references(() => centroTrabajo.id),
 });
 

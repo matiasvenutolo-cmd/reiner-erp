@@ -28,7 +28,7 @@ export async function registrarIngresoAction(formData: FormData) {
     observacion: observacion || undefined,
     usuarioId: usuario.id,
   });
-  revalidatePath("/logistica");
+  revalidatePath("/tercerizados");
 }
 
 export async function registrarEgresoAction(formData: FormData) {
@@ -43,5 +43,5 @@ export async function registrarEgresoAction(formData: FormData) {
   }
 
   await registrarEgreso({ piezaId, cantidad, observacion: observacion || undefined, usuarioId: usuario.id });
-  revalidatePath("/logistica");
+  revalidatePath("/tercerizados");
 }

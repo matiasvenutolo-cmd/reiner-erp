@@ -7,7 +7,7 @@ const TIPO_LABEL: Record<string, string> = {
   retiro_ot: "Retiro por OT",
 };
 
-/** Select de tipo de movimiento con auto-submit — filtro de /logistica. */
+/** Select de tipo de movimiento con auto-submit — filtro de /tercerizados. */
 export function TipoMovimientoSelect({ valorActual }: { valorActual: string }) {
   return (
     <select

@@ -65,7 +65,7 @@ export default async function StockPage({
         <MetricCard label="Piezas por debajo del mínimo" value={stockBajo.length} href="#minimo" />
         <MetricCard label="Unidades finalizadas en stock" value={resumen.unidadesFinalizadas} href="/stock/finalizado" />
         <MetricCard label="Unidades en proceso" value={unidadesEnProceso} href="/stock/en-proceso" />
-        <MetricCard label="Unidades en proceso tercerizado" value={unidadesTercerizadas} href="/logistica" />
+        <MetricCard label="Unidades en proceso tercerizado" value={unidadesTercerizadas} href="/tercerizados" />
       </div>
 
       <div id="minimo">

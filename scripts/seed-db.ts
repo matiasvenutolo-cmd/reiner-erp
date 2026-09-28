@@ -44,17 +44,19 @@ async function main() {
   // planta comparten un mismo centro físico). onConflictDoUpdate porque el
   // nombre puede cambiar si se re-corre migrate-excel.
   //
-  // Los procesos `esExterno` (Compras, Cromado, Pavonado, Anodizado...) NO
-  // generan centro de trabajo: no hay un operario de REINER parado ahí para
-  // reordenar una cola — es trabajo tercerizado o de compras, no un puesto
-  // físico de taller. Se detectó probando la pantalla: "Compras" solo
-  // acumulaba 276 piezas "disponibles ahora" en una sola tarjeta, inmanejable
-  // con flechas de a una. Deja pendiente la pregunta real: ese trabajo
-  // necesita su PROPIO seguimiento (que ya está pedido en el backlog, §4
-  // "control de calidad en ingresos" / procesos externos), no esta cola.
+  // Los procesos `tipo !== "interno"` (Compras, Cromado, Pavonado,
+  // Anodizado...) NO generan centro de trabajo: no hay un operario de REINER
+  // parado ahí para reordenar una cola — es trabajo tercerizado o de
+  // compras, no un puesto físico de taller. Se detectó probando la pantalla:
+  // "Compras" solo acumulaba 276 piezas "disponibles ahora" en una sola
+  // tarjeta, inmanejable con flechas de a una. "Compras" y "tercerizado" se
+  // separaron en dos valores de `tipo` (antes un solo booleano `esExterno`)
+  // porque son cosas distintas para el cliente: tercerizado se manda a otra
+  // empresa, compras se resuelve con stock (devolución del cliente,
+  // docs/06-backlog-release-3.md) — pero ninguno de los dos tiene centro.
   console.log("Sembrando centros de trabajo...");
   for (const p of FIXTURES.procesos) {
-    if (p.esExterno) {
+    if (p.tipo !== "interno") {
       await db.update(schema.proceso).set({ centroTrabajoId: null }).where(eq(schema.proceso.id, p.id));
       await db.delete(schema.centroTrabajo).where(eq(schema.centroTrabajo.id, p.id)); // limpia siembras previas a este cambio
       continue;

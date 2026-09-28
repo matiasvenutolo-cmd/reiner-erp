@@ -14,7 +14,7 @@ const TIPO_LABEL: Record<string, string> = {
   retiro_ot: "Retiro por OT",
 };
 
-export default async function LogisticaPage({
+export default async function TercerizadosPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; tipo?: string }>;
@@ -37,10 +37,11 @@ export default async function LogisticaPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Logística</h1>
+          <h1 className="text-xl font-semibold">Tercerizados</h1>
           <p className="text-sm text-foreground-muted mt-1">
             Ingresos, egresos, remitos y control de calidad al mover piezas hacia o desde un proceso
-            tercerizado.
+            tercerizado (Cromado, Pavonado, Anodizado...) — no incluye Compras, que se resuelve con
+            stock, no se manda a ninguna otra empresa.
           </p>
         </div>
         <Link href="/remitos" className="text-sm text-accent hover:underline whitespace-nowrap">

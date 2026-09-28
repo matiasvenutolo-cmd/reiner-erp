@@ -22,7 +22,7 @@ export async function generarRemitoAction(input: Omit<GenerarRemitoInput, "usuar
   }
 
   const id = await generarRemito({ ...input, usuarioId: usuario.id });
-  revalidatePath("/logistica");
+  revalidatePath("/tercerizados");
   revalidatePath("/remitos");
   return id;
 }

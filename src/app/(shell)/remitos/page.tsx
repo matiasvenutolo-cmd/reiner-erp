@@ -7,11 +7,11 @@ export default async function RemitosPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/logistica" className="text-sm text-accent hover:underline">
-          ← Logística
+        <Link href="/tercerizados" className="text-sm text-accent hover:underline">
+          ← Tercerizados
         </Link>
         <h1 className="text-xl font-semibold mt-1">Remitos</h1>
-        <p className="text-sm text-foreground-muted mt-1">Se arman desde Logística.</p>
+        <p className="text-sm text-foreground-muted mt-1">Se arman desde Tercerizados.</p>
       </div>
 
       {remitos.length === 0 ? (

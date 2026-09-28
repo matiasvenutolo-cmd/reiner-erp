@@ -138,7 +138,7 @@ async function PanelDireccion() {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <MetricCard label="OT de máquina en curso" value={enCurso.length} href="/avance" />
-      <MetricCard label="Piezas en proceso tercerizado" value={totalFueraDeFabrica} href="/logistica" />
+      <MetricCard label="Piezas en proceso tercerizado" value={totalFueraDeFabrica} href="/tercerizados" />
       {proximasAVencer.length > 0 && (
         <div className="sm:col-span-2 bg-surface border border-border rounded-lg p-4">
           <h2 className="font-semibold text-sm mb-2">Próximas por plazo comprometido</h2>

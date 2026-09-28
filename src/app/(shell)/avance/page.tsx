@@ -35,7 +35,7 @@ export default async function AvancePage() {
         <MetricCard label="OT de máquina en curso" value={enCurso} href="/ot" />
         <MetricCard label="Piezas terminadas / total" value={`${piezasTerminadas}/${piezasTotal}`} href="/ot" />
         <MetricCard label="Frenado ahora mismo" value={paradas.length} href="/centros-trabajo" />
-        <MetricCard label="Piezas en proceso tercerizado" value={piezasFueraDeFabrica} href="/logistica" />
+        <MetricCard label="Piezas en proceso tercerizado" value={piezasFueraDeFabrica} href="/tercerizados" />
       </div>
 
       {ordenes.length === 0 ? (

@@ -50,21 +50,29 @@ export type ItemCola = {
 
 export type ColaCentro = { centro: CentroTrabajo; disponibleAhora: ItemCola[]; aFuturo: ItemCola[] };
 
-type PasoRuta = { id: string; secuencia: number; procesoNombre: string; centroTrabajoId: string | null };
+type PasoRuta = { id: string; secuencia: number; procesoNombre: string; centroTrabajoId: string | null; tipo: "interno" | "tercerizado" | "compras" };
+
+type FilaOtPieza = {
+  otPieza: OtPieza;
+  piezaNombre: string;
+  piezaCodigo: string;
+  conjuntoNombre: string;
+  otMaquinaId: string;
+  otMaquinaCodigo: string;
+};
 
 /**
  * Trae TODO lo que hace falta en 3 queries (independiente de cuántas OT de
- * pieza haya) y arma la cola en memoria. La primera versión llamaba a
- * `getEstadoYOperacionActual` una vez por pieza dentro de un for-loop — con
- * los cientos de OT de pieza que ya hay sembradas, eso tardaba más de 60s y
- * hacía fallar el build (Next intenta prerenderizar la página en build time).
- * Evitar el N+1 acá importa tanto para el build como para que la pantalla
- * cargue rápido en producción.
+ * pieza haya) y ubica, para cada OT de pieza todavía abierta, en qué paso de
+ * su hoja de ruta está parada. La primera versión de `getColaPorCentroTrabajo`
+ * llamaba a `getEstadoYOperacionActual` una vez por pieza dentro de un
+ * for-loop — con los cientos de OT de pieza que ya hay sembradas, eso
+ * tardaba más de 60s y hacía fallar el build (Next intenta prerenderizar la
+ * página en build time). Evitar el N+1 acá importa tanto para el build como
+ * para que las pantallas que la usan (`getColaPorCentroTrabajo` y
+ * `getPiezasCompraPendientes`) carguen rápido en producción.
  */
-export async function getColaPorCentroTrabajo(): Promise<ColaCentro[]> {
-  const centros = await getCentrosTrabajo();
-  const porCentro = new Map<string, ColaCentro>(centros.map((c) => [c.id, { centro: c, disponibleAhora: [], aFuturo: [] }]));
-
+async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing: PasoRuta[]; posActual: number }[]> {
   const filas = await db
     .select({
       otPieza,
@@ -81,7 +89,7 @@ export async function getColaPorCentroTrabajo(): Promise<ColaCentro[]> {
     .innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId))
     .orderBy(asc(otPieza.prioridad), asc(otPieza.createdAt));
 
-  if (filas.length === 0) return centros.map((c) => porCentro.get(c.id)!);
+  if (filas.length === 0) return [];
 
   const piezaIds = [...new Set(filas.map((f) => f.otPieza.piezaId))];
   const otPiezaIds = filas.map((f) => f.otPieza.id);
@@ -94,6 +102,7 @@ export async function getColaPorCentroTrabajo(): Promise<ColaCentro[]> {
         secuencia: operacion.secuencia,
         procesoNombre: proceso.nombre,
         centroTrabajoId: proceso.centroTrabajoId,
+        tipo: proceso.tipo,
       })
       .from(operacion)
       .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
@@ -114,7 +123,7 @@ export async function getColaPorCentroTrabajo(): Promise<ColaCentro[]> {
   const rutaPorPieza = new Map<string, PasoRuta[]>();
   for (const r of rutaRows) {
     const arr = rutaPorPieza.get(r.piezaId) ?? [];
-    arr.push({ id: r.id, secuencia: r.secuencia, procesoNombre: r.procesoNombre, centroTrabajoId: r.centroTrabajoId });
+    arr.push({ id: r.id, secuencia: r.secuencia, procesoNombre: r.procesoNombre, centroTrabajoId: r.centroTrabajoId, tipo: r.tipo });
     rutaPorPieza.set(r.piezaId, arr);
   }
 
@@ -125,6 +134,7 @@ export async function getColaPorCentroTrabajo(): Promise<ColaCentro[]> {
     completadasPorOtPieza.set(c.otPiezaId, set);
   }
 
+  const resultado: { fila: FilaOtPieza; routing: PasoRuta[]; posActual: number }[] = [];
   for (const fila of filas) {
     const routing = rutaPorPieza.get(fila.otPieza.piezaId) ?? [];
     if (routing.length === 0) continue; // sin hoja de ruta — no aparece en ninguna cola
@@ -135,6 +145,18 @@ export async function getColaPorCentroTrabajo(): Promise<ColaCentro[]> {
     const posActual = routing.findIndex((op) => !completadas.has(op.id));
     if (posActual === -1) continue;
 
+    resultado.push({ fila, routing, posActual });
+  }
+  return resultado;
+}
+
+export async function getColaPorCentroTrabajo(): Promise<ColaCentro[]> {
+  const centros = await getCentrosTrabajo();
+  const porCentro = new Map<string, ColaCentro>(centros.map((c) => [c.id, { centro: c, disponibleAhora: [], aFuturo: [] }]));
+
+  const filasConPosicion = await getFilasConPosicionActual();
+
+  for (const { fila, routing, posActual } of filasConPosicion) {
     for (let i = posActual; i < routing.length; i++) {
       const op = routing[i];
       if (!op.centroTrabajoId) continue; // proceso sin centro asignado — no aparece en ninguna cola
@@ -184,23 +206,25 @@ export type ItemCompraPendiente = {
   conjuntoNombre: string;
   otMaquinaId: string;
   otMaquinaCodigo: string;
-  cantidadNecesaria: number;
-  disponible: number;
+  detalle: string;
 };
 
 /**
- * Piezas de compra (Release 3, docs/06-backlog-release-3.md §13, pedido
- * explícito del cliente): hoy una pieza `comprada` sin hoja de ruta
- * simplemente no aparece en ninguna cola de `getColaPorCentroTrabajo` (no
- * tiene centro de trabajo que la fabrique) — queda invisible, como si no
- * existiera, aunque su OT de pieza siga abierta esperando que llegue. Esta
- * consulta es la contraparte: junta las OT de pieza de piezas `comprada`
- * cuyo stock actual todavía no alcanza lo que esa orden necesita — son las
- * que "dependen de una compra todavía no resuelta" y frenan el armado de su
- * conjunto tanto como una pieza fabricada trabada en un centro.
+ * Piezas de compra (Release 3, docs/06-backlog-release-3.md §13, y la
+ * devolución del cliente sobre no confundir Compras con tercerizados): junta
+ * dos casos, distintos pero con el mismo problema de visibilidad — ninguno
+ * de los dos tiene centro de trabajo, así que ninguno aparecía en ningún
+ * lado antes de esto.
+ *
+ * 1. Piezas enteras `comprada` (nunca se fabrican) cuyo stock actual todavía
+ *    no alcanza lo que su OT necesita.
+ * 2. Piezas `fabricada` cuyo paso ACTUAL de la hoja de ruta es un proceso
+ *    `compras` (ej. falta comprar la materia prima antes de arrancar el
+ *    mecanizado) — se apoya en `getFilasConPosicionActual`, la misma base
+ *    que usa `getColaPorCentroTrabajo`.
  */
 export async function getPiezasCompraPendientes(): Promise<ItemCompraPendiente[]> {
-  const filas = await db
+  const filasCompradas = await db
     .select({
       otPiezaId: otPieza.id,
       otPiezaCodigo: otPieza.codigo,
@@ -221,7 +245,33 @@ export async function getPiezasCompraPendientes(): Promise<ItemCompraPendiente[]
     .where(eq(pieza.tipo, "comprada"))
     .orderBy(asc(otMaquina.codigo));
 
-  return filas
+  const piezasComprada: ItemCompraPendiente[] = filasCompradas
     .map((f) => ({ ...f, disponible: f.disponible ?? 0 }))
-    .filter((f) => f.disponible < f.cantidadNecesaria);
+    .filter((f) => f.disponible < f.cantidadNecesaria)
+    .map((f) => ({
+      otPiezaId: f.otPiezaId,
+      otPiezaCodigo: f.otPiezaCodigo,
+      piezaCodigo: f.piezaCodigo,
+      piezaNombre: f.piezaNombre,
+      conjuntoNombre: f.conjuntoNombre,
+      otMaquinaId: f.otMaquinaId,
+      otMaquinaCodigo: f.otMaquinaCodigo,
+      detalle: `faltan ${f.cantidadNecesaria - f.disponible} de ${f.cantidadNecesaria}`,
+    }));
+
+  const filasConPosicion = await getFilasConPosicionActual();
+  const piezasMaterialPendiente: ItemCompraPendiente[] = filasConPosicion
+    .filter(({ routing, posActual }) => routing[posActual].tipo === "compras")
+    .map(({ fila }) => ({
+      otPiezaId: fila.otPieza.id,
+      otPiezaCodigo: fila.otPieza.codigo,
+      piezaCodigo: fila.piezaCodigo,
+      piezaNombre: fila.piezaNombre,
+      conjuntoNombre: fila.conjuntoNombre,
+      otMaquinaId: fila.otMaquinaId,
+      otMaquinaCodigo: fila.otMaquinaCodigo,
+      detalle: `${fila.otPieza.cantidadAFabricar} u. esperando compra de material para arrancar`,
+    }));
+
+  return [...piezasComprada, ...piezasMaterialPendiente];
 }

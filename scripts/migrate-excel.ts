@@ -21,7 +21,8 @@ import {
   MAPA_PROCESOS,
   NOMBRE_PROCESO,
   ORDEN_FLUJO,
-  PROCESOS_EXTERNOS,
+  PROCESOS_TERCERIZADOS,
+  PROCESOS_COMPRAS,
   COLUMNAS_STOCK_NO_WIP,
 } from "./lib/normalizacion";
 import type {
@@ -422,7 +423,7 @@ function main() {
     codigo,
     nombre: NOMBRE_PROCESO[codigo] ?? codigo,
     ordenFlujo: ORDEN_FLUJO[codigo] ?? 999,
-    esExterno: PROCESOS_EXTERNOS.has(codigo),
+    tipo: PROCESOS_COMPRAS.has(codigo) ? "compras" : PROCESOS_TERCERIZADOS.has(codigo) ? "tercerizado" : "interno",
   }));
   procesos.sort((a, b) => a.ordenFlujo - b.ordenFlujo);
 

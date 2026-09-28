@@ -89,7 +89,7 @@ export default async function CentrosTrabajoPage() {
                   <th className="text-left px-4 py-2 font-medium">Pieza</th>
                   <th className="text-left px-4 py-2 font-medium">Conjunto</th>
                   <th className="text-left px-4 py-2 font-medium">OT máquina</th>
-                  <th className="text-right px-4 py-2 font-medium">Faltan</th>
+                  <th className="text-right px-4 py-2 font-medium">Estado</th>
                 </tr>
               </thead>
               <tbody>
@@ -105,9 +105,7 @@ export default async function CentrosTrabajoPage() {
                         {it.otMaquinaCodigo}
                       </Link>
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-red-700">
-                      {it.cantidadNecesaria - it.disponible} de {it.cantidadNecesaria}
-                    </td>
+                    <td className="px-4 py-2.5 text-right text-red-700">{it.detalle}</td>
                   </tr>
                 ))}
               </tbody>

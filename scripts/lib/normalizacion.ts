@@ -162,7 +162,15 @@ export const ORDEN_FLUJO: Record<string, number> = {
   TALLER: 180,
 };
 
-export const PROCESOS_EXTERNOS = new Set(["COMPRAS", "CROMADO", "PAVONADO", "ANODIZADO", "CROMADO_ANODIZADO"]);
+/**
+ * "Compras" no es lo mismo que un proceso tercerizado real (Cromado,
+ * Pavonado, Anodizado...): tercerizado se manda a otra empresa y vuelve;
+ * Compras nunca sale de la fábrica, es una compra directa que se resuelve
+ * con stock (devolución del cliente, docs/06-backlog-release-3.md) — antes
+ * un solo booleano `esExterno` los trataba igual.
+ */
+export const PROCESOS_TERCERIZADOS = new Set(["CROMADO", "PAVONADO", "ANODIZADO", "CROMADO_ANODIZADO"]);
+export const PROCESOS_COMPRAS = new Set(["COMPRAS"]);
 
 /**
  * Canoniza un nombre de conjunto (case/acentos) contra la lista maestra de
