@@ -4,13 +4,15 @@ import { getUsuarioActual } from "@/lib/session";
 import { getOperacionAbierta } from "@/lib/data/ejecucion";
 import { getPieza, getConjunto } from "@/lib/data/maestros";
 import { getEstadoYOperacionActual, listarTodasLasOtPieza } from "@/lib/data/ot";
+import { getAsignacionesDeHoy } from "@/lib/data/planificacion";
 
 export default async function TallerPage() {
   const usuario = await getUsuarioActual();
   const abierta = await getOperacionAbierta(usuario.id);
   if (abierta) redirect(`/taller/${abierta.otPiezaId}`);
 
-  const todasLasOtPieza = await listarTodasLasOtPieza();
+  const [todasLasOtPieza, asignadasHoy] = await Promise.all([listarTodasLasOtPieza(), getAsignacionesDeHoy(usuario.id)]);
+  const otPiezaIdsAsignadosHoy = new Set(asignadasHoy.map((a) => a.otPiezaId));
   const candidatas = await Promise.all(
     todasLasOtPieza.map(async (otPieza) => {
       const { estado, sinRouting, operacionActual, routing } = await getEstadoYOperacionActual(otPieza);
@@ -28,7 +30,9 @@ export default async function TallerPage() {
       return { otPieza, pieza, conjunto, estado, sinRouting, pasos: routing.length };
     }),
   );
-  const pendientes = candidatas.filter((c): c is NonNullable<typeof c> => c !== null);
+  const pendientes = candidatas
+    .filter((c): c is NonNullable<typeof c> => c !== null)
+    .sort((a, b) => Number(otPiezaIdsAsignadosHoy.has(b.otPieza.id)) - Number(otPiezaIdsAsignadosHoy.has(a.otPieza.id)));
 
   return (
     <div className="max-w-lg mx-auto space-y-4">
@@ -52,11 +56,14 @@ export default async function TallerPage() {
                 sinRouting ? "opacity-50 pointer-events-none border-border" : "border-border hover:border-accent active:scale-[0.99]"
               } transition`}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-xs text-foreground-muted">{otPieza.codigo}</span>
-                <span className={`badge-estado ${estado === "en_curso" ? "badge-en_curso" : "badge-pendiente"}`}>
-                  {estado === "en_curso" ? "En curso" : `${pasos} operaciones`}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {otPiezaIdsAsignadosHoy.has(otPieza.id) && <span className="badge-estado badge-terminada">Asignado hoy</span>}
+                  <span className={`badge-estado ${estado === "en_curso" ? "badge-en_curso" : "badge-pendiente"}`}>
+                    {estado === "en_curso" ? "En curso" : `${pasos} operaciones`}
+                  </span>
+                </div>
               </div>
               <div className="font-semibold mt-1">{pieza?.nombre}</div>
               <div className="text-sm text-foreground-muted">

@@ -19,6 +19,7 @@ import {
   integer,
   boolean,
   timestamp,
+  date,
   primaryKey,
   pgEnum,
   type AnyPgColumn,
@@ -391,6 +392,30 @@ export const otPieza = pgTable("ot_pieza", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+/**
+ * Planificación semanal (Release 3, docs/06-backlog-release-3.md §4):
+ * "asignar un trabajo específico a una persona, para un día determinado,
+ * con anticipación (ej. planificar toda la semana siguiente)". Asigna una
+ * OT de pieza completa (no una operación puntual) a un operario para un
+ * día — si para cuando llega ese día la pieza ya avanzó de etapa, la
+ * asignación queda igual como referencia de que alguien se comprometió a
+ * mirarla ese día, no se borra sola.
+ */
+export const asignacionTrabajo = pgTable("asignacion_trabajo", {
+  id: id(),
+  otPiezaId: text("ot_pieza_id")
+    .notNull()
+    .references(() => otPieza.id),
+  operarioId: text("operario_id")
+    .notNull()
+    .references(() => usuario.id),
+  fecha: date("fecha").notNull(),
+  asignadoPorId: text("asignado_por_id")
+    .notNull()
+    .references(() => usuario.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ── Ejecución — el corazón del sistema (RF-05) ──────────────────────────
 
 export const tipoParada = pgTable("tipo_parada", {
@@ -552,6 +577,7 @@ export type MovimientoStock = typeof movimientoStock.$inferSelect;
 export type OtMaquina = typeof otMaquina.$inferSelect;
 export type OtConjunto = typeof otConjunto.$inferSelect;
 export type OtPieza = typeof otPieza.$inferSelect;
+export type AsignacionTrabajo = typeof asignacionTrabajo.$inferSelect;
 export type TipoParada = typeof tipoParada.$inferSelect;
 export type RegistroOperacion = typeof registroOperacion.$inferSelect;
 export type Parada = typeof parada.$inferSelect;

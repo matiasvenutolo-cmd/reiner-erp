@@ -268,7 +268,13 @@ Nuevas, surgidas de esta reunión:
 - Primera pantalla por perfil (§15): contenido concreto que cada rol espera ver —
   hoy sólo sabemos que "no debe ser la misma para todos", falta la lista real por rol.
 - Planificación semanal (§4): ¿la asignación de trabajo a una persona/día la hace
-  Horacio a mano sobre un calendario, o hace falta alguna lógica de sugerencia?
+  Horacio a mano sobre un calendario, o hace falta alguna lógica de sugerencia? Además,
+  ya construido y probado: ¿una asignación explícita debería poder saltarse el filtro de
+  centro de trabajo de un operario, o el filtro de centro sigue mandando siempre?
+- "El trabajo vuelve hacia atrás o desaparece" (§4, queja original del 4/9): no se
+  encontró un caso reproducible con lo construido en Release 2 y 3 (Centros de trabajo,
+  Avance por sección, acordeón de la OT) — confirmar con Horacio si el síntoma sigue
+  ocurriendo con la versión actual o si ya se resolvió de rebote.
 - `wip_pieza` (§11): al calcular el WIP en vivo desde la ejecución real, dejó de usarse
   en pantalla la tabla `wip_pieza` migrada del Excel en Fase 1. ¿Representaba algo más
   que "posición de cada OT en su hoja de ruta" — por ejemplo, stock físico genérico sin
@@ -498,5 +504,37 @@ Probado de punta a punta en el navegador: se armó un remito real con dos piezas
 (Wiper + Tuerca de elevación) para "Cromados del Sur" desde `/logistica` y se generó
 correctamente como REMITO N° 0004 con ambas filas en la vista imprimible.
 
-Pendiente: el resto de los paquetes de §18 (órdenes de trabajo/planificación semanal,
-adjuntos de ingeniería, indicadores).
+**✅ Paquete 6 — Planificación semanal (2026-09-28).** Pedido explícito del cliente (§4 más
+arriba): "asignar un trabajo específico a una persona, para un día determinado, con
+anticipación (ej. planificar toda la semana siguiente)".
+
+- **Investigación previa, antes de construir:** el otro punto de §4 — "al mandar un trabajo
+  a fabricación desde Taller, el trabajo vuelve hacia atrás o desaparece de la
+  visualización actual" — es una queja de la reunión original (4/9), de **antes** de que
+  existieran Centros de trabajo, Avance por sección o el acordeón de la OT. Se revisó
+  `getColaPorCentroTrabajo` (produccion.ts): una pieza en curso sigue apareciendo en
+  "disponible ahora" de su centro (no desaparece al empezarla), y con todo lo construido en
+  esta Release 3 el estado de cualquier pieza es visible desde /avance, /centros-trabajo,
+  /inicio y la ficha de la OT. No se encontró un bug puntual reproducible — queda como
+  pregunta para confirmar con Horacio en la próxima reunión si el síntoma persiste con la
+  versión actual o si ya quedó resuelto de rebote.
+- Nueva tabla `asignacion_trabajo` (otPieza + operario + fecha) — se asigna la OT de pieza
+  completa, no una operación puntual; si la pieza avanza de etapa antes de esa fecha la
+  asignación queda igual, como referencia de que alguien se comprometió a mirarla ese día.
+- Nueva pantalla `/planificacion`: grilla semana (lunes a sábado) × operario con lo ya
+  asignado, navegación semana anterior/siguiente, y debajo el trabajo disponible para
+  asignar (mismos datos que `/centros-trabajo`, con un formulario de asignar operario+fecha
+  por fila).
+- `/taller` (operario): las piezas asignadas para hoy muestran un badge "Asignado hoy" y
+  suben al principio de la lista.
+
+**Interacción encontrada al probar, sin resolver — pregunta para la próxima reunión:** el
+filtro de centro de trabajo de Release 2 (`usuario.centroTrabajoId`) tiene prioridad sobre
+la asignación — un operario con centro fijo asignado (ej. Nico → Torno) NO ve una pieza
+asignada para hoy si esa pieza está en otro centro en este momento. Probado en el
+navegador: se asignó una pieza en "Corte por hilo" a Nico (centro "Torno") para hoy y no
+apareció en su `/taller`. ¿Una asignación explícita de Horacio debería poder saltarse el
+filtro de centro, o el filtro de centro sigue siendo la regla y una asignación fuera de su
+centro no tiene sentido? No se resolvió unilateralmente — es una decisión de producto.
+
+Pendiente: el resto de los paquetes de §18 (adjuntos de ingeniería, indicadores).
