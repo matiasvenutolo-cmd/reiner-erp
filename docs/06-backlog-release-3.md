@@ -537,4 +537,24 @@ apareció en su `/taller`. ¿Una asignación explícita de Horacio debería pode
 filtro de centro, o el filtro de centro sigue siendo la regla y una asignación fuera de su
 centro no tiene sentido? No se resolvió unilateralmente — es una decisión de producto.
 
+**✅ Paquete extra 4 — /stock rediseñada de nuevo, comentario directo de Matías
+(2026-09-28).** El paquete de Stock en vivo (más arriba) arregló los números; no arregló
+que la pantalla abriera vacía — sólo título, descripción y un buscador sin nada hasta
+escribir algo. Comentario textual: *"qué imagen me da a mí como ingeniero esa hoja? qué
+puedo ver? qué puedo accionar? nada."*
+
+- 4 métricas arriba (mismo `MetricCard` que Avance/Inicio): piezas por debajo del mínimo,
+  unidades finalizadas, unidades en proceso, unidades en proceso tercerizado.
+- Nueva sección "Por debajo del mínimo": accionable, con ajuste inline para taller — antes
+  esta alerta, la más importante de todas, no se veía en ningún lado.
+- "En proceso, por etapa" pasa de tabla numérica a barras horizontales proporcionales,
+  mismo lenguaje visual que Avance y el acordeón de la OT.
+- El buscador baja a "Buscar una pieza puntual", ya no es lo único en la pantalla.
+
+**Otro campo modelado y nunca usado, mismo patrón que `pieza.tipo` y `wip_pieza`:**
+`pieza.stockMinimo` quedó siempre en 0 desde la migración del Excel — la alerta de mínimo
+no tenía nada para mostrar porque nada podía estar "por debajo de 0". Se agregó editable
+en `/maestros/pieza/[id]`, probado end-to-end (se cargó un mínimo real, apareció en la
+alerta, se revirtió).
+
 Pendiente: el resto de los paquetes de §18 (adjuntos de ingeniería, indicadores).
