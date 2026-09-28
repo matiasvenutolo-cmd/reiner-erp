@@ -602,3 +602,39 @@ ningún movimiento perceptible — indistinguible de "no hace nada".
   los dos casos en vez de duplicar la consulta.
 
 Pendiente: el resto de los paquetes de §18 (adjuntos de ingeniería, indicadores).
+
+**✅ Paquete 9 — Centros de trabajo: detalle por clic + separar compra/fabricación
+(2026-09-28).** Pedido explícito y remarcado por Matías como "de las cosas más
+importantes del sistema" — quedaba pendiente del §13 original.
+
+- **Detalle por clic**: cada pieza de la cola (tanto "disponible ahora" como "a futuro")
+  ahora es un link a `/ot/[otMaquinaId]/pieza/[otPiezaId]` — la misma pantalla de detalle
+  que ya usan Stock y Avance. El arrastre para reordenar sigue funcionando: el `pointerdown`
+  que inicia el drag quedó acotado al ícono ⠿ (antes estaba en toda la fila, que ahora es
+  el link) — probado en el navegador simulando la secuencia completa de Pointer Events
+  (down → move → up), confirmando que el reorden se sigue guardando.
+  - Esa pantalla de detalle ahora también muestra, junto al estado: **si está asignada y a
+    quién** (reusa `asignacionTrabajo` de Planificación — antes esa información sólo se veía
+    en `/planificacion` o como badge "Asignado hoy" en `/taller`), y resalta en la hoja de
+    ruta cuál es la **operación actual** en vez de dejar que se deduzca mirando qué fila no
+    tiene operario. Se agregó `getEstadoYOperacionActual` en vez de `estadoDePieza` (ya
+    traía `operacionActual`, sólo no se estaba usando acá) — nueva consulta:
+    `getAsignacionesVigentesBatch` en `planificacion.ts`.
+  - En la propia pantalla de Centros de trabajo también se ve un badge compacto
+    "Asignada hoy/el DD·MM a &lt;nombre&gt;" sin necesidad de entrar al detalle, para no
+    perder el vistazo rápido que ya tenía la pantalla.
+- **Separar compra/fabricación**: el problema real, encontrado al leer `getColaPorCentroTrabajo`,
+  es que una pieza `comprada` no tiene hoja de ruta (no la fabrica ningún centro) y hoy
+  simplemente desaparece de todas las colas — no está "junto" con las de fabricación, está
+  invisible, aunque su OT de pieza siga abierta esperando que llegue. Nueva sección
+  "Piezas de compra pendientes" al pie de la pantalla: junta las OT de pieza de piezas
+  `comprada` cuyo stock actual todavía no cubre lo que esa orden necesita (`getPiezasCompraPendientes`
+  en `produccion.ts`) — son justo las que "dependen de una compra todavía no resuelta" y
+  frenan el armado de su conjunto igual que una pieza trabada en un centro. Probado
+  marcando temporalmente una pieza real como `comprada` con stock insuficiente: aparece
+  correctamente con "faltan X de Y" por cada OT máquina que la necesita; revertido después
+  del test.
+  - Nota: hoy no hay ninguna pieza real marcada `tipo = comprada` en los datos (el único
+    caso se probó y revirtió en una ronda anterior de testing) — la sección funciona pero
+    está vacía en este momento; se llena sola en cuanto ingeniería marque piezas de compra
+    en Maestros.

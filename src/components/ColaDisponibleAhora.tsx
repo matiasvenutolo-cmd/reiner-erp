@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { reordenarColaAction } from "@/app/actions/produccion";
 import type { ItemCola } from "@/lib/data/produccion";
+import type { AsignacionVigente } from "@/lib/data/planificacion";
+import { AsignacionBadge } from "@/components/AsignacionBadge";
 
 /**
  * Lista reordenable por arrastre (mouse o touch) — reemplaza las flechas de
@@ -12,7 +15,15 @@ import type { ItemCola } from "@/lib/data/produccion";
  * trabajo extra — así un mismo mecanismo sirve para desktop y para el
  * celular/tablet que puede usar dirección o taller parados en el piso.
  */
-export function ColaDisponibleAhora({ centroId, items }: { centroId: string; items: ItemCola[] }) {
+export function ColaDisponibleAhora({
+  centroId,
+  items,
+  asignaciones,
+}: {
+  centroId: string;
+  items: ItemCola[];
+  asignaciones: Record<string, AsignacionVigente>;
+}) {
   const [lista, setLista] = useState(items);
   const [arrastrando, setArrastrando] = useState<string | null>(null);
   const listaRef = useRef(lista);
@@ -71,28 +82,37 @@ export function ColaDisponibleAhora({ centroId, items }: { centroId: string; ite
         <li
           key={item.otPieza.id}
           data-ot-pieza-id={item.otPieza.id}
-          onPointerDown={(e) => iniciar(e, item.otPieza.id, lista.indexOf(item))}
-          className={`flex items-center gap-2 bg-surface-muted rounded-md px-2.5 py-2 select-none touch-none cursor-grab active:cursor-grabbing ${
+          className={`flex items-center gap-2 bg-surface-muted rounded-md px-1 py-1 select-none ${
             arrastrando === item.otPieza.id ? "ring-2 ring-accent opacity-70" : ""
           }`}
         >
-          <span className="text-foreground-muted/70 text-sm leading-none shrink-0" aria-hidden>
+          <span
+            onPointerDown={(e) => iniciar(e, item.otPieza.id, lista.indexOf(item))}
+            className="text-foreground-muted/70 text-sm leading-none shrink-0 touch-none cursor-grab active:cursor-grabbing px-1.5 py-2.5"
+            aria-hidden
+          >
             ⠿
           </span>
-          <ItemColaTexto item={item} />
+          <Link
+            href={`/ot/${item.otMaquinaId}/pieza/${item.otPieza.id}`}
+            className="min-w-0 flex-1 rounded px-1.5 py-1 hover:bg-surface"
+          >
+            <ItemColaTexto item={item} asignacion={asignaciones[item.otPieza.id]} />
+          </Link>
         </li>
       ))}
     </ul>
   );
 }
 
-function ItemColaTexto({ item }: { item: ItemCola }) {
+function ItemColaTexto({ item, asignacion }: { item: ItemCola; asignacion?: AsignacionVigente }) {
   return (
     <div className="min-w-0">
       <div className="font-medium text-sm truncate">{item.piezaNombre}</div>
       <div className="text-xs text-foreground-muted truncate">
         {item.otMaquinaCodigo} · {item.conjuntoNombre} · op. {item.operacionSecuencia}/{item.totalOperaciones}
       </div>
+      {asignacion && <AsignacionBadge asignacion={asignacion} className="mt-1" />}
     </div>
   );
 }

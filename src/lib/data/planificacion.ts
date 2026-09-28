@@ -6,7 +6,7 @@
  * pieza avanza de etapa antes de esa fecha, queda como referencia de que
  * alguien se comprometió a mirarla ese día.
  */
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, inArray, asc } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { asignacionTrabajo, otPieza, pieza, otConjunto, otMaquina, usuario } from "@/lib/db/schema";
 
@@ -59,4 +59,35 @@ export async function asignarTrabajo(input: {
 
 export async function eliminarAsignacion(id: string): Promise<void> {
   await db.delete(asignacionTrabajo).where(eq(asignacionTrabajo.id, id));
+}
+
+export type AsignacionVigente = { fecha: string; operarioNombre: string };
+
+/**
+ * Asignación vigente (hoy o a futuro) de cada OT de pieza — batcheado para
+ * usar en /centros-trabajo (pedido del cliente: poder ver de un vistazo "si
+ * está asignada, quién la tiene asignada" — docs/06-backlog-release-3.md
+ * §13). Si una pieza tiene varias asignaciones futuras se queda con la más
+ * próxima; una asignación vencida (de un día ya pasado) no cuenta como
+ * vigente.
+ */
+export async function getAsignacionesVigentesBatch(otPiezaIds: string[]): Promise<Map<string, AsignacionVigente>> {
+  if (otPiezaIds.length === 0) return new Map();
+  const hoy = new Date().toISOString().slice(0, 10);
+  const filas = await db
+    .select({
+      otPiezaId: asignacionTrabajo.otPiezaId,
+      fecha: asignacionTrabajo.fecha,
+      operarioNombre: usuario.nombre,
+    })
+    .from(asignacionTrabajo)
+    .innerJoin(usuario, eq(usuario.id, asignacionTrabajo.operarioId))
+    .where(and(inArray(asignacionTrabajo.otPiezaId, otPiezaIds), gte(asignacionTrabajo.fecha, hoy)))
+    .orderBy(asc(asignacionTrabajo.fecha));
+
+  const map = new Map<string, AsignacionVigente>();
+  for (const f of filas) {
+    if (!map.has(f.otPiezaId)) map.set(f.otPiezaId, { fecha: f.fecha, operarioNombre: f.operarioNombre });
+  }
+  return map;
 }

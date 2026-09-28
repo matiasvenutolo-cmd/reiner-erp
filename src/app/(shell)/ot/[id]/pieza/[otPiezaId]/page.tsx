@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getOtPieza, estadoDePieza } from "@/lib/data/ot";
-import { getPieza, getRoutingPieza, getConjunto, nombreOperacion } from "@/lib/data/maestros";
+import { getOtPieza, getEstadoYOperacionActual } from "@/lib/data/ot";
+import { getPieza, getConjunto, nombreOperacion } from "@/lib/data/maestros";
 import { getHistorialOtPieza, getTiempoEstandar } from "@/lib/data/ejecucion";
 import { getUsuario } from "@/lib/data/usuarios";
 import { getTareasRevisionDePieza } from "@/lib/data/revision";
+import { getAsignacionesVigentesBatch } from "@/lib/data/planificacion";
 import { resolverTareaRevisionAction } from "@/app/actions/revision";
 import { EstadoBadge } from "@/components/EstadoBadge";
+import { AsignacionBadge } from "@/components/AsignacionBadge";
 
 function formatearDuracion(seg: number | null): string {
   if (seg === null) return "—";
@@ -20,13 +22,14 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
   const otPieza = await getOtPieza(otPiezaId);
   if (!otPieza) notFound();
 
-  const [pieza, routing, historial, { estado, sinRouting }, tareasRevision] = await Promise.all([
+  const [pieza, historial, { estado, sinRouting, routing, operacionActual }, tareasRevision, asignaciones] = await Promise.all([
     getPieza(otPieza.piezaId),
-    getRoutingPieza(otPieza.piezaId),
     getHistorialOtPieza(otPieza.id),
-    estadoDePieza(otPieza),
+    getEstadoYOperacionActual(otPieza),
     getTareasRevisionDePieza(otPieza.id),
+    getAsignacionesVigentesBatch([otPieza.id]),
   ]);
+  const asignacion = asignaciones.get(otPieza.id);
   const conjunto = pieza ? await getConjunto(pieza.conjuntoId) : null;
   const revisionPendiente = tareasRevision.filter((t) => t.estado === "pendiente");
   const revisionResuelta = tareasRevision.filter((t) => t.estado === "resuelta");
@@ -55,6 +58,7 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
         </div>
         <div className="flex items-center gap-2">
           <EstadoBadge estado={estado} sinRouting={sinRouting} />
+          {asignacion && <AsignacionBadge asignacion={asignacion} />}
           <Link
             href={`/taller/${otPieza.id}`}
             className="bg-accent text-accent-foreground text-sm font-medium px-3 py-2 rounded-md hover:opacity-90"
@@ -65,6 +69,7 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Metric label="Operación actual" value={operacionActual ? nombreOperacion(operacionActual) : estado === "terminada" ? "Terminada" : "—"} />
         <Metric label="Material" value={otPieza.material ?? pieza?.material ?? "—"} />
         <Metric label="A fabricar" value={String(otPieza.cantidadAFabricar)} />
         <Metric label="Piezas OK" value={String(otPieza.piezasOk)} />
@@ -146,10 +151,14 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
                     const registro = registrosPorOperacion.get(op.id);
                     const tstd = tiempoPorOp.get(op.id)?.ejecucion;
                     const operario = registro ? await getUsuario(registro.registro.usuarioId) : null;
+                    const esActual = operacionActual?.id === op.id;
                     return (
-                      <tr key={op.id} className="border-t border-border">
+                      <tr key={op.id} className={`border-t border-border ${esActual ? "bg-accent/5" : ""}`}>
                         <td className="px-4 py-2.5 text-foreground-muted">{op.secuencia}</td>
-                        <td className="px-4 py-2.5">{nombreOperacion(op)}</td>
+                        <td className="px-4 py-2.5">
+                          {nombreOperacion(op)}
+                          {esActual && <span className="badge-estado badge-en_curso ml-2">actual</span>}
+                        </td>
                         <td className="px-4 py-2.5 text-foreground-muted">{operario?.nombre ?? "—"}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums">
                           {formatearDuracion(registro?.registro.duracionSeg ?? null)}

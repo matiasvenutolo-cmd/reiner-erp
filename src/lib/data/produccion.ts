@@ -13,7 +13,18 @@
  */
 import { asc, eq, and, inArray, isNotNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { centroTrabajo, otPieza, otConjunto, otMaquina, pieza, conjunto, operacion, proceso, registroOperacion } from "@/lib/db/schema";
+import {
+  centroTrabajo,
+  otPieza,
+  otConjunto,
+  otMaquina,
+  pieza,
+  conjunto,
+  operacion,
+  proceso,
+  registroOperacion,
+  stockPieza,
+} from "@/lib/db/schema";
 import type { CentroTrabajo, OtPieza } from "@/lib/db/schema";
 
 export async function getCentrosTrabajo(): Promise<CentroTrabajo[]> {
@@ -30,6 +41,7 @@ export type ItemCola = {
   piezaNombre: string;
   piezaCodigo: string;
   conjuntoNombre: string;
+  otMaquinaId: string;
   otMaquinaCodigo: string;
   procesoNombre: string;
   operacionSecuencia: number;
@@ -59,6 +71,7 @@ export async function getColaPorCentroTrabajo(): Promise<ColaCentro[]> {
       piezaNombre: pieza.nombre,
       piezaCodigo: pieza.codigo,
       conjuntoNombre: conjunto.nombre,
+      otMaquinaId: otMaquina.id,
       otMaquinaCodigo: otMaquina.codigo,
     })
     .from(otPieza)
@@ -139,6 +152,7 @@ export async function getColaPorCentroTrabajo(): Promise<ColaCentro[]> {
         piezaNombre: fila.piezaNombre,
         piezaCodigo: fila.piezaCodigo,
         conjuntoNombre: fila.conjuntoNombre,
+        otMaquinaId: fila.otMaquinaId,
         otMaquinaCodigo: fila.otMaquinaCodigo,
         procesoNombre: op.procesoNombre,
         operacionSecuencia: op.secuencia,
@@ -160,4 +174,54 @@ export async function getColaPorCentroTrabajo(): Promise<ColaCentro[]> {
 export async function reordenarCola(centroTrabajoId: string, ordenOtPiezaIds: string[]): Promise<void> {
   void centroTrabajoId; // la prioridad es global por OT de pieza, no por centro — se mantiene el parámetro por claridad de la acción que la llama
   await Promise.all(ordenOtPiezaIds.map((id, i) => db.update(otPieza).set({ prioridad: i }).where(eq(otPieza.id, id))));
+}
+
+export type ItemCompraPendiente = {
+  otPiezaId: string;
+  otPiezaCodigo: string;
+  piezaCodigo: string;
+  piezaNombre: string;
+  conjuntoNombre: string;
+  otMaquinaId: string;
+  otMaquinaCodigo: string;
+  cantidadNecesaria: number;
+  disponible: number;
+};
+
+/**
+ * Piezas de compra (Release 3, docs/06-backlog-release-3.md §13, pedido
+ * explícito del cliente): hoy una pieza `comprada` sin hoja de ruta
+ * simplemente no aparece en ninguna cola de `getColaPorCentroTrabajo` (no
+ * tiene centro de trabajo que la fabrique) — queda invisible, como si no
+ * existiera, aunque su OT de pieza siga abierta esperando que llegue. Esta
+ * consulta es la contraparte: junta las OT de pieza de piezas `comprada`
+ * cuyo stock actual todavía no alcanza lo que esa orden necesita — son las
+ * que "dependen de una compra todavía no resuelta" y frenan el armado de su
+ * conjunto tanto como una pieza fabricada trabada en un centro.
+ */
+export async function getPiezasCompraPendientes(): Promise<ItemCompraPendiente[]> {
+  const filas = await db
+    .select({
+      otPiezaId: otPieza.id,
+      otPiezaCodigo: otPieza.codigo,
+      piezaCodigo: pieza.codigo,
+      piezaNombre: pieza.nombre,
+      conjuntoNombre: conjunto.nombre,
+      otMaquinaId: otMaquina.id,
+      otMaquinaCodigo: otMaquina.codigo,
+      cantidadNecesaria: otPieza.cantidadNecesaria,
+      disponible: stockPieza.cantidadDisponible,
+    })
+    .from(otPieza)
+    .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
+    .innerJoin(conjunto, eq(conjunto.id, pieza.conjuntoId))
+    .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
+    .innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId))
+    .leftJoin(stockPieza, eq(stockPieza.piezaId, pieza.id))
+    .where(eq(pieza.tipo, "comprada"))
+    .orderBy(asc(otMaquina.codigo));
+
+  return filas
+    .map((f) => ({ ...f, disponible: f.disponible ?? 0 }))
+    .filter((f) => f.disponible < f.cantidadNecesaria);
 }
