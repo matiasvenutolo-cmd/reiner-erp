@@ -490,26 +490,42 @@ export const controlArmado = pgTable("control_armado", {
 });
 
 /**
- * Remito (Release 2, paquete 7 — pedido de Horacio: "generación de remitos
- * para movimiento de piezas"). Un remito = un movimiento físico de piezas
- * hacia afuera de la fábrica (a un cliente o a un proceso tercerizado), con
- * numeración propia y vista imprimible en `/remitos/[id]`. MVP: un remito
- * por movimiento — varias piezas en un mismo remito queda para cuando haga
- * falta (no lo pidieron explícitamente, ver docs/05-backlog-release-2.md §9).
+ * Remito (Release 2, paquete 7; multi-pieza desde Release 3). Un remito =
+ * un envío físico hacia afuera de la fábrica (a un cliente o a un proceso
+ * tercerizado), con numeración propia y vista imprimible en
+ * `/remitos/[id]`. Encabezado del envío — las piezas viven en `remitoItem`.
+ * Pedido explícito del cliente (docs/06-backlog-release-3.md §12): "un
+ * remito debe poder agrupar varias piezas... de distintas máquinas o
+ * incluso distintos clientes, para un mismo proveedor" — ya estaba anotado
+ * como límite conocido en Release 2 (un remito por pieza), ahora resuelto.
  */
 export const remito = pgTable("remito", {
   id: id(),
   numero: integer("numero").notNull().unique(),
-  piezaId: text("pieza_id")
-    .notNull()
-    .references(() => pieza.id),
-  cantidad: integer("cantidad").notNull(),
   destino: text("destino").notNull(),
+  // Persona a cargo del envío del lado de REINER — pedido explícito del
+  // cliente ("técnico involucrado").
+  tecnico: text("tecnico"),
   observacion: text("observacion"),
   usuarioId: text("usuario_id")
     .notNull()
     .references(() => usuario.id),
   fecha: timestamp("fecha").notNull().defaultNow(),
+});
+
+export const remitoItem = pgTable("remito_item", {
+  id: id(),
+  remitoId: text("remito_id")
+    .notNull()
+    .references(() => remito.id),
+  piezaId: text("pieza_id")
+    .notNull()
+    .references(() => pieza.id),
+  cantidad: integer("cantidad").notNull(),
+  // Qué se le hace a la pieza en destino (ej. "Cromado") — pedido del
+  // cliente, el mismo formulario simple que describió: "pieza, tratamiento,
+  // código, destino, cantidad, observaciones".
+  tratamiento: text("tratamiento"),
 });
 
 // Nota: `tiempo_estandar` (RF-08) no es tabla: es una consulta agregada
@@ -543,6 +559,7 @@ export type ControlCalidad = typeof controlCalidad.$inferSelect;
 export type TareaRevision = typeof tareaRevision.$inferSelect;
 export type ControlArmado = typeof controlArmado.$inferSelect;
 export type Remito = typeof remito.$inferSelect;
+export type RemitoItem = typeof remitoItem.$inferSelect;
 export type Usuario = typeof usuario.$inferSelect;
 export type Cliente = typeof cliente.$inferSelect;
 export type Proveedor = typeof proveedor.$inferSelect;

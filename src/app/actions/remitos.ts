@@ -1,24 +1,28 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getUsuarioActual } from "@/lib/session";
-import { generarRemito } from "@/lib/data/remitos";
+import { generarRemito, type GenerarRemitoInput } from "@/lib/data/remitos";
+import { buscarPiezas } from "@/lib/data/maestros";
 
-export async function generarRemitoAction(formData: FormData) {
+/** Búsqueda de piezas para armar un remito — llamada directo desde el
+ * cliente (ArmadoRemito), no desde un <form>. */
+export async function buscarPiezasParaRemitoAction(query: string) {
+  const q = query.trim();
+  if (!q) return [];
+  const piezas = await buscarPiezas(q);
+  return piezas.slice(0, 15).map((p) => ({ id: p.id, codigo: p.codigo, nombre: p.nombre }));
+}
+
+export async function generarRemitoAction(input: Omit<GenerarRemitoInput, "usuarioId">): Promise<string> {
   const usuario = await getUsuarioActual();
 
-  const piezaId = String(formData.get("piezaId") ?? "");
-  const cantidad = Number(formData.get("cantidad"));
-  const destino = String(formData.get("destino") ?? "").trim();
-  const observacion = String(formData.get("observacion") ?? "").trim();
-
-  if (!piezaId || !Number.isFinite(cantidad) || cantidad <= 0 || !destino) {
-    throw new Error("Faltan datos: pieza, cantidad y destino son obligatorios.");
+  if (!input.destino.trim() || input.items.length === 0) {
+    throw new Error("Faltan datos: destino y al menos una pieza son obligatorios.");
   }
 
-  const id = await generarRemito({ piezaId, cantidad, destino, observacion: observacion || undefined, usuarioId: usuario.id });
+  const id = await generarRemito({ ...input, usuarioId: usuario.id });
   revalidatePath("/logistica");
   revalidatePath("/remitos");
-  redirect(`/remitos/${id}`);
+  return id;
 }

@@ -7,10 +7,11 @@ export default async function RemitosPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Remitos</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          Se generan desde Logística al mover piezas hacia afuera de la fábrica.
-        </p>
+        <Link href="/logistica" className="text-sm text-accent hover:underline">
+          ← Logística
+        </Link>
+        <h1 className="text-xl font-semibold mt-1">Remitos</h1>
+        <p className="text-sm text-foreground-muted mt-1">Se arman desde Logística.</p>
       </div>
 
       {remitos.length === 0 ? (
@@ -24,9 +25,9 @@ export default async function RemitosPage() {
               <tr>
                 <th className="text-left px-4 py-2 font-medium">N°</th>
                 <th className="text-left px-4 py-2 font-medium">Fecha</th>
-                <th className="text-left px-4 py-2 font-medium">Pieza</th>
-                <th className="text-right px-4 py-2 font-medium">Cantidad</th>
                 <th className="text-left px-4 py-2 font-medium">Destino</th>
+                <th className="text-right px-4 py-2 font-medium">Piezas</th>
+                <th className="text-right px-4 py-2 font-medium">Unidades</th>
                 <th className="text-left px-4 py-2 font-medium">Generado por</th>
                 <th></th>
               </tr>
@@ -38,12 +39,9 @@ export default async function RemitosPage() {
                   <td className="px-4 py-2.5 text-foreground-muted whitespace-nowrap">
                     {new Date(r.fecha).toLocaleDateString("es-AR")}
                   </td>
-                  <td className="px-4 py-2.5">
-                    <span className="font-mono text-xs text-foreground-muted mr-1">{r.piezaCodigo}</span>
-                    {r.piezaNombre}
-                  </td>
-                  <td className="px-4 py-2.5 text-right tabular-nums">{r.cantidad}</td>
                   <td className="px-4 py-2.5">{r.destino}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">{r.cantidadItems}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">{r.cantidadPiezas}</td>
                   <td className="px-4 py-2.5 text-foreground-muted">{r.usuarioNombre}</td>
                   <td className="px-4 py-2.5 text-right">
                     <Link href={`/remitos/${r.id}`} className="text-xs text-accent hover:underline">

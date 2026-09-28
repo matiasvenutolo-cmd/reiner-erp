@@ -42,6 +42,12 @@ export default async function RemitoPage({ params }: { params: Promise<{ id: str
             <div className="text-xs text-foreground-muted uppercase">Generado por</div>
             <div className="font-medium">{remito.usuarioNombre}</div>
           </div>
+          {remito.tecnico && (
+            <div>
+              <div className="text-xs text-foreground-muted uppercase">Técnico</div>
+              <div className="font-medium">{remito.tecnico}</div>
+            </div>
+          )}
         </div>
 
         <table className="w-full text-sm">
@@ -49,15 +55,19 @@ export default async function RemitoPage({ params }: { params: Promise<{ id: str
             <tr>
               <th className="text-left py-2 font-medium">Código</th>
               <th className="text-left py-2 font-medium">Pieza</th>
+              <th className="text-left py-2 font-medium">Tratamiento</th>
               <th className="text-right py-2 font-medium">Cantidad</th>
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b border-border">
-              <td className="py-3 font-mono text-xs">{remito.piezaCodigo}</td>
-              <td className="py-3">{remito.piezaNombre}</td>
-              <td className="py-3 text-right tabular-nums">{remito.cantidad}</td>
-            </tr>
+            {remito.items.map((item) => (
+              <tr key={item.id} className="border-b border-border">
+                <td className="py-3 font-mono text-xs">{item.piezaCodigo}</td>
+                <td className="py-3">{item.piezaNombre}</td>
+                <td className="py-3 text-foreground-muted">{item.tratamiento ?? "—"}</td>
+                <td className="py-3 text-right tabular-nums">{item.cantidad}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
 

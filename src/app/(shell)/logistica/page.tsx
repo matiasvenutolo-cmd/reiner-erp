@@ -3,8 +3,8 @@ import { buscarPiezas } from "@/lib/data/maestros";
 import { getStockDisponible } from "@/lib/data/stock";
 import { getProveedores, listarMovimientos, getPiezasFueraDeFabrica } from "@/lib/data/logistica";
 import { registrarIngresoAction, registrarEgresoAction } from "@/app/actions/logistica";
-import { generarRemitoAction } from "@/app/actions/remitos";
 import { TipoMovimientoSelect } from "@/components/TipoMovimientoSelect";
+import { ArmadoRemito } from "@/components/logistica/ArmadoRemito";
 import type { MovimientoStock } from "@/lib/db/schema";
 
 const TIPO_LABEL: Record<string, string> = {
@@ -39,13 +39,18 @@ export default async function LogisticaPage({
         <div>
           <h1 className="text-xl font-semibold">Logística</h1>
           <p className="text-sm text-foreground-muted mt-1">
-            Ingresos, egresos y control de calidad al recibir materia prima o una pieza que vuelve de
-            un proceso tercerizado.
+            Ingresos, egresos, remitos y control de calidad al mover piezas hacia o desde un proceso
+            tercerizado.
           </p>
         </div>
         <Link href="/remitos" className="text-sm text-accent hover:underline whitespace-nowrap">
-          Ver remitos →
+          Ver remitos anteriores →
         </Link>
+      </div>
+
+      <div>
+        <h2 className="text-sm font-semibold mb-2">Armar remito</h2>
+        <ArmadoRemito />
       </div>
 
       <div>
@@ -69,13 +74,12 @@ export default async function LogisticaPage({
                   <th className="text-right px-4 py-2 font-medium">Stock</th>
                   <th className="text-left px-4 py-2 font-medium">Ingreso (con control de calidad)</th>
                   <th className="text-left px-4 py-2 font-medium">Egreso</th>
-                  <th className="text-left px-4 py-2 font-medium">Remito</th>
                 </tr>
               </thead>
               <tbody>
                 {resultados.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-foreground-muted">
+                    <td colSpan={4} className="px-4 py-6 text-center text-foreground-muted">
                       Sin resultados para &ldquo;{q}&rdquo;
                     </td>
                   </tr>
@@ -119,16 +123,6 @@ export default async function LogisticaPage({
                           <input name="observacion" placeholder="Motivo" className="input text-xs py-1 w-24" />
                           <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
                             Guardar
-                          </button>
-                        </form>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <form action={generarRemitoAction} className="flex flex-wrap items-center gap-1.5">
-                          <input type="hidden" name="piezaId" value={pieza.id} />
-                          <input name="cantidad" type="number" min={1} placeholder="Cant." className="input w-16 text-xs py-1" />
-                          <input name="destino" placeholder="Destino" required className="input text-xs py-1 w-28" />
-                          <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
-                            Generar
                           </button>
                         </form>
                       </td>
