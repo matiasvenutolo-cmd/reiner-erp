@@ -1,10 +1,23 @@
 import Link from "next/link";
 import { getPiezasFinalizadas } from "@/lib/data/stock";
+import { getConjuntos, getConfiguraciones } from "@/lib/data/maestros";
+import { FiltrosStock } from "@/components/FiltrosStock";
 
 export const dynamic = "force-dynamic";
 
-export default async function StockFinalizadoPage() {
-  const piezas = await getPiezasFinalizadas();
+export default async function StockFinalizadoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ conjunto?: string; maquina?: string; tipo?: string }>;
+}) {
+  const { conjunto, maquina, tipo } = await searchParams;
+  const tipoFiltro = tipo === "fabricada" || tipo === "comprada" ? tipo : undefined;
+
+  const [piezas, conjuntos, configuraciones] = await Promise.all([
+    getPiezasFinalizadas({ conjuntoId: conjunto, configuracionId: maquina, tipo: tipoFiltro }),
+    getConjuntos(),
+    getConfiguraciones(),
+  ]);
   const totalUnidades = piezas.reduce((sum, p) => sum + p.disponible, 0);
 
   return (
@@ -20,9 +33,14 @@ export default async function StockFinalizadoPage() {
         </p>
       </div>
 
+      <FiltrosStock
+        conjuntos={conjuntos.map((c) => ({ id: c.id, nombre: c.nombre }))}
+        configuraciones={configuraciones.map((c) => ({ id: c.id, nombre: c.nombre }))}
+      />
+
       {piezas.length === 0 ? (
         <div className="bg-surface border border-border rounded-lg p-6 text-center text-foreground-muted text-sm">
-          No hay piezas con stock finalizado en este momento.
+          No hay piezas con stock finalizado que coincidan con el filtro.
         </div>
       ) : (
         <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
@@ -30,6 +48,8 @@ export default async function StockFinalizadoPage() {
             <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Pieza</th>
+                <th className="text-left px-4 py-2 font-medium">Conjunto</th>
+                <th className="text-left px-4 py-2 font-medium">Tipo</th>
                 <th className="text-right px-4 py-2 font-medium">Disponible</th>
               </tr>
             </thead>
@@ -41,6 +61,14 @@ export default async function StockFinalizadoPage() {
                       {p.piezaCodigo}
                     </Link>
                     {p.piezaNombre}
+                  </td>
+                  <td className="px-4 py-2.5 text-foreground-muted">{p.conjuntoNombre}</td>
+                  <td className="px-4 py-2.5">
+                    {p.tipo === "comprada" ? (
+                      <span className="badge-estado bg-surface-muted text-foreground-muted">Compra</span>
+                    ) : (
+                      <span className="text-foreground-muted">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{p.disponible}</td>
                 </tr>

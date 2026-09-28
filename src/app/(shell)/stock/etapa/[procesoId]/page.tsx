@@ -1,13 +1,28 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProceso } from "@/lib/data/maestros";
+import { getProceso, getConjuntos, getConfiguraciones } from "@/lib/data/maestros";
 import { getPiezasEnProceso } from "@/lib/data/stock";
+import { FiltrosStock } from "@/components/FiltrosStock";
 
 export const dynamic = "force-dynamic";
 
-export default async function StockEtapaPage({ params }: { params: Promise<{ procesoId: string }> }) {
+export default async function StockEtapaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ procesoId: string }>;
+  searchParams: Promise<{ conjunto?: string; maquina?: string; tipo?: string }>;
+}) {
   const { procesoId } = await params;
-  const [proceso, items] = await Promise.all([getProceso(procesoId), getPiezasEnProceso(procesoId)]);
+  const { conjunto, maquina, tipo } = await searchParams;
+  const tipoFiltro = tipo === "fabricada" || tipo === "comprada" ? tipo : undefined;
+
+  const [proceso, items, conjuntos, configuraciones] = await Promise.all([
+    getProceso(procesoId),
+    getPiezasEnProceso(procesoId, { conjuntoId: conjunto, configuracionId: maquina, tipo: tipoFiltro }),
+    getConjuntos(),
+    getConfiguraciones(),
+  ]);
   if (!proceso) notFound();
 
   const totalUnidades = items.reduce((sum, it) => sum + it.cantidad, 0);
@@ -26,9 +41,14 @@ export default async function StockEtapaPage({ params }: { params: Promise<{ pro
         </p>
       </div>
 
+      <FiltrosStock
+        conjuntos={conjuntos.map((c) => ({ id: c.id, nombre: c.nombre }))}
+        configuraciones={configuraciones.map((c) => ({ id: c.id, nombre: c.nombre }))}
+      />
+
       {items.length === 0 ? (
         <div className="bg-surface border border-border rounded-lg p-6 text-center text-foreground-muted text-sm">
-          No hay piezas en esta etapa en este momento.
+          No hay piezas en esta etapa que coincidan con el filtro.
         </div>
       ) : (
         <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
@@ -36,6 +56,7 @@ export default async function StockEtapaPage({ params }: { params: Promise<{ pro
             <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Pieza</th>
+                <th className="text-left px-4 py-2 font-medium">Conjunto</th>
                 <th className="text-left px-4 py-2 font-medium">OT pieza</th>
                 <th className="text-left px-4 py-2 font-medium">Máquina</th>
                 <th className="text-right px-4 py-2 font-medium">Cantidad</th>
@@ -50,6 +71,7 @@ export default async function StockEtapaPage({ params }: { params: Promise<{ pro
                     </Link>
                     {it.piezaNombre}
                   </td>
+                  <td className="px-4 py-2.5 text-foreground-muted">{it.conjuntoNombre}</td>
                   <td className="px-4 py-2.5">
                     <Link href={`/ot/${it.otMaquinaId}/pieza/${it.otPiezaId}`} className="font-mono text-xs text-accent hover:underline">
                       {it.otPiezaCodigo}

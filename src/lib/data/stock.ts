@@ -21,9 +21,36 @@
  * estaba en curso antes de este sistema) — a confirmar con Julián/Horacio
  * antes de eliminar la tabla del todo (ver pregunta abierta en el backlog).
  */
-import { asc, eq, and, inArray, isNotNull, lt } from "drizzle-orm";
+import { asc, eq, and, inArray, isNotNull, lt, gt } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { stockPieza, pieza, proceso, movimientoStock, otPieza, otConjunto, otMaquina, operacion, registroOperacion } from "@/lib/db/schema";
+import {
+  stockPieza,
+  pieza,
+  conjunto,
+  proceso,
+  movimientoStock,
+  otPieza,
+  otConjunto,
+  otMaquina,
+  operacion,
+  registroOperacion,
+  piezaConfiguracion,
+} from "@/lib/db/schema";
+
+/** Filtros comunes de los listados de Stock (Release 3, devolución del
+ * cliente: "el listado de piezas es difícil de visualizar... poder filtrar
+ * por conjunto y/o máquina, y por si es comprada o ya se fabricó"). */
+export type FiltrosStock = { conjuntoId?: string; configuracionId?: string; tipo?: "fabricada" | "comprada" };
+
+/** IDs de pieza que aplican a una configuración (máquina) puntual, vía
+ * `piezaConfiguracion` — el mismo vínculo que usa la explosión de OT. */
+async function piezaIdsDeConfiguracion(configuracionId: string): Promise<Set<string>> {
+  const filas = await db
+    .select({ piezaId: piezaConfiguracion.piezaId })
+    .from(piezaConfiguracion)
+    .where(eq(piezaConfiguracion.configuracionId, configuracionId));
+  return new Set(filas.map((f) => f.piezaId));
+}
 
 export async function getStockDisponible(piezaId: string): Promise<number> {
   const [row] = await db
@@ -161,6 +188,8 @@ export type ItemEnEtapa = {
   piezaId: string;
   piezaCodigo: string;
   piezaNombre: string;
+  conjuntoNombre: string;
+  tipo: "fabricada" | "comprada";
   otMaquinaId: string;
   otMaquinaCodigo: string;
   procesoNombre: string;
@@ -173,16 +202,35 @@ export type ItemEnEtapa = {
  * donde ver QUÉ piezas lo componen (pedido de Matías: "no tenemos el
  * detalle del stock en ningún lado"). Sin `procesoId` trae TODO lo que
  * está en proceso (cualquier etapa); con `procesoId` filtra a una sola
- * etapa puntual. Mismo cálculo batcheado que getResumenWipEnCursoPorProceso,
+ * etapa puntual. Acepta además los filtros de conjunto/máquina/tipo
+ * (devolución del cliente: "el listado de piezas es difícil de
+ * visualizar"). Mismo cálculo batcheado que getResumenWipEnCursoPorProceso,
  * sin agregar al final.
  */
-export async function getPiezasEnProceso(procesoId?: string): Promise<ItemEnEtapa[]> {
+export async function getPiezasEnProceso(procesoId?: string, filtros: FiltrosStock = {}): Promise<ItemEnEtapa[]> {
+  const condiciones = [];
+  if (filtros.conjuntoId) condiciones.push(eq(pieza.conjuntoId, filtros.conjuntoId));
+  if (filtros.tipo) condiciones.push(eq(pieza.tipo, filtros.tipo));
+
+  const piezaIdsPermitidos = filtros.configuracionId ? await piezaIdsDeConfiguracion(filtros.configuracionId) : null;
+
   const filas = await db
-    .select({ otPieza, piezaId: pieza.id, piezaCodigo: pieza.codigo, piezaNombre: pieza.nombre, otMaquinaId: otMaquina.id, otMaquinaCodigo: otMaquina.codigo })
+    .select({
+      otPieza,
+      piezaId: pieza.id,
+      piezaCodigo: pieza.codigo,
+      piezaNombre: pieza.nombre,
+      conjuntoNombre: conjunto.nombre,
+      tipo: pieza.tipo,
+      otMaquinaId: otMaquina.id,
+      otMaquinaCodigo: otMaquina.codigo,
+    })
     .from(otPieza)
     .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
+    .innerJoin(conjunto, eq(conjunto.id, pieza.conjuntoId))
     .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
-    .innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId));
+    .innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId))
+    .where(condiciones.length ? and(...condiciones) : undefined);
   if (filas.length === 0) return [];
 
   const piezaIds = [...new Set(filas.map((f) => f.piezaId))];
@@ -225,6 +273,7 @@ export async function getPiezasEnProceso(procesoId?: string): Promise<ItemEnEtap
     if (completadas.size >= routing.length) continue;
     const actual = routing.find((op) => !completadas.has(op.id));
     if (!actual || (procesoId && actual.procesoId !== procesoId)) continue;
+    if (piezaIdsPermitidos && !piezaIdsPermitidos.has(fila.piezaId)) continue;
 
     resultado.push({
       otPiezaId: fila.otPieza.id,
@@ -232,6 +281,8 @@ export async function getPiezasEnProceso(procesoId?: string): Promise<ItemEnEtap
       piezaId: fila.piezaId,
       piezaCodigo: fila.piezaCodigo,
       piezaNombre: fila.piezaNombre,
+      conjuntoNombre: fila.conjuntoNombre,
+      tipo: fila.tipo,
       otMaquinaId: fila.otMaquinaId,
       otMaquinaCodigo: fila.otMaquinaCodigo,
       procesoNombre: actual.procesoNombre,
@@ -290,17 +341,43 @@ export async function getResumenStockGeneral(): Promise<{ piezasConStock: number
   };
 }
 
-export type PiezaFinalizada = { piezaId: string; piezaCodigo: string; piezaNombre: string; disponible: number };
+export type PiezaFinalizada = {
+  piezaId: string;
+  piezaCodigo: string;
+  piezaNombre: string;
+  conjuntoNombre: string;
+  tipo: "fabricada" | "comprada";
+  disponible: number;
+};
 
 /** Detalle pieza por pieza de lo "Finalizado" — mismo motivo que
  * getPiezasEnProceso: la métrica agregada de /stock no tenía ningún lugar
- * adonde ir a ver qué la compone. */
-export async function getPiezasFinalizadas(): Promise<PiezaFinalizada[]> {
+ * adonde ir a ver qué la compone. Acepta los mismos filtros que
+ * getPiezasEnProceso (conjunto, máquina, tipo) para poder acotar el listado. */
+export async function getPiezasFinalizadas(filtros: FiltrosStock = {}): Promise<PiezaFinalizada[]> {
+  const condiciones = [gt(stockPieza.cantidadDisponible, 0)];
+  if (filtros.conjuntoId) condiciones.push(eq(pieza.conjuntoId, filtros.conjuntoId));
+  if (filtros.tipo) condiciones.push(eq(pieza.tipo, filtros.tipo));
+
+  const piezaIdsPermitidos = filtros.configuracionId ? await piezaIdsDeConfiguracion(filtros.configuracionId) : null;
+
   const rows = await db
-    .select({ piezaId: pieza.id, piezaCodigo: pieza.codigo, piezaNombre: pieza.nombre, disponible: stockPieza.cantidadDisponible })
+    .select({
+      piezaId: pieza.id,
+      piezaCodigo: pieza.codigo,
+      piezaNombre: pieza.nombre,
+      conjuntoNombre: conjunto.nombre,
+      tipo: pieza.tipo,
+      disponible: stockPieza.cantidadDisponible,
+    })
     .from(stockPieza)
-    .innerJoin(pieza, eq(pieza.id, stockPieza.piezaId));
-  return rows.filter((r) => r.disponible > 0).sort((a, b) => b.disponible - a.disponible);
+    .innerJoin(pieza, eq(pieza.id, stockPieza.piezaId))
+    .innerJoin(conjunto, eq(conjunto.id, pieza.conjuntoId))
+    .where(and(...condiciones));
+
+  return rows
+    .filter((r) => !piezaIdsPermitidos || piezaIdsPermitidos.has(r.piezaId))
+    .sort((a, b) => b.disponible - a.disponible);
 }
 
 export type PiezaStockBajo = { piezaId: string; piezaCodigo: string; piezaNombre: string; disponible: number; minimo: number };
