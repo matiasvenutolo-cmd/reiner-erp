@@ -2,9 +2,9 @@ import type { Usuario } from "@/lib/db/schema";
 
 export const HOME_POR_ROL: Record<Usuario["rol"], string> = {
   operario: "/taller",
-  taller: "/avance",
-  ingenieria: "/avance",
-  direccion: "/avance",
+  taller: "/inicio",
+  ingenieria: "/inicio",
+  direccion: "/inicio",
 };
 
 export type ItemNav = { href: string; label: string };
@@ -29,6 +29,7 @@ const STAFF: Usuario["rol"][] = ["direccion", "ingenieria", "taller"];
  * visualmente secundarios, no los saca del menú.
  */
 const NAV_ITEMS: NavEntry[] = [
+  { href: "/inicio", label: "Inicio", roles: STAFF },
   { href: "/avance", label: "Avance", roles: STAFF },
   { href: "/ot", label: "Órdenes de trabajo", roles: STAFF },
   { href: "/centros-trabajo", label: "Centros de trabajo", roles: STAFF },

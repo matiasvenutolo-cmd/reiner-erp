@@ -333,6 +333,21 @@ Se reemplazó por un cálculo en vivo desde la misma ejecución real que usan Av
 de trabajo, unificando la fuente de datos en `/stock`, `/avance` y `/logistica`. Probado en
 el navegador con los tres roles de staff — los tres números ahora coinciden entre sí.
 
-Pendiente: el resto de los paquetes de §18 (home por perfil, órdenes de trabajo/planificación
-semanal, integrar Revisión en la OT, unificar Logística+Remitos+tercerización, detalle de
+**✅ Paquete 3 — Home por perfil (2026-09-28).** Nueva pantalla `/inicio`, home de
+ingeniería/dirección/taller (antes era `/avance` para los tres). Contenido, armado como
+propuesta concreta para validar en la reunión (no había respuesta cerrada de qué quiere ver
+cada perfil — ver pregunta en §17):
+- Compartido entre los tres roles: "Frenado ahora mismo" (paradas activas con motivo —
+  nueva `getParadasActivas` en ejecucion.ts, primera vez que se lista esto en un solo
+  lugar en vez de pieza por pieza) y "Stock por debajo del mínimo".
+- Dirección: cuántas OT de máquina en curso, piezas en proceso tercerizado, y las OT más
+  próximas por plazo comprometido.
+- Ingeniería y dirección: tareas de revisión pendientes (reusa `getTareasRevision`).
+- Taller: los centros de trabajo con más piezas esperando ahora mismo (reusa
+  `getColaPorCentroTrabajo`).
+Operario no cambia (sigue en `/taller`, ver §8). "Inicio" se agregó como primer ítem del
+sidebar para poder volver. Probado en el navegador con Adrián, Julián y Horacio.
+
+Pendiente: el resto de los paquetes de §18 (órdenes de trabajo/planificación semanal,
+integrar Revisión en la OT, unificar Logística+Remitos+tercerización, detalle de
 operaciones específico, adjuntos, flag compra/fabricación, indicadores).

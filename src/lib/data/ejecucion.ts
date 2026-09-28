@@ -10,9 +10,9 @@
  * un operario no puede tener dos operaciones abiertas a la vez. Si el
  * taller trabaja distinto, esta regla se relaja acá sin tocar la UI.
  */
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { eq, and, isNull, sql, desc } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { registroOperacion, parada, tipoParada, otPieza, tareaRevision } from "@/lib/db/schema";
+import { registroOperacion, parada, tipoParada, otPieza, tareaRevision, usuario, pieza } from "@/lib/db/schema";
 import { getRoutingPieza } from "./maestros";
 import type { RegistroOperacion, Parada, TipoParada } from "@/lib/db/schema";
 
@@ -34,6 +34,39 @@ export async function getParadaAbierta(registroOperacionId: string): Promise<Par
     .from(parada)
     .where(and(eq(parada.registroOperacionId, registroOperacionId), isNull(parada.fin)));
   return row ?? null;
+}
+
+export type ParadaActiva = {
+  id: string;
+  inicio: Date;
+  tipoParadaNombre: string;
+  usuarioNombre: string;
+  piezaNombre: string;
+  otPiezaCodigo: string;
+};
+
+/** Todo lo que está frenado AHORA MISMO en el taller, con el motivo — pedido
+ * del cliente (docs/06-backlog-release-3.md §10, §15): "diferenciar
+ * aquello que está en espera por un motivo particular... debería generar
+ * una alerta". Base de la home de dirección/taller. */
+export async function getParadasActivas(): Promise<ParadaActiva[]> {
+  return db
+    .select({
+      id: parada.id,
+      inicio: parada.inicio,
+      tipoParadaNombre: tipoParada.nombre,
+      usuarioNombre: usuario.nombre,
+      piezaNombre: pieza.nombre,
+      otPiezaCodigo: otPieza.codigo,
+    })
+    .from(parada)
+    .innerJoin(tipoParada, eq(tipoParada.id, parada.tipoParadaId))
+    .innerJoin(registroOperacion, eq(registroOperacion.id, parada.registroOperacionId))
+    .innerJoin(usuario, eq(usuario.id, registroOperacion.usuarioId))
+    .innerJoin(otPieza, eq(otPieza.id, registroOperacion.otPiezaId))
+    .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
+    .where(isNull(parada.fin))
+    .orderBy(desc(parada.inicio));
 }
 
 export type IniciarOperacionInput = {

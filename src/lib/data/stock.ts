@@ -193,12 +193,19 @@ export async function ajustarStock(input: {
   });
 }
 
+export type PiezaStockBajo = { piezaId: string; piezaCodigo: string; piezaNombre: string; disponible: number; minimo: number };
+
 /** Piezas con stock disponible por debajo de su mínimo (RF sugerido, Fase 2). */
-export async function getPiezasStockBajo(): Promise<{ piezaId: string; disponible: number; minimo: number }[]> {
-  const rows = await db
-    .select({ piezaId: pieza.id, disponible: stockPieza.cantidadDisponible, minimo: pieza.stockMinimo })
+export async function getPiezasStockBajo(): Promise<PiezaStockBajo[]> {
+  return db
+    .select({
+      piezaId: pieza.id,
+      piezaCodigo: pieza.codigo,
+      piezaNombre: pieza.nombre,
+      disponible: stockPieza.cantidadDisponible,
+      minimo: pieza.stockMinimo,
+    })
     .from(pieza)
     .innerJoin(stockPieza, eq(stockPieza.piezaId, pieza.id))
     .where(lt(stockPieza.cantidadDisponible, pieza.stockMinimo));
-  return rows.map((r) => ({ piezaId: r.piezaId, disponible: r.disponible, minimo: r.minimo }));
 }
