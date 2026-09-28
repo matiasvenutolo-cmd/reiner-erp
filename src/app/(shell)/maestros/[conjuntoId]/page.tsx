@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getConjunto, getPiezasPorConjunto, getRoutingPieza, modeloDeCodigo } from "@/lib/data/maestros";
-import { getStockDisponible, getWipTotalPorPieza } from "@/lib/data/stock";
+import { getStockDisponible, getWipTotalEnCursoDePieza } from "@/lib/data/stock";
 
 export default async function ConjuntoPage({ params }: { params: Promise<{ conjuntoId: string }> }) {
   const { conjuntoId } = await params;
@@ -14,7 +14,7 @@ export default async function ConjuntoPage({ params }: { params: Promise<{ conju
       pieza: p,
       routing: await getRoutingPieza(p.id),
       stock: await getStockDisponible(p.id),
-      wip: await getWipTotalPorPieza(p.id),
+      wip: await getWipTotalEnCursoDePieza(p.id),
     })),
   );
   filas.sort((a, b) => a.pieza.codigo.localeCompare(b.pieza.codigo));

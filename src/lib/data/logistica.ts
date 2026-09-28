@@ -6,9 +6,9 @@
  * propio archivo porque el foco acá es el movimiento en sí (quién, cuándo,
  * de qué proveedor), no el saldo resultante.
  */
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray, isNotNull, asc } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { movimientoStock, stockPieza, pieza, usuario, proveedor, wipPieza, proceso } from "@/lib/db/schema";
+import { movimientoStock, stockPieza, pieza, usuario, proveedor, proceso, otPieza, operacion, registroOperacion } from "@/lib/db/schema";
 import type { Proveedor, MovimientoStock } from "@/lib/db/schema";
 import { getStockDisponible } from "./stock";
 
@@ -58,23 +58,83 @@ export async function listarMovimientos(tipo?: TipoMovimientoStock, limite = 50)
 
 export type PiezaFueraDeFabrica = { piezaId: string; piezaCodigo: string; piezaNombre: string; procesoNombre: string; cantidad: number };
 
-/** Piezas hoy "afuera" en un proceso tercerizado (Cromado, Pavonado, Compras...)
- * — se apoya en `proceso.esExterno`, que ya existía (hallazgo 3.5). No hace
- * falta ninguna escritura nueva: el WIP migrado de los Excel ya lo sabe. */
+/**
+ * Piezas hoy "afuera" en un proceso tercerizado (Cromado, Pavonado,
+ * Compras...) — se apoya en `proceso.esExterno`, que ya existía (hallazgo
+ * 3.5). Antes salía de `wip_pieza` (la foto fija migrada del Excel, que
+ * ningún flujo de la app vuelve a actualizar); ahora se calcula en vivo
+ * desde la misma ejecución real que ya usan /avance, /centros-trabajo y
+ * /stock (ver src/lib/data/stock.ts) — evita que este panel muestre piezas
+ * que ya volvieron del proveedor hace meses.
+ */
 export async function getPiezasFueraDeFabrica(): Promise<PiezaFueraDeFabrica[]> {
-  const rows = await db
-    .select({
-      piezaId: wipPieza.piezaId,
-      piezaCodigo: pieza.codigo,
-      piezaNombre: pieza.nombre,
-      procesoNombre: proceso.nombre,
-      cantidad: wipPieza.cantidad,
-    })
-    .from(wipPieza)
-    .innerJoin(proceso, eq(proceso.id, wipPieza.procesoId))
-    .innerJoin(pieza, eq(pieza.id, wipPieza.piezaId))
-    .where(and(eq(proceso.esExterno, true)));
-  return rows.filter((r) => r.cantidad > 0);
+  const filas = await db
+    .select({ otPieza, piezaId: pieza.id, piezaCodigo: pieza.codigo, piezaNombre: pieza.nombre })
+    .from(otPieza)
+    .innerJoin(pieza, eq(pieza.id, otPieza.piezaId));
+  if (filas.length === 0) return [];
+
+  const piezaIds = [...new Set(filas.map((f) => f.piezaId))];
+  const otPiezaIds = filas.map((f) => f.otPieza.id);
+
+  const [rutaRows, completadasRows] = await Promise.all([
+    db
+      .select({
+        piezaId: operacion.piezaId,
+        id: operacion.id,
+        secuencia: operacion.secuencia,
+        procesoId: proceso.id,
+        procesoNombre: proceso.nombre,
+        esExterno: proceso.esExterno,
+      })
+      .from(operacion)
+      .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
+      .where(inArray(operacion.piezaId, piezaIds))
+      .orderBy(asc(operacion.piezaId), asc(operacion.secuencia)),
+    db
+      .select({ otPiezaId: registroOperacion.otPiezaId, operacionId: registroOperacion.operacionId })
+      .from(registroOperacion)
+      .where(
+        and(inArray(registroOperacion.otPiezaId, otPiezaIds), eq(registroOperacion.tipo, "ejecucion"), isNotNull(registroOperacion.fin)),
+      ),
+  ]);
+
+  const rutaPorPieza = new Map<string, { id: string; procesoId: string; procesoNombre: string; esExterno: boolean }[]>();
+  for (const r of rutaRows) {
+    const arr = rutaPorPieza.get(r.piezaId) ?? [];
+    arr.push({ id: r.id, procesoId: r.procesoId, procesoNombre: r.procesoNombre, esExterno: r.esExterno });
+    rutaPorPieza.set(r.piezaId, arr);
+  }
+
+  const completadasPorOtPieza = new Map<string, Set<string>>();
+  for (const c of completadasRows) {
+    const set = completadasPorOtPieza.get(c.otPiezaId) ?? new Set<string>();
+    set.add(c.operacionId);
+    completadasPorOtPieza.set(c.otPiezaId, set);
+  }
+
+  const acumulado = new Map<string, PiezaFueraDeFabrica>();
+  for (const fila of filas) {
+    const routing = rutaPorPieza.get(fila.piezaId) ?? [];
+    if (routing.length === 0) continue;
+    const completadas = completadasPorOtPieza.get(fila.otPieza.id) ?? new Set<string>();
+    if (completadas.size >= routing.length) continue;
+    const actual = routing.find((op) => !completadas.has(op.id));
+    if (!actual || !actual.esExterno) continue;
+
+    const clave = `${fila.piezaId}::${actual.procesoId}`;
+    const acc = acumulado.get(clave) ?? {
+      piezaId: fila.piezaId,
+      piezaCodigo: fila.piezaCodigo,
+      piezaNombre: fila.piezaNombre,
+      procesoNombre: actual.procesoNombre,
+      cantidad: 0,
+    };
+    acc.cantidad += fila.otPieza.cantidadAFabricar;
+    acumulado.set(clave, acc);
+  }
+
+  return [...acumulado.values()];
 }
 
 export type RegistrarIngresoInput = {

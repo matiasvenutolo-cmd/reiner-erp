@@ -1,14 +1,29 @@
 /**
  * Stock y WIP por etapa de proceso (hallazgo 3.1 de docs/01-analisis.md).
  *
- * `stockPieza` = lo que está "Finalizado" (disponible para armar).
- * `wipPieza`   = lo que está en curso en alguna etapa intermedia.
- * Ninguna de las dos es la foto completa por sí sola: para saber cuánto
- * existe TOTAL de una pieza (disponible + en proceso) hay que sumar ambas.
+ * `stockPieza` = lo que está "Finalizado" (disponible para armar) — se
+ * actualiza con cada ajuste manual de taller (Release 2, ajustarStock).
+ *
+ * El WIP "en proceso" YA NO sale de la tabla `wip_pieza`: esa tabla es la
+ * foto fija que trajo la migración del Excel en Fase 1 y ningún flujo de la
+ * app la volvió a tocar nunca (ver `wipPieza` en schema.ts) — cerrar una
+ * operación en taller no la actualiza. Con meses de OT generadas y
+ * ejecutadas desde entonces, mostrarla como si fuera el estado actual es
+ * exactamente el problema que reportó el cliente en la reunión de Release 3
+ * (docs/06-backlog-release-3.md §11): "aparecen números... que no permiten
+ * entender fácilmente qué representan". En cambio, se calcula EN VIVO a
+ * partir de la misma ejecución real que ya usan /avance y /centros-trabajo
+ * (`registro_operacion` + la hoja de ruta) — una sola base para stock,
+ * avance y tableros, tal como pidió el cliente.
+ *
+ * `wip_pieza` queda sin usar en la UI, no se borra: puede representar stock
+ * físico genérico en planta sin atar a una OT puntual (trabajo que ya
+ * estaba en curso antes de este sistema) — a confirmar con Julián/Horacio
+ * antes de eliminar la tabla del todo (ver pregunta abierta en el backlog).
  */
-import { eq, lt, sql } from "drizzle-orm";
+import { asc, eq, and, inArray, isNotNull, lt } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { stockPieza, wipPieza, pieza, proceso, movimientoStock } from "@/lib/db/schema";
+import { stockPieza, pieza, proceso, movimientoStock, otPieza, operacion, registroOperacion } from "@/lib/db/schema";
 
 export async function getStockDisponible(piezaId: string): Promise<number> {
   const [row] = await db
@@ -18,23 +33,126 @@ export async function getStockDisponible(piezaId: string): Promise<number> {
   return row?.cantidad ?? 0;
 }
 
-export type WipEtapa = { procesoId: string; procesoNombre: string; cantidad: number };
+export type WipEtapa = { procesoNombre: string; cantidad: number };
 
-export async function getWipPorPieza(piezaId: string): Promise<WipEtapa[]> {
-  const rows = await db
-    .select({ procesoId: wipPieza.procesoId, procesoNombre: proceso.nombre, cantidad: wipPieza.cantidad })
-    .from(wipPieza)
-    .innerJoin(proceso, eq(proceso.id, wipPieza.procesoId))
-    .where(eq(wipPieza.piezaId, piezaId));
-  return rows;
+/** WIP en vivo de UNA pieza puntual — para la búsqueda de /stock. Sin riesgo
+ * de N+1: una pieza tiene a lo sumo un puñado de OT de pieza abiertas. */
+export async function getWipEnCursoDePieza(piezaId: string): Promise<WipEtapa[]> {
+  const rutaRows = await db
+    .select({ id: operacion.id, secuencia: operacion.secuencia, procesoId: proceso.id, procesoNombre: proceso.nombre })
+    .from(operacion)
+    .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
+    .where(eq(operacion.piezaId, piezaId))
+    .orderBy(asc(operacion.secuencia));
+  if (rutaRows.length === 0) return [];
+
+  const otPiezas = await db.select().from(otPieza).where(eq(otPieza.piezaId, piezaId));
+  if (otPiezas.length === 0) return [];
+
+  const otPiezaIds = otPiezas.map((p) => p.id);
+  const completadasRows = await db
+    .select({ otPiezaId: registroOperacion.otPiezaId, operacionId: registroOperacion.operacionId })
+    .from(registroOperacion)
+    .where(
+      and(inArray(registroOperacion.otPiezaId, otPiezaIds), eq(registroOperacion.tipo, "ejecucion"), isNotNull(registroOperacion.fin)),
+    );
+
+  const completadasPorOtPieza = new Map<string, Set<string>>();
+  for (const c of completadasRows) {
+    const set = completadasPorOtPieza.get(c.otPiezaId) ?? new Set<string>();
+    set.add(c.operacionId);
+    completadasPorOtPieza.set(c.otPiezaId, set);
+  }
+
+  const acumulado = new Map<string, WipEtapa>();
+  for (const otp of otPiezas) {
+    const completadas = completadasPorOtPieza.get(otp.id) ?? new Set<string>();
+    if (completadas.size >= rutaRows.length) continue; // terminada — ya pasó a stock "Finalizado"
+    const actual = rutaRows.find((op) => !completadas.has(op.id));
+    if (!actual) continue;
+    const acc = acumulado.get(actual.procesoId) ?? { procesoNombre: actual.procesoNombre, cantidad: 0 };
+    acc.cantidad += otp.cantidadAFabricar;
+    acumulado.set(actual.procesoId, acc);
+  }
+  return [...acumulado.values()];
 }
 
-export async function getWipTotalPorPieza(piezaId: string): Promise<number> {
-  const [row] = await db
-    .select({ total: sql<number>`coalesce(sum(${wipPieza.cantidad}), 0)`.mapWith(Number) })
-    .from(wipPieza)
-    .where(eq(wipPieza.piezaId, piezaId));
-  return row?.total ?? 0;
+export async function getWipTotalEnCursoDePieza(piezaId: string): Promise<number> {
+  const etapas = await getWipEnCursoDePieza(piezaId);
+  return etapas.reduce((sum, e) => sum + e.cantidad, 0);
+}
+
+export type WipEtapaResumen = { procesoId: string; procesoNombre: string; piezas: number; unidades: number };
+
+/**
+ * Mismo cálculo que getColaPorCentroTrabajo (src/lib/data/produccion.ts) —
+ * 3 consultas siempre, sin importar cuántas OT de pieza haya — pero
+ * agrupado por proceso/etapa en vez de por centro de trabajo, y quedándose
+ * sólo con la etapa ACTUAL de cada OT (no toda la ruta restante).
+ */
+export async function getResumenWipEnCursoPorProceso(): Promise<WipEtapaResumen[]> {
+  const filas = await db.select({ otPieza, piezaId: pieza.id }).from(otPieza).innerJoin(pieza, eq(pieza.id, otPieza.piezaId));
+  if (filas.length === 0) return [];
+
+  const piezaIds = [...new Set(filas.map((f) => f.piezaId))];
+  const otPiezaIds = filas.map((f) => f.otPieza.id);
+
+  const [rutaRows, completadasRows] = await Promise.all([
+    db
+      .select({
+        piezaId: operacion.piezaId,
+        id: operacion.id,
+        secuencia: operacion.secuencia,
+        procesoId: proceso.id,
+        procesoNombre: proceso.nombre,
+      })
+      .from(operacion)
+      .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
+      .where(inArray(operacion.piezaId, piezaIds))
+      .orderBy(asc(operacion.piezaId), asc(operacion.secuencia)),
+    db
+      .select({ otPiezaId: registroOperacion.otPiezaId, operacionId: registroOperacion.operacionId })
+      .from(registroOperacion)
+      .where(
+        and(inArray(registroOperacion.otPiezaId, otPiezaIds), eq(registroOperacion.tipo, "ejecucion"), isNotNull(registroOperacion.fin)),
+      ),
+  ]);
+
+  const rutaPorPieza = new Map<string, { id: string; procesoId: string; procesoNombre: string }[]>();
+  for (const r of rutaRows) {
+    const arr = rutaPorPieza.get(r.piezaId) ?? [];
+    arr.push({ id: r.id, procesoId: r.procesoId, procesoNombre: r.procesoNombre });
+    rutaPorPieza.set(r.piezaId, arr);
+  }
+
+  const completadasPorOtPieza = new Map<string, Set<string>>();
+  for (const c of completadasRows) {
+    const set = completadasPorOtPieza.get(c.otPiezaId) ?? new Set<string>();
+    set.add(c.operacionId);
+    completadasPorOtPieza.set(c.otPiezaId, set);
+  }
+
+  const acumulado = new Map<string, { procesoNombre: string; piezas: Set<string>; unidades: number }>();
+  for (const fila of filas) {
+    const routing = rutaPorPieza.get(fila.piezaId) ?? [];
+    if (routing.length === 0) continue;
+    const completadas = completadasPorOtPieza.get(fila.otPieza.id) ?? new Set<string>();
+    if (completadas.size >= routing.length) continue;
+    const actual = routing.find((op) => !completadas.has(op.id));
+    if (!actual) continue;
+
+    const acc = acumulado.get(actual.procesoId) ?? { procesoNombre: actual.procesoNombre, piezas: new Set<string>(), unidades: 0 };
+    acc.piezas.add(fila.piezaId);
+    acc.unidades += fila.otPieza.cantidadAFabricar;
+    acumulado.set(actual.procesoId, acc);
+  }
+
+  return [...acumulado.entries()].map(([procesoId, v]) => ({
+    procesoId,
+    procesoNombre: v.procesoNombre,
+    piezas: v.piezas.size,
+    unidades: v.unidades,
+  }));
 }
 
 /**
@@ -83,21 +201,4 @@ export async function getPiezasStockBajo(): Promise<{ piezaId: string; disponibl
     .innerJoin(stockPieza, eq(stockPieza.piezaId, pieza.id))
     .where(lt(stockPieza.cantidadDisponible, pieza.stockMinimo));
   return rows.map((r) => ({ piezaId: r.piezaId, disponible: r.disponible, minimo: r.minimo }));
-}
-
-/** Resumen de WIP agrupado por proceso, para un tablero general (todas las piezas). */
-export async function getResumenWipPorProceso(): Promise<
-  { procesoId: string; procesoNombre: string; piezas: number; unidades: number }[]
-> {
-  const rows = await db
-    .select({
-      procesoId: wipPieza.procesoId,
-      procesoNombre: proceso.nombre,
-      piezas: sql<number>`count(distinct ${wipPieza.piezaId})`.mapWith(Number),
-      unidades: sql<number>`coalesce(sum(${wipPieza.cantidad}), 0)`.mapWith(Number),
-    })
-    .from(wipPieza)
-    .innerJoin(proceso, eq(proceso.id, wipPieza.procesoId))
-    .groupBy(wipPieza.procesoId, proceso.nombre);
-  return rows;
 }

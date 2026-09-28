@@ -167,10 +167,31 @@ la base de datos compartida detrás de varias pantallas.
 
 Esto es estructural, no cosmético — el cliente lo dice explícitamente: *"hay que
 repensar el concepto y modelo de Stock antes de seguir simplemente modificando la
-interfaz actual."* No conviene tocar la UI de `/stock` sin resolver primero cómo se
-modela "en qué etapa está cada pieza" (¿se deriva de `getEstadoYOperacionActual`, que ya
-existe y calcula la operación actual de cada OT de pieza? ¿o hace falta una entidad
-nueva de "posición de stock"?).
+interfaz actual."*
+
+**✅ Resuelto (2026-09-28) — y con un hallazgo importante para contarle al cliente: el
+modelo WIP-por-etapa que pedía ya existía.** El schema tiene desde el arranque del
+proyecto una tabla `wip_pieza` (pieza + proceso + cantidad) además de `stock_pieza`
+("Finalizado") — es decir, alguien (el propio análisis inicial, hallazgo 3.1 de
+`docs/01-analisis.md`) ya había modelado el stock exactamente como pidió el cliente ahora.
+El problema no era el modelo: era que `wip_pieza` se cargó una sola vez al migrar el Excel
+en Fase 1 y **ningún flujo de la app la volvió a tocar nunca** — cerrar una operación en
+taller no la actualiza. Con meses de OT generadas y ejecutadas desde entonces, esa tabla
+quedó completamente desincronizada de la realidad, que es probablemente la razón real por
+la que "los números no se entendían" al buscar una pieza.
+
+La solución no fue crear un modelo nuevo: fue dejar de leer `wip_pieza` y calcular el WIP
+**en vivo** a partir de la misma ejecución real que ya alimenta `/avance` y
+`/centros-trabajo` (posición de cada OT de pieza abierta en su hoja de ruta, vía
+`registro_operacion`) — una sola base para stock, avance, logística y tableros, tal como
+pidió el cliente, sin tablas que se desincronizan solas. Se actualizaron los tres lugares
+que mostraban WIP: `/stock` (ahora cada pieza buscada muestra "En proceso" con la etapa +
+"Finalizado" por separado, no un número único sin contexto), `/avance` (misma tabla
+agregada, ahora en vivo) y `/logistica` ("piezas fuera de fábrica" ya no muestra piezas
+que volvieron del proveedor hace meses). `wip_pieza` no se borró — puede representar stock
+físico genérico sin atar a una OT puntual (trabajo que ya estaba en curso antes de este
+sistema) —, sólo se dejó de usar en pantalla. Ver pregunta para confirmar con Julián/Horacio
+antes de eliminar la tabla del todo.
 
 ## 12 · Procesos tercerizados / Logística / Remitos — unificar
 
@@ -248,6 +269,10 @@ Nuevas, surgidas de esta reunión:
   hoy sólo sabemos que "no debe ser la misma para todos", falta la lista real por rol.
 - Planificación semanal (§4): ¿la asignación de trabajo a una persona/día la hace
   Horacio a mano sobre un calendario, o hace falta alguna lógica de sugerencia?
+- `wip_pieza` (§11): al calcular el WIP en vivo desde la ejecución real, dejó de usarse
+  en pantalla la tabla `wip_pieza` migrada del Excel en Fase 1. ¿Representaba algo más
+  que "posición de cada OT en su hoja de ruta" — por ejemplo, stock físico genérico sin
+  atar a una orden puntual? Si no, se puede eliminar la tabla del todo.
 
 Siguen sin responder, además, las preguntas que ya venían arrastrándose de reuniones
 anteriores (Release 1 y 2) — Dosificación/Dosificador, OPS vacío, identidad de la OC,
@@ -283,3 +308,31 @@ con Matías antes de arrancar:
 Antes de arrancar conviene llevar las preguntas de §17 a Julián/Horacio (por escrito,
 como se acordó en la reunión) — varias de las primeras etapas del orden de arriba
 dependen directamente de esas respuestas (perfil/home, WIP, revisión).
+
+## 19 · Progreso (se actualiza a medida que se construye)
+
+**✅ Paquete 1 — Navegación unificada + Maestros/Usuarios a Administración (2026-09-28).**
+Un solo array (`NAV_ITEMS` en `src/lib/nav.ts`) gobierna orden y permisos para
+ingeniería/dirección/taller — antes cada rol tenía su propio orden. Menú superior
+reemplazado por un sidebar (`src/components/Sidebar.tsx`, fijo en desktop, drawer con
+overlay en mobile). Maestros y Usuarios quedan agrupados y visualmente secundarios bajo
+"Administración". El operario mantiene su header simple de siempre (una sola pantalla, sin
+sidebar). Home de ingeniería pasa de `/maestros` a `/avance`, igual que dirección y taller.
+Verificado con los 3 roles de staff + operario en el navegador.
+
+**✅ Paquete 2 — Centros de trabajo: reordenar arrastrando (2026-09-28).** Reemplazadas las
+flechas de subir/bajar de Release 2 por arrastre con Pointer Events (`ColaDisponibleAhora`),
+funciona con mouse y con touch sin librería externa. `moverPrioridad` (swap con el vecino)
+reemplazado por `reordenarCola` (recibe la lista completa ya reordenada). Probado en el
+navegador: arrastrar, soltar, recargar y confirmar que el orden nuevo persiste.
+
+**✅ Paquete 11 (adelantado) — Stock como WIP en vivo (2026-09-28).** Ver el detalle completo
+en §11 más arriba — hallazgo importante: el modelo que pedía el cliente ya existía en el
+schema (`wip_pieza`), sólo que era una foto fija sin actualizar desde la migración de Fase 1.
+Se reemplazó por un cálculo en vivo desde la misma ejecución real que usan Avance y Centros
+de trabajo, unificando la fuente de datos en `/stock`, `/avance` y `/logistica`. Probado en
+el navegador con los tres roles de staff — los tres números ahora coinciden entre sí.
+
+Pendiente: el resto de los paquetes de §18 (home por perfil, órdenes de trabajo/planificación
+semanal, integrar Revisión en la OT, unificar Logística+Remitos+tercerización, detalle de
+operaciones específico, adjuntos, flag compra/fabricación, indicadores).

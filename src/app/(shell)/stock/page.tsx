@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getResumenWipPorProceso, getStockDisponible } from "@/lib/data/stock";
+import { getResumenWipEnCursoPorProceso, getStockDisponible, getWipEnCursoDePieza } from "@/lib/data/stock";
 import { buscarPiezas } from "@/lib/data/maestros";
 import { getUsuarioActual } from "@/lib/session";
 import { ajustarStockAction } from "@/app/actions/stock";
@@ -10,13 +10,17 @@ export default async function StockPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const [usuario, wip] = await Promise.all([getUsuarioActual(), getResumenWipPorProceso()]);
+  const [usuario, wip] = await Promise.all([getUsuarioActual(), getResumenWipEnCursoPorProceso()]);
   const puedeAjustar = usuario.rol === "taller";
 
   const query = (q ?? "").trim();
   const piezasEncontradas = query ? await buscarPiezas(query) : [];
   const resultados = await Promise.all(
-    piezasEncontradas.map(async (p) => ({ pieza: p, stock: await getStockDisponible(p.id) })),
+    piezasEncontradas.map(async (p) => ({
+      pieza: p,
+      finalizado: await getStockDisponible(p.id),
+      enProceso: await getWipEnCursoDePieza(p.id),
+    })),
   );
 
   return (
@@ -24,8 +28,9 @@ export default async function StockPage({
       <div>
         <h1 className="text-xl font-semibold">Stock</h1>
         <p className="text-sm text-foreground-muted mt-1">
-          El stock no es un número único: cada pieza está &ldquo;Finalizada&rdquo; (disponible) o en alguna
-          etapa intermedia del proceso. Ver docs/01-analisis.md §3.1.
+          El stock no es un número único: cada pieza está &ldquo;Finalizada&rdquo; (disponible) o
+          en alguna etapa intermedia del proceso — se calcula en vivo desde la fabricación real,
+          la misma base que usan Avance y Centros de trabajo.
         </p>
       </div>
 
@@ -46,19 +51,20 @@ export default async function StockPage({
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Código</th>
                 <th className="text-left px-4 py-2 font-medium">Nombre</th>
-                <th className="text-right px-4 py-2 font-medium">Stock disponible</th>
+                <th className="text-left px-4 py-2 font-medium">En proceso</th>
+                <th className="text-right px-4 py-2 font-medium">Finalizado</th>
                 {puedeAjustar && <th className="text-left px-4 py-2 font-medium">Ajustar</th>}
               </tr>
             </thead>
             <tbody>
               {resultados.length === 0 ? (
                 <tr>
-                  <td colSpan={puedeAjustar ? 4 : 3} className="px-4 py-6 text-center text-foreground-muted">
+                  <td colSpan={puedeAjustar ? 5 : 4} className="px-4 py-6 text-center text-foreground-muted">
                     Sin resultados para &ldquo;{q}&rdquo;
                   </td>
                 </tr>
               ) : (
-                resultados.map(({ pieza, stock }) => (
+                resultados.map(({ pieza, finalizado, enProceso }) => (
                   <tr key={pieza.id} className="border-t border-border hover:bg-surface-muted/50">
                     <td className="px-4 py-2.5">
                       <Link href={`/maestros/pieza/${pieza.id}`} className="font-mono text-xs text-accent hover:underline">
@@ -66,7 +72,20 @@ export default async function StockPage({
                       </Link>
                     </td>
                     <td className="px-4 py-2.5">{pieza.nombre}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{stock}</td>
+                    <td className="px-4 py-2.5">
+                      {enProceso.length === 0 ? (
+                        <span className="text-foreground-muted">—</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {enProceso.map((e) => (
+                            <span key={e.procesoNombre} className="badge-estado badge-en_curso">
+                              {e.cantidad} en {e.procesoNombre}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums">{finalizado}</td>
                     {puedeAjustar && (
                       <td className="px-4 py-2.5">
                         <form action={ajustarStockAction} className="flex items-center gap-1.5">
@@ -75,7 +94,7 @@ export default async function StockPage({
                             name="cantidadNueva"
                             type="number"
                             min={0}
-                            defaultValue={stock}
+                            defaultValue={finalizado}
                             className="input w-16 text-xs py-1"
                           />
                           <input
@@ -99,7 +118,7 @@ export default async function StockPage({
       )}
 
       <div>
-        <h2 className="text-sm font-semibold mb-2">Piezas en proceso, por etapa (todos los modelos)</h2>
+        <h2 className="text-sm font-semibold mb-2">En proceso ahora mismo, por etapa (todas las piezas)</h2>
         <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">

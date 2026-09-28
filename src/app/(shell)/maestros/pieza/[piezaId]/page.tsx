@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPieza, getConjunto, getRoutingPieza, modeloDeCodigo, getNotasPieza } from "@/lib/data/maestros";
-import { getStockDisponible, getWipPorPieza } from "@/lib/data/stock";
+import { getStockDisponible, getWipEnCursoDePieza } from "@/lib/data/stock";
 import { actualizarMaterialAction, crearNotaPiezaAction } from "@/app/actions/maestros";
 
 const TIPO_NOTA_LABEL: Record<string, string> = {
@@ -18,7 +18,7 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
     getConjunto(pieza.conjuntoId),
     getRoutingPieza(pieza.id),
     getStockDisponible(pieza.id),
-    getWipPorPieza(pieza.id),
+    getWipEnCursoDePieza(pieza.id),
     getNotasPieza(pieza.id),
   ]);
 
@@ -57,7 +57,7 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
           <h2 className="text-sm font-semibold mb-2">En proceso, por etapa</h2>
           <div className="flex flex-wrap gap-2">
             {wip.map((w) => (
-              <span key={w.procesoId} className="badge-estado bg-surface-muted text-foreground">
+              <span key={w.procesoNombre} className="badge-estado bg-surface-muted text-foreground">
                 {w.procesoNombre}: {w.cantidad}
               </span>
             ))}

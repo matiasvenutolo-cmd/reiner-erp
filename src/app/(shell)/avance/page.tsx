@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { listarOtMaquinas } from "@/lib/data/ot";
-import { getResumenWipPorProceso } from "@/lib/data/stock";
+import { getResumenWipEnCursoPorProceso } from "@/lib/data/stock";
 import { EstadoBadge } from "@/components/EstadoBadge";
 
 export default async function AvancePage() {
-  const [ordenes, wip] = await Promise.all([listarOtMaquinas(), getResumenWipPorProceso()]);
+  const [ordenes, wip] = await Promise.all([listarOtMaquinas(), getResumenWipEnCursoPorProceso()]);
 
   return (
     <div className="space-y-8">
