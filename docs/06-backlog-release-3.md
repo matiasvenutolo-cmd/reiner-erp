@@ -579,4 +579,26 @@ componen.
   `<select>` con las ~450 piezas del catálogo (código — nombre), elegir una navega igual
   que si se hubiera escrito el código a mano.
 
+**✅ Paquete extra 6 — las 4 tarjetas de /stock, todas a un destino real (2026-09-28).**
+Matías: *"los botones de las cards no te llevan a ningún lado salvo el último que te manda
+a logística. Por qué?"* — las primeras tres usaban anclas `#minimo`/`#etapas` dentro de la
+misma página; dos problemas reales, no percepción: (1) `#minimo` sólo existía en el DOM
+cuando había piezas por debajo del mínimo — con 0 (el caso normal) el link apuntaba a un
+id inexistente; (2) `#etapas` sí existe siempre, pero en una pantalla de esta altura ya
+está visible sin scrollear, así que el clic navegaba (el hash de la URL cambiaba) sin
+ningún movimiento perceptible — indistinguible de "no hace nada".
+
+- "Por debajo del mínimo" ahora se renderiza siempre (antes sólo con `stockBajo.length >
+  0`), con un mensaje positivo cuando no hay ninguna — el ancla nunca vuelve a apuntar a
+  un id que no existe.
+- "Unidades finalizadas en stock" → nueva página `/stock/finalizado`: todas las piezas con
+  stock disponible, ordenadas de mayor a menor.
+- "Unidades en proceso" → nueva página `/stock/en-proceso`: TODAS las piezas en proceso
+  en cualquier etapa, en una sola lista plana con columna "Etapa" — complementa (no
+  reemplaza) el desglose por etapa de abajo, que sigue en la misma pantalla con sus links
+  a `/stock/etapa/[procesoId]`.
+- `getPiezasEnEtapa` se generalizó a `getPiezasEnProceso(procesoId?)` — sin argumento trae
+  todo, con argumento filtra a una etapa — mismo cálculo batcheado, una sola función para
+  los dos casos en vez de duplicar la consulta.
+
 Pendiente: el resto de los paquetes de §18 (adjuntos de ingeniería, indicadores).

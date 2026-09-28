@@ -63,14 +63,18 @@ export default async function StockPage({
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <MetricCard label="Piezas por debajo del mínimo" value={stockBajo.length} href="#minimo" />
-        <MetricCard label="Unidades finalizadas en stock" value={resumen.unidadesFinalizadas} href="#etapas" />
-        <MetricCard label="Unidades en proceso" value={unidadesEnProceso} href="#etapas" />
+        <MetricCard label="Unidades finalizadas en stock" value={resumen.unidadesFinalizadas} href="/stock/finalizado" />
+        <MetricCard label="Unidades en proceso" value={unidadesEnProceso} href="/stock/en-proceso" />
         <MetricCard label="Unidades en proceso tercerizado" value={unidadesTercerizadas} href="/logistica" />
       </div>
 
-      {stockBajo.length > 0 && (
-        <div id="minimo">
-          <h2 className="text-sm font-semibold mb-2">Por debajo del mínimo</h2>
+      <div id="minimo">
+        <h2 className="text-sm font-semibold mb-2">Por debajo del mínimo</h2>
+        {stockBajo.length === 0 ? (
+          <p className="text-sm text-foreground-muted">
+            Ninguna pieza está por debajo de su mínimo en este momento.
+          </p>
+        ) : (
           <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
@@ -115,8 +119,8 @@ export default async function StockPage({
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div id="etapas">
         <h2 className="text-sm font-semibold mb-2">En proceso ahora mismo, por etapa</h2>

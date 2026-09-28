@@ -1,15 +1,10 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getProceso } from "@/lib/data/maestros";
 import { getPiezasEnProceso } from "@/lib/data/stock";
 
 export const dynamic = "force-dynamic";
 
-export default async function StockEtapaPage({ params }: { params: Promise<{ procesoId: string }> }) {
-  const { procesoId } = await params;
-  const [proceso, items] = await Promise.all([getProceso(procesoId), getPiezasEnProceso(procesoId)]);
-  if (!proceso) notFound();
-
+export default async function StockEnProcesoPage() {
+  const items = await getPiezasEnProceso();
   const totalUnidades = items.reduce((sum, it) => sum + it.cantidad, 0);
   const piezasDistintas = new Set(items.map((it) => it.piezaId)).size;
 
@@ -19,16 +14,16 @@ export default async function StockEtapaPage({ params }: { params: Promise<{ pro
         <Link href="/stock" className="text-sm text-accent hover:underline">
           ← Stock
         </Link>
-        <h1 className="text-xl font-semibold mt-1">{proceso.nombre}</h1>
+        <h1 className="text-xl font-semibold mt-1">En proceso</h1>
         <p className="text-sm text-foreground-muted mt-1">
           {piezasDistintas} pieza{piezasDistintas === 1 ? "" : "s"} distinta{piezasDistintas === 1 ? "" : "s"} en {items.length}{" "}
-          {items.length === 1 ? "orden" : "órdenes"} de trabajo · {totalUnidades} unidades en esta etapa ahora mismo.
+          {items.length === 1 ? "orden" : "órdenes"} de trabajo, en todas las etapas · {totalUnidades} unidades.
         </p>
       </div>
 
       {items.length === 0 ? (
         <div className="bg-surface border border-border rounded-lg p-6 text-center text-foreground-muted text-sm">
-          No hay piezas en esta etapa en este momento.
+          No hay piezas en proceso en este momento.
         </div>
       ) : (
         <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
@@ -36,6 +31,7 @@ export default async function StockEtapaPage({ params }: { params: Promise<{ pro
             <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Pieza</th>
+                <th className="text-left px-4 py-2 font-medium">Etapa</th>
                 <th className="text-left px-4 py-2 font-medium">OT pieza</th>
                 <th className="text-left px-4 py-2 font-medium">Máquina</th>
                 <th className="text-right px-4 py-2 font-medium">Cantidad</th>
@@ -49,6 +45,9 @@ export default async function StockEtapaPage({ params }: { params: Promise<{ pro
                       {it.piezaCodigo}
                     </Link>
                     {it.piezaNombre}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span className="badge-estado badge-en_curso">{it.procesoNombre}</span>
                   </td>
                   <td className="px-4 py-2.5">
                     <Link href={`/ot/${it.otMaquinaId}/pieza/${it.otPiezaId}`} className="font-mono text-xs text-accent hover:underline">

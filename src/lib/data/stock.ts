@@ -163,17 +163,20 @@ export type ItemEnEtapa = {
   piezaNombre: string;
   otMaquinaId: string;
   otMaquinaCodigo: string;
+  procesoNombre: string;
   cantidad: number;
 };
 
 /**
- * Detalle pieza por pieza de una etapa puntual — antes de esto, el número
- * de "En proceso ahora mismo, por etapa" no tenía ningún lugar donde ver
- * QUÉ piezas lo componen (pedido de Matías: "no tenemos el detalle del
- * stock en ningún lado"). Mismo cálculo batcheado que
- * getResumenWipEnCursoPorProceso, sin agregar al final.
+ * Detalle pieza por pieza de lo que está en proceso — antes de esto, el
+ * número de "En proceso ahora mismo, por etapa" no tenía ningún lugar
+ * donde ver QUÉ piezas lo componen (pedido de Matías: "no tenemos el
+ * detalle del stock en ningún lado"). Sin `procesoId` trae TODO lo que
+ * está en proceso (cualquier etapa); con `procesoId` filtra a una sola
+ * etapa puntual. Mismo cálculo batcheado que getResumenWipEnCursoPorProceso,
+ * sin agregar al final.
  */
-export async function getPiezasEnEtapa(procesoId: string): Promise<ItemEnEtapa[]> {
+export async function getPiezasEnProceso(procesoId?: string): Promise<ItemEnEtapa[]> {
   const filas = await db
     .select({ otPieza, piezaId: pieza.id, piezaCodigo: pieza.codigo, piezaNombre: pieza.nombre, otMaquinaId: otMaquina.id, otMaquinaCodigo: otMaquina.codigo })
     .from(otPieza)
@@ -187,7 +190,7 @@ export async function getPiezasEnEtapa(procesoId: string): Promise<ItemEnEtapa[]
 
   const [rutaRows, completadasRows] = await Promise.all([
     db
-      .select({ piezaId: operacion.piezaId, id: operacion.id, secuencia: operacion.secuencia, procesoId: proceso.id })
+      .select({ piezaId: operacion.piezaId, id: operacion.id, secuencia: operacion.secuencia, procesoId: proceso.id, procesoNombre: proceso.nombre })
       .from(operacion)
       .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
       .where(inArray(operacion.piezaId, piezaIds))
@@ -200,10 +203,10 @@ export async function getPiezasEnEtapa(procesoId: string): Promise<ItemEnEtapa[]
       ),
   ]);
 
-  const rutaPorPieza = new Map<string, { id: string; procesoId: string }[]>();
+  const rutaPorPieza = new Map<string, { id: string; procesoId: string; procesoNombre: string }[]>();
   for (const r of rutaRows) {
     const arr = rutaPorPieza.get(r.piezaId) ?? [];
-    arr.push({ id: r.id, procesoId: r.procesoId });
+    arr.push({ id: r.id, procesoId: r.procesoId, procesoNombre: r.procesoNombre });
     rutaPorPieza.set(r.piezaId, arr);
   }
 
@@ -221,7 +224,7 @@ export async function getPiezasEnEtapa(procesoId: string): Promise<ItemEnEtapa[]
     const completadas = completadasPorOtPieza.get(fila.otPieza.id) ?? new Set<string>();
     if (completadas.size >= routing.length) continue;
     const actual = routing.find((op) => !completadas.has(op.id));
-    if (!actual || actual.procesoId !== procesoId) continue;
+    if (!actual || (procesoId && actual.procesoId !== procesoId)) continue;
 
     resultado.push({
       otPiezaId: fila.otPieza.id,
@@ -231,6 +234,7 @@ export async function getPiezasEnEtapa(procesoId: string): Promise<ItemEnEtapa[]
       piezaNombre: fila.piezaNombre,
       otMaquinaId: fila.otMaquinaId,
       otMaquinaCodigo: fila.otMaquinaCodigo,
+      procesoNombre: actual.procesoNombre,
       cantidad: fila.otPieza.cantidadAFabricar,
     });
   }
@@ -284,6 +288,19 @@ export async function getResumenStockGeneral(): Promise<{ piezasConStock: number
     piezasConStock: rows.filter((r) => r.cantidad > 0).length,
     unidadesFinalizadas: rows.reduce((sum, r) => sum + r.cantidad, 0),
   };
+}
+
+export type PiezaFinalizada = { piezaId: string; piezaCodigo: string; piezaNombre: string; disponible: number };
+
+/** Detalle pieza por pieza de lo "Finalizado" — mismo motivo que
+ * getPiezasEnProceso: la métrica agregada de /stock no tenía ningún lugar
+ * adonde ir a ver qué la compone. */
+export async function getPiezasFinalizadas(): Promise<PiezaFinalizada[]> {
+  const rows = await db
+    .select({ piezaId: pieza.id, piezaCodigo: pieza.codigo, piezaNombre: pieza.nombre, disponible: stockPieza.cantidadDisponible })
+    .from(stockPieza)
+    .innerJoin(pieza, eq(pieza.id, stockPieza.piezaId));
+  return rows.filter((r) => r.disponible > 0).sort((a, b) => b.disponible - a.disponible);
 }
 
 export type PiezaStockBajo = { piezaId: string; piezaCodigo: string; piezaNombre: string; disponible: number; minimo: number };
