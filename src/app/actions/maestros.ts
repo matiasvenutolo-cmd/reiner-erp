@@ -2,7 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { getUsuarioActual } from "@/lib/session";
-import { actualizarMaterialPieza, actualizarDescripcionOperacion, actualizarTipoPieza, crearNotaPieza, getPieza } from "@/lib/data/maestros";
+import {
+  actualizarMaterialPieza,
+  actualizarDescripcionOperacion,
+  actualizarTipoPieza,
+  actualizarStockMinimoPieza,
+  crearNotaPieza,
+  getPieza,
+} from "@/lib/data/maestros";
 
 export async function actualizarMaterialAction(formData: FormData) {
   await getUsuarioActual(); // exige sesión válida
@@ -24,6 +31,17 @@ export async function actualizarTipoPiezaAction(formData: FormData) {
   revalidatePath(`/maestros/pieza/${piezaId}`);
   const pieza = await getPieza(piezaId);
   if (pieza) revalidatePath(`/maestros/${pieza.conjuntoId}`);
+}
+
+export async function actualizarStockMinimoAction(formData: FormData) {
+  await getUsuarioActual(); // exige sesión válida
+  const piezaId = String(formData.get("piezaId") ?? "");
+  const stockMinimo = Number(formData.get("stockMinimo"));
+  if (!piezaId || !Number.isFinite(stockMinimo) || stockMinimo < 0) throw new Error("Datos inválidos.");
+
+  await actualizarStockMinimoPieza(piezaId, stockMinimo);
+  revalidatePath(`/maestros/pieza/${piezaId}`);
+  revalidatePath("/stock");
 }
 
 export async function actualizarDescripcionOperacionAction(formData: FormData) {

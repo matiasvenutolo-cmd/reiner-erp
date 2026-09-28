@@ -138,6 +138,14 @@ export async function actualizarTipoPieza(piezaId: string, tipo: "fabricada" | "
   await db.update(pieza).set({ tipo }).where(eq(pieza.id, piezaId));
 }
 
+/** Mínimo de stock (RF sugerido, Fase 2) — quedó siempre en 0 desde la
+ * migración del Excel (`scripts/migrate-excel.ts` lo hardcodea), así que
+ * la alerta de "por debajo del mínimo" en /stock nunca tenía nada para
+ * mostrar. Editable acá para que ingeniería lo vaya cargando de verdad. */
+export async function actualizarStockMinimoPieza(piezaId: string, stockMinimo: number): Promise<void> {
+  await db.update(pieza).set({ stockMinimo }).where(eq(pieza.id, piezaId));
+}
+
 export async function actualizarDescripcionOperacion(operacionId: string, descripcion: string): Promise<void> {
   await db
     .update(operacion)

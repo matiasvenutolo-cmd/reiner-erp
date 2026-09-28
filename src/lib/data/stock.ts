@@ -193,6 +193,17 @@ export async function ajustarStock(input: {
   });
 }
 
+/** Métricas generales para el panel de /stock — pedido de Matías/Julián:
+ * la pantalla no puede abrir en blanco con sólo un buscador, tiene que dar
+ * una imagen general accionable de entrada. */
+export async function getResumenStockGeneral(): Promise<{ piezasConStock: number; unidadesFinalizadas: number }> {
+  const rows = await db.select({ cantidad: stockPieza.cantidadDisponible }).from(stockPieza);
+  return {
+    piezasConStock: rows.filter((r) => r.cantidad > 0).length,
+    unidadesFinalizadas: rows.reduce((sum, r) => sum + r.cantidad, 0),
+  };
+}
+
 export type PiezaStockBajo = { piezaId: string; piezaCodigo: string; piezaNombre: string; disponible: number; minimo: number };
 
 /** Piezas con stock disponible por debajo de su mínimo (RF sugerido, Fase 2). */

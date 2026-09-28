@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPieza, getConjunto, getRoutingPieza, modeloDeCodigo, getNotasPieza } from "@/lib/data/maestros";
 import { getStockDisponible, getWipEnCursoDePieza } from "@/lib/data/stock";
-import { actualizarMaterialAction, crearNotaPiezaAction } from "@/app/actions/maestros";
+import { actualizarMaterialAction, actualizarStockMinimoAction, crearNotaPiezaAction } from "@/app/actions/maestros";
 import { DescripcionOperacionInput } from "@/components/DescripcionOperacionInput";
 import { TipoPiezaSelect } from "@/components/TipoPiezaSelect";
 
@@ -56,6 +56,16 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
           <span className="block text-xs font-medium text-foreground-muted mb-1">Tipo</span>
           <TipoPiezaSelect piezaId={pieza.id} tipoActual={pieza.tipo} />
         </label>
+        <form action={actualizarStockMinimoAction} className="flex items-end gap-2">
+          <input type="hidden" name="piezaId" value={pieza.id} />
+          <label className="block">
+            <span className="block text-xs font-medium text-foreground-muted mb-1">Stock mínimo</span>
+            <input name="stockMinimo" type="number" min={0} defaultValue={pieza.stockMinimo} className="input w-20" />
+          </label>
+          <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
+            Guardar
+          </button>
+        </form>
       </div>
 
       {wip.length > 0 && (
