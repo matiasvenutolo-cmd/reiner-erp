@@ -1,16 +1,26 @@
 import Link from "next/link";
 import { listarOtMaquinas } from "@/lib/data/ot";
 import { getResumenWipEnCursoPorProceso } from "@/lib/data/stock";
-import { EstadoBadge } from "@/components/EstadoBadge";
+import { getParadasActivas } from "@/lib/data/ejecucion";
+import { getPiezasFueraDeFabrica } from "@/lib/data/logistica";
+import { MaquinaCard } from "@/components/avance/MaquinaCard";
+import { MetricCard } from "@/components/MetricCard";
 
-const COLOR_SECCION: Record<"pendiente" | "en_curso" | "terminada", string> = {
-  pendiente: "bg-surface-muted",
-  en_curso: "bg-accent",
-  terminada: "bg-brand-teal",
-};
+// Datos en vivo (producción cambia todo el tiempo) — nunca prerenderizar en build.
+export const dynamic = "force-dynamic";
 
 export default async function AvancePage() {
-  const [ordenes, wip] = await Promise.all([listarOtMaquinas(), getResumenWipEnCursoPorProceso()]);
+  const [ordenes, wip, paradas, fueraDeFabrica] = await Promise.all([
+    listarOtMaquinas(),
+    getResumenWipEnCursoPorProceso(),
+    getParadasActivas(),
+    getPiezasFueraDeFabrica(),
+  ]);
+
+  const enCurso = ordenes.filter((o) => o.estadoCalculado === "en_curso").length;
+  const piezasTerminadas = ordenes.reduce((sum, o) => sum + o.piezasTerminadas, 0);
+  const piezasTotal = ordenes.reduce((sum, o) => sum + o.totalPiezasAFabricar, 0);
+  const piezasFueraDeFabrica = fueraDeFabrica.reduce((sum, p) => sum + p.cantidad, 0);
 
   return (
     <div className="space-y-8">
@@ -19,6 +29,13 @@ export default async function AvancePage() {
         <p className="text-sm text-foreground-muted mt-1">
           Cómo viene cada máquina y, sobre todo, cómo viene avanzando cada una de sus partes.
         </p>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <MetricCard label="OT de máquina en curso" value={enCurso} href="/ot" />
+        <MetricCard label="Piezas terminadas / total" value={`${piezasTerminadas}/${piezasTotal}`} href="/ot" />
+        <MetricCard label="Frenado ahora mismo" value={paradas.length} href="/centros-trabajo" />
+        <MetricCard label="Piezas en proceso tercerizado" value={piezasFueraDeFabrica} href="/logistica" />
       </div>
 
       {ordenes.length === 0 ? (
@@ -33,43 +50,18 @@ export default async function AvancePage() {
           {ordenes.map((ot) => {
             const pct = ot.totalPiezasAFabricar > 0 ? Math.round((ot.piezasTerminadas / ot.totalPiezasAFabricar) * 100) : 0;
             return (
-              <div key={ot.id} className="bg-surface border border-border rounded-lg p-4 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <Link href={`/ot/${ot.id}`} className="font-semibold font-mono text-sm hover:text-accent hover:underline">
-                      {ot.codigo}
-                    </Link>
-                    <div className="text-xs text-foreground-muted">{ot.configuracion?.nombre}</div>
-                  </div>
-                  <EstadoBadge estado={ot.estadoCalculado} />
-                </div>
-
-                <div>
-                  <div className="h-2 rounded-full bg-surface-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="text-xs text-foreground-muted mt-1.5 tabular-nums">
-                    {ot.piezasTerminadas} / {ot.totalPiezasAFabricar} piezas terminadas
-                    {ot.plazoEntrega ? ` · plazo: ${ot.plazoEntrega}` : ""}
-                  </div>
-                </div>
-
-                {ot.secciones.length > 0 && (
-                  <div>
-                    <div className="text-xs text-foreground-muted mb-1">Por sección</div>
-                    <div className="flex flex-wrap gap-1">
-                      {ot.secciones.map((s) => (
-                        <Link
-                          key={s.otConjuntoId}
-                          href={`/ot/${ot.id}#seccion-${s.otConjuntoId}`}
-                          title={`${s.nombre}: ${s.terminadas}/${s.total} piezas`}
-                          className={`h-5 w-4 rounded-sm ${COLOR_SECCION[s.estado]} hover:opacity-75 transition-opacity`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <MaquinaCard
+                key={ot.id}
+                otId={ot.id}
+                codigo={ot.codigo}
+                configuracionNombre={ot.configuracion?.nombre}
+                estadoCalculado={ot.estadoCalculado}
+                pct={pct}
+                piezasTerminadas={ot.piezasTerminadas}
+                totalPiezasAFabricar={ot.totalPiezasAFabricar}
+                plazoEntrega={ot.plazoEntrega}
+                secciones={ot.secciones}
+              />
             );
           })}
         </div>

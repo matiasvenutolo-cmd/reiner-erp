@@ -7,9 +7,9 @@
  * pieza cuando esa propuesta es mayor a cero — igual que la macro real,
  * que exige `Cant a Fab > 0`. La cantidad queda siempre editable.
  */
-import { eq, inArray, and, desc } from "drizzle-orm";
+import { eq, inArray, and, desc, asc } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { otMaquina, otConjunto, otPieza, registroOperacion, cliente, operacion, configuracion } from "@/lib/db/schema";
+import { otMaquina, otConjunto, otPieza, registroOperacion, cliente, operacion, proceso, configuracion } from "@/lib/db/schema";
 import type { OtMaquina, OtPieza } from "@/lib/db/schema";
 import {
   getConjuntos,
@@ -79,7 +79,11 @@ async function estadoDePieza(pieza: OtPieza): Promise<{ estado: EstadoCalculado;
  * navegador, mismo tipo de bug que ya había tumbado el build de
  * /centros-trabajo — ver docs/05-backlog-release-2.md §9).
  */
-export type EstadoBatchItem = { estado: EstadoCalculado; sinRouting: boolean; totalOps: number; completadas: number };
+/** Un paso de la hoja de ruta con su nombre, para mostrar qué es cada
+ * segmento de ProgresoOperaciones sin tener que clickear (pedido de
+ * Matías, docs/06-backlog-release-3.md). */
+export type PasoOperacion = { nombre: string; completado: boolean };
+export type EstadoBatchItem = { estado: EstadoCalculado; sinRouting: boolean; pasos: PasoOperacion[] };
 
 async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBatchItem>> {
   const resultado = new Map<string, EstadoBatchItem>();
@@ -89,15 +93,24 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
   const otPiezaIds = piezas.map((p) => p.id);
 
   const [operaciones, registros] = await Promise.all([
-    db.select({ piezaId: operacion.piezaId, id: operacion.id }).from(operacion).where(inArray(operacion.piezaId, piezaIds)),
+    db
+      .select({ piezaId: operacion.piezaId, id: operacion.id, secuencia: operacion.secuencia, procesoNombre: proceso.nombre })
+      .from(operacion)
+      .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
+      .where(inArray(operacion.piezaId, piezaIds))
+      .orderBy(asc(operacion.piezaId), asc(operacion.secuencia)),
     db
       .select({ otPiezaId: registroOperacion.otPiezaId, operacionId: registroOperacion.operacionId, fin: registroOperacion.fin })
       .from(registroOperacion)
       .where(and(inArray(registroOperacion.otPiezaId, otPiezaIds), eq(registroOperacion.tipo, "ejecucion"))),
   ]);
 
-  const totalOpsPorPieza = new Map<string, number>();
-  for (const o of operaciones) totalOpsPorPieza.set(o.piezaId, (totalOpsPorPieza.get(o.piezaId) ?? 0) + 1);
+  const rutaPorPieza = new Map<string, { id: string; nombre: string }[]>();
+  for (const o of operaciones) {
+    const arr = rutaPorPieza.get(o.piezaId) ?? [];
+    arr.push({ id: o.id, nombre: o.procesoNombre });
+    rutaPorPieza.set(o.piezaId, arr);
+  }
 
   const completadasPorOtPieza = new Map<string, Set<string>>();
   const abiertaPorOtPieza = new Set<string>();
@@ -112,15 +125,17 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
   }
 
   for (const p of piezas) {
-    const totalOps = totalOpsPorPieza.get(p.piezaId) ?? 0;
-    if (totalOps === 0) {
-      resultado.set(p.id, { estado: "pendiente", sinRouting: true, totalOps: 0, completadas: 0 });
+    const ruta = rutaPorPieza.get(p.piezaId) ?? [];
+    if (ruta.length === 0) {
+      resultado.set(p.id, { estado: "pendiente", sinRouting: true, pasos: [] });
       continue;
     }
-    const completadas = completadasPorOtPieza.get(p.id)?.size ?? 0;
+    const completadasSet = completadasPorOtPieza.get(p.id) ?? new Set<string>();
+    const pasos = ruta.map((r) => ({ nombre: r.nombre, completado: completadasSet.has(r.id) }));
+    const completadas = pasos.filter((x) => x.completado).length;
     const abierta = abiertaPorOtPieza.has(p.id);
-    const estado: EstadoCalculado = completadas >= totalOps ? "terminada" : completadas > 0 || abierta ? "en_curso" : "pendiente";
-    resultado.set(p.id, { estado, sinRouting: false, totalOps, completadas });
+    const estado: EstadoCalculado = completadas >= ruta.length ? "terminada" : completadas > 0 || abierta ? "en_curso" : "pendiente";
+    resultado.set(p.id, { estado, sinRouting: false, pasos });
   }
   return resultado;
 }
@@ -402,8 +417,7 @@ export async function getOtMaquinaDetalle(id: string) {
       otPieza: pieza,
       estado: estados.get(pieza.id)?.estado ?? ("pendiente" as EstadoCalculado),
       sinRouting: estados.get(pieza.id)?.sinRouting ?? true,
-      totalOps: estados.get(pieza.id)?.totalOps ?? 0,
-      completadas: estados.get(pieza.id)?.completadas ?? 0,
+      pasos: estados.get(pieza.id)?.pasos ?? [],
     }));
     const estadoConjunto = agregarEstados(piezasConEstado.map((p) => p.estado));
     return { otConjunto: otc, conjunto: conjuntosMaestro.get(otc.conjuntoId), piezas: piezasConEstado, estadoConjunto };

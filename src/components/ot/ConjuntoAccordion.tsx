@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { OtPieza, Pieza, Procedimiento } from "@/lib/db/schema";
-import type { EstadoCalculado } from "@/lib/data/ot";
+import type { EstadoCalculado, PasoOperacion } from "@/lib/data/ot";
 import type { ControlArmadoConDetalle } from "@/lib/data/armado";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import { ProgresoOperaciones } from "@/components/ProgresoOperaciones";
@@ -15,8 +15,7 @@ export type FilaPieza = {
   otPieza: OtPieza;
   estado: EstadoCalculado;
   sinRouting: boolean;
-  totalOps: number;
-  completadas: number;
+  pasos: PasoOperacion[];
   pieza?: Pieza;
   tieneRevisionPendiente: boolean;
 };
@@ -105,7 +104,7 @@ export function ConjuntoAccordion({
               </tr>
             </thead>
             <tbody>
-              {filasVisibles.map(({ otPieza, sinRouting, totalOps, completadas, pieza, tieneRevisionPendiente }) => (
+              {filasVisibles.map(({ otPieza, sinRouting, pasos, pieza, tieneRevisionPendiente }) => (
                 <tr key={otPieza.id} className="border-t border-border">
                   <td className="px-4 py-2.5">
                     <Link href={`/ot/${otMaquinaId}/pieza/${otPieza.id}`} className="font-mono text-xs text-accent hover:underline">
@@ -120,7 +119,7 @@ export function ConjuntoAccordion({
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-1.5">
-                      <ProgresoOperaciones totalOps={totalOps} completadas={completadas} sinRouting={sinRouting} />
+                      <ProgresoOperaciones pasos={pasos} sinRouting={sinRouting} />
                       {tieneRevisionPendiente && (
                         <Link href={`/ot/${otMaquinaId}/pieza/${otPieza.id}`} className="badge-estado badge-alerta hover:opacity-80">
                           revisión

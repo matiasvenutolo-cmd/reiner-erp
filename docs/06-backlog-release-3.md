@@ -420,6 +420,27 @@ directos, fuera del orden de §18 pero rápidos de resolver:
   marcha real y cierre. Deliberadamente no se incluyó nada de costos/infraestructura de
   traspaso (eso es una conversación aparte con Adrián, no contenido para una página pública).
 
+**✅ Paquete extra 3 — tercera ronda de comentarios de Matías (2026-09-28).**
+
+- **Tarjeta de máquina 100% clickeable en /avance.** Antes sólo el código de la OT era link;
+  el resto de la tarjeta no hacía nada. `src/components/avance/MaquinaCard.tsx` (nuevo,
+  client): toda la tarjeta navega a la OT con un clic, y los bloques de "Por sección"
+  siguen yendo a su propia ancla (`stopPropagation` en el click del bloque para que no
+  dispare también la navegación de la tarjeta completa).
+- **Tooltip por paso en el Progreso del acordeón, sin clickear.** `ProgresoOperaciones` sólo
+  tenía cantidades (2/5); ahora cada segmento lleva el nombre real del proceso en su `title`
+  nativo del navegador ("Torno — hecho", "Cromado — pendiente"), visible al pasar el mouse.
+  Requirió que `getEstadosBatch` (`src/lib/data/ot.ts`) devuelva la hoja de ruta completa por
+  pieza (`pasos: {nombre, completado}[]`, ordenada por secuencia) en vez de sólo un conteo —
+  mismas dos consultas ya batcheadas, con un join a `proceso` que no estaba.
+- **Resumen general arriba de las tarjetas en /avance.** La pantalla seguía siendo "sólo las
+  máquinas" aunque ahora tuvieran más detalle — pedido explícito de usarla para algo más.
+  Se agregó una franja de 4 métricas de toda la planta antes del grid de tarjetas: OT de
+  máquina en curso, piezas terminadas/total, piezas frenadas ahora mismo (reusa
+  `getParadasActivas`, ya construida para `/inicio`) y piezas en proceso tercerizado (reusa
+  `getPiezasFueraDeFabrica`). Se extrajo `src/components/MetricCard.tsx` de `/inicio` para
+  reusarlo acá — segunda vez que se necesitaba el mismo patrón.
+
 Pendiente: el resto de los paquetes de §18 (órdenes de trabajo/planificación semanal,
 unificar Logística+Remitos+tercerización, detalle de operaciones específico, adjuntos,
 flag compra/fabricación, indicadores).

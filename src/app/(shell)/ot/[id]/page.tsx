@@ -37,12 +37,11 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
         otConjuntoCodigo: c.otConjunto.codigo,
         conjuntoNombre: c.conjunto?.nombre ?? c.otConjunto.codigo,
         estadoConjunto: c.estadoConjunto,
-        filas: c.piezas.map(({ otPieza, estado, sinRouting, totalOps, completadas }) => ({
+        filas: c.piezas.map(({ otPieza, estado, sinRouting, pasos }) => ({
           otPieza,
           estado,
           sinRouting,
-          totalOps,
-          completadas,
+          pasos,
           pieza: piezasPorId.get(otPieza.piezaId),
           tieneRevisionPendiente: otPiezaIdsConRevision.has(otPieza.id),
         })),
