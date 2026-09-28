@@ -40,8 +40,7 @@ export default async function LogisticaPage({
           <h1 className="text-xl font-semibold">Logística</h1>
           <p className="text-sm text-foreground-muted mt-1">
             Ingresos, egresos y control de calidad al recibir materia prima o una pieza que vuelve de
-            un proceso tercerizado (pedido de Horacio y Julián en la devolución del 2026-09-19, ver
-            docs/05-backlog-release-2.md §4).
+            un proceso tercerizado.
           </p>
         </div>
         <Link href="/remitos" className="text-sm text-accent hover:underline whitespace-nowrap">

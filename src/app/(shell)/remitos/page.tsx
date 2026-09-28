@@ -9,8 +9,7 @@ export default async function RemitosPage() {
       <div>
         <h1 className="text-xl font-semibold">Remitos</h1>
         <p className="text-sm text-foreground-muted mt-1">
-          Generados desde /logistica al mover piezas hacia afuera de la fábrica (pedido de Horacio,
-          ver docs/05-backlog-release-2.md §4).
+          Se generan desde Logística al mover piezas hacia afuera de la fábrica.
         </p>
       </div>
 

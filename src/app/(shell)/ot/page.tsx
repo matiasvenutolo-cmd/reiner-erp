@@ -11,7 +11,7 @@ export default async function OtPage() {
         <div>
           <h1 className="text-xl font-semibold">Órdenes de trabajo</h1>
           <p className="text-sm text-foreground-muted mt-1">
-            Máquina → conjunto → pieza, con explosión automática y cruce contra stock (RF-02 a RF-04).
+            Máquina → conjunto → pieza, con explosión automática y cruce contra stock.
           </p>
         </div>
         <Link

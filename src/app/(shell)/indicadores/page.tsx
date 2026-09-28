@@ -17,9 +17,8 @@ export default async function IndicadoresPage() {
       <div>
         <h1 className="text-xl font-semibold">Indicadores de fabricación</h1>
         <p className="text-sm text-foreground-muted mt-1">
-          Tiempos, paradas y errores disparados desde el taller (pedido de Horacio en la devolución
-          del 2026-09-19, ver docs/05-backlog-release-2.md §7). Se arma solo con lo que ya se carga
-          en /taller — no agrega ningún dato nuevo a registrar.
+          Tiempos, paradas y errores cargados desde el taller — no hace falta registrar nada
+          nuevo, se arma solo con lo que ya se carga ahí.
         </p>
       </div>
 

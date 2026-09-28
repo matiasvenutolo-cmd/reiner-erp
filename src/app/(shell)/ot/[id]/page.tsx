@@ -71,7 +71,11 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
 
       <div className="space-y-4">
         {conjuntosConPiezas.map(({ otConjunto, conjunto, filas, estadoConjunto, controlesArmado }) => (
-          <div key={otConjunto.id} className="bg-surface border border-border rounded-lg overflow-hidden">
+          <div
+            key={otConjunto.id}
+            id={`seccion-${otConjunto.id}`}
+            className="bg-surface border border-border rounded-lg overflow-hidden scroll-mt-4"
+          >
             <div className="flex items-center justify-between px-4 py-2.5 bg-surface-muted">
               <div>
                 <span className="font-mono text-xs text-foreground-muted mr-2">{otConjunto.codigo}</span>

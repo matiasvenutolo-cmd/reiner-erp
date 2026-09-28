@@ -3,6 +3,12 @@ import { listarOtMaquinas } from "@/lib/data/ot";
 import { getResumenWipEnCursoPorProceso } from "@/lib/data/stock";
 import { EstadoBadge } from "@/components/EstadoBadge";
 
+const COLOR_SECCION: Record<"pendiente" | "en_curso" | "terminada", string> = {
+  pendiente: "bg-surface-muted",
+  en_curso: "bg-accent",
+  terminada: "bg-brand-teal",
+};
+
 export default async function AvancePage() {
   const [ordenes, wip] = await Promise.all([listarOtMaquinas(), getResumenWipEnCursoPorProceso()]);
 
@@ -11,7 +17,7 @@ export default async function AvancePage() {
       <div>
         <h1 className="text-xl font-semibold">Avance de fabricación</h1>
         <p className="text-sm text-foreground-muted mt-1">
-          Vista única del estado de cada máquina en curso (RF-09) — pensada para mirar todos los días.
+          Cómo viene cada máquina y, sobre todo, cómo viene avanzando cada una de sus partes.
         </p>
       </div>
 
@@ -23,34 +29,47 @@ export default async function AvancePage() {
           </Link>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid lg:grid-cols-2 gap-4">
           {ordenes.map((ot) => {
             const pct = ot.totalPiezasAFabricar > 0 ? Math.round((ot.piezasTerminadas / ot.totalPiezasAFabricar) * 100) : 0;
             return (
-              <Link
-                key={ot.id}
-                href={`/ot/${ot.id}`}
-                className="bg-surface border border-border rounded-lg p-4 hover:border-accent transition-colors"
-              >
-                <div className="flex items-start justify-between mb-2">
+              <div key={ot.id} className="bg-surface border border-border rounded-lg p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="font-semibold font-mono text-sm">{ot.codigo}</div>
+                    <Link href={`/ot/${ot.id}`} className="font-semibold font-mono text-sm hover:text-accent hover:underline">
+                      {ot.codigo}
+                    </Link>
                     <div className="text-xs text-foreground-muted">{ot.configuracion?.nombre}</div>
                   </div>
                   <EstadoBadge estado={ot.estadoCalculado} />
                 </div>
-                <div className="text-xs text-foreground-muted mb-1.5">{ot.observaciones}</div>
-                <div className="h-2 rounded-full bg-surface-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-accent transition-all"
-                    style={{ width: `${pct}%` }}
-                  />
+
+                <div>
+                  <div className="h-2 rounded-full bg-surface-muted overflow-hidden">
+                    <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="text-xs text-foreground-muted mt-1.5 tabular-nums">
+                    {ot.piezasTerminadas} / {ot.totalPiezasAFabricar} piezas terminadas
+                    {ot.plazoEntrega ? ` · plazo: ${ot.plazoEntrega}` : ""}
+                  </div>
                 </div>
-                <div className="text-xs text-foreground-muted mt-1.5 tabular-nums">
-                  {ot.piezasTerminadas} / {ot.totalPiezasAFabricar} piezas terminadas
-                  {ot.plazoEntrega ? ` · plazo: ${ot.plazoEntrega}` : ""}
-                </div>
-              </Link>
+
+                {ot.secciones.length > 0 && (
+                  <div>
+                    <div className="text-xs text-foreground-muted mb-1">Por sección</div>
+                    <div className="flex flex-wrap gap-1">
+                      {ot.secciones.map((s) => (
+                        <Link
+                          key={s.otConjuntoId}
+                          href={`/ot/${ot.id}#seccion-${s.otConjuntoId}`}
+                          title={`${s.nombre}: ${s.terminadas}/${s.total} piezas`}
+                          className={`h-5 w-4 rounded-sm ${COLOR_SECCION[s.estado]} hover:opacity-75 transition-opacity`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>

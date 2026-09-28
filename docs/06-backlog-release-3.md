@@ -365,6 +365,33 @@ cambió desde dónde se llama. Probado de punta a punta: se cerró una pieza rea
 con 2 defectuosas, apareció el badge en la OT y la tarjeta en el home de Julián, se
 resolvió desde la ficha de la pieza, y las tres pantallas se actualizaron.
 
+**✅ Paquete extra — comentarios de Matías sobre lo pusheado (2026-09-28).** Tres ajustes
+directos, fuera del orden de §18 pero rápidos de resolver:
+- **Subtítulos sin jerga interna.** Varias pantallas mostraban texto pensado para uso
+  interno (códigos `RF-XX`, citas a `docs/05-backlog-release-2.md §X`, "pedido de
+  Horacio/Julián en la devolución del 2026-09-19") directo en los subtítulos que ve el
+  cliente. Se limpiaron todos (Maestros, Avance, Usuarios, Remitos, Indicadores,
+  Logística, OT, OT nueva) — quedan descripciones simples de qué hace la pantalla, sin
+  atribución ni referencias a documentos internos.
+- **Avance por sección, no sólo por máquina.** El cliente vende 2-3 máquinas por año — ver
+  siempre la misma tarjeta de máquina todo el año no aporta nada al día a día. Cada tarjeta
+  de `/avance` ahora suma una fila "Por sección": un bloque de color por cada conjunto de
+  la máquina (gris = pendiente, azul = en curso, verde = terminado), clickeable, que lleva
+  directo a esa sección dentro de la OT (`/ot/[id]#seccion-[id]`, con scroll automático).
+  Así se ve de un vistazo qué partes de la máquina se están moviendo y cuáles están
+  frenadas, no sólo el % global. Nueva función `listarOtMaquinas` extendida con
+  `secciones` en `src/lib/data/ot.ts`, reusando los mismos datos ya batcheados (sin
+  queries nuevas).
+- **Landing pública con las fases del proyecto.** Pedido ya charlado antes con el cliente:
+  que al abrir el link del ERP sin sesión aparezcan las fases de trabajo y un botón para
+  entrar. Nueva página `src/app/page.tsx` (fuera del route group `(shell)`, igual que
+  `/login`, para no repetir el bug de loop de Release 2 §9 con `getUsuarioActual()`) —
+  4 fases con estado (Fase 1 y 2 completas, Fase 3 en curso, Puesta en marcha próximamente)
+  y un botón "Entrar al sistema →". `proxy.ts` ahora trata `/` igual que `/login`: pública
+  sin sesión, redirige a la home del rol si ya hay una. Contenido de las fases tomado de lo
+  ya documentado (docs/01-analisis.md, docs/03-plan-fase-1.md) — sin fechas ni costos de
+  infraestructura, eso se conversa aparte con Adrián.
+
 Pendiente: el resto de los paquetes de §18 (órdenes de trabajo/planificación semanal,
 unificar Logística+Remitos+tercerización, detalle de operaciones específico, adjuntos,
 flag compra/fabricación, indicadores).

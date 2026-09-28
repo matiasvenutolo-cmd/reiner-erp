@@ -23,7 +23,11 @@ export async function proxy(request: NextRequest) {
   const token = request.cookies.get("reiner_sesion")?.value;
   const sesion = await verificarSesion(token);
 
-  if (pathname === "/login") {
+  if (pathname === "/" || pathname === "/login") {
+    // "/" es la landing pública con las fases del proyecto (Release 3,
+    // pedido del cliente: "apenas abramos el link del ERP aparezcan las
+    // fases de trabajo y un botón de entrar al sistema"). Si ya hay sesión,
+    // no tiene sentido mostrarla — va directo a su home, igual que /login.
     if (sesion) return NextResponse.redirect(new URL(HOME_POR_ROL[sesion.rol], request.url));
     return NextResponse.next();
   }

@@ -19,7 +19,7 @@ export default async function MaestrosPage() {
       <div>
         <h1 className="text-xl font-semibold">Maestros</h1>
         <p className="text-sm text-foreground-muted mt-1">
-          Modelo → configuración → conjunto → pieza. Migrado desde los Excel de {modelos.map((m) => m.codigo).join(" y ")} (RF-01).
+          Modelo → configuración → conjunto → pieza, para {modelos.map((m) => m.codigo).join(" y ")}.
         </p>
       </div>
 

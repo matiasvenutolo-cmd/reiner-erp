@@ -316,20 +316,48 @@ export async function listarOtMaquinas() {
     piezasPorConjunto.set(p.otConjuntoId, arr);
   }
 
-  const [estados, configs] = await Promise.all([
+  const [estados, configs, conjuntosMaestro] = await Promise.all([
     getEstadosBatch(piezasTodas),
     (async () => {
       const configIds = [...new Set(maquinas.map((m) => m.otMaquina.configuracionId))];
       const rows = configIds.length ? await db.select().from(configuracion).where(inArray(configuracion.id, configIds)) : [];
       return new Map(rows.map((c) => [c.id, c]));
     })(),
+    getConjuntos().then((todos) => new Map(todos.map((c) => [c.id, c]))),
   ]);
+
+  const conjuntosPorMaquina = new Map<string, typeof conjuntosTodos>();
+  for (const c of conjuntosTodos) {
+    const arr = conjuntosPorMaquina.get(c.otMaquinaId) ?? [];
+    arr.push(c);
+    conjuntosPorMaquina.set(c.otMaquinaId, arr);
+  }
 
   return maquinas.map(({ otMaquina: m, clienteNombre }) => {
     const conjuntoIds = conjuntoIdsPorMaquina.get(m.id) ?? [];
     const piezas = conjuntoIds.flatMap((cid) => piezasPorConjunto.get(cid) ?? []);
     const estadosPieza = piezas.map((p) => estados.get(p.id)?.estado ?? "pendiente");
     const estado = piezas.length > 0 ? agregarEstados(estadosPieza) : "pendiente";
+
+    // Avance por sección (Release 3, pedido del cliente —
+    // docs/06-backlog-release-3.md §9: "no tiene sentido que el seguimiento
+    // cotidiano esté centrado únicamente en visualizar órdenes por
+    // máquina" porque venden 2-3 máquinas/año — el movimiento real del día
+    // a día está en qué conjunto está avanzando y cuál está frenado.
+    const secciones = (conjuntosPorMaquina.get(m.id) ?? [])
+      .map((oc) => {
+        const piezasSeccion = piezasPorConjunto.get(oc.id) ?? [];
+        const estadosSeccion = piezasSeccion.map((p) => estados.get(p.id)?.estado ?? "pendiente");
+        return {
+          otConjuntoId: oc.id,
+          nombre: conjuntosMaestro.get(oc.conjuntoId)?.nombre ?? oc.codigo,
+          total: piezasSeccion.length,
+          terminadas: estadosSeccion.filter((e) => e === "terminada").length,
+          estado: piezasSeccion.length > 0 ? agregarEstados(estadosSeccion) : "pendiente",
+        };
+      })
+      .filter((s) => s.total > 0);
+
     return {
       ...m,
       clienteNombre,
@@ -337,6 +365,7 @@ export async function listarOtMaquinas() {
       totalPiezasAFabricar: piezas.length,
       piezasTerminadas: estadosPieza.filter((e) => e === "terminada").length,
       estadoCalculado: estado,
+      secciones,
     };
   });
 }

@@ -30,8 +30,7 @@ export default async function UsuariosPage() {
       <div>
         <h1 className="text-xl font-semibold">Usuarios y accesos</h1>
         <p className="text-sm text-foreground-muted mt-1">
-          RF-12 — accesos administrados por ingeniería, dirección y taller (pedido de Horacio y Julián
-          en la devolución del 2026-09-19, ver docs/05-backlog-release-2.md §5).
+          Altas, roles y contraseñas/PIN — accesos administrados por ingeniería, dirección y taller.
         </p>
       </div>
 

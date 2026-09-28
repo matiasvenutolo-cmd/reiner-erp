@@ -7,7 +7,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: "REINER · Producción",
-  description: "Mockup del ERP de producción de REINER S.A.",
+  description: "ERP de producción de REINER S.A.",
 };
 
 export const viewport: Viewport = {

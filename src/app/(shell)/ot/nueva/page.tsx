@@ -20,8 +20,8 @@ export default async function NuevaOtPage() {
         </Link>
         <h1 className="text-xl font-semibold mt-1">Generar OT de máquina</h1>
         <p className="text-sm text-foreground-muted mt-1">
-          Se explota automáticamente a OT de conjunto y OT de pieza, cruzando contra el stock disponible
-          (RF-02, RF-04). La cantidad a fabricar propuesta queda editable en el detalle.
+          Se explota automáticamente a OT de conjunto y OT de pieza, cruzando contra el stock
+          disponible. La cantidad a fabricar propuesta queda editable en el detalle.
         </p>
       </div>
 
