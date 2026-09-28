@@ -392,6 +392,34 @@ directos, fuera del orden de §18 pero rápidos de resolver:
   ya documentado (docs/01-analisis.md, docs/03-plan-fase-1.md) — sin fechas ni costos de
   infraestructura, eso se conversa aparte con Adrián.
 
+**✅ Paquete extra 2 — segunda ronda de comentarios de Matías (2026-09-28).** Dos ajustes más:
+
+- **La OT de máquina, más interactiva.** Mismo razonamiento que motivó "avance por sección":
+  una OT de máquina casi no cambia (2-3 al año), así que la pantalla que la muestra tiene que
+  ganarse el uso diario con lo que pasa DENTRO de ella, no con la OT en sí. `/ot/[id]` pasó de
+  tablas planas siempre abiertas a un acordeón por sección (`src/components/ot/
+  ConjuntoAccordion.tsx` + `ConjuntosView.tsx`, ambos client): cada conjunto se abre solo si
+  está en curso, con una mini barra de progreso en el encabezado y un toggle global "Ocultar
+  piezas terminadas". La columna "Estado" (un badge plano) se reemplazó por "Progreso"
+  (`src/components/ProgresoOperaciones.tsx`): una fila de segmentos, uno por operación de la
+  hoja de ruta, coloreados según cuántas ya se completaron — la textura real de "todo lo que se
+  arma para cada OT", que es justo lo que no cambia con la cantidad de máquinas vendidas. Los
+  links "Por sección" de `/avance` siguen funcionando: al llegar con el hash de una sección, el
+  acordeón correspondiente se abre solo además del scroll nativo. Requirió extender
+  `getEstadosBatch`/`getOtMaquinaDetalle` (`src/lib/data/ot.ts`) para devolver también
+  `totalOps`/`completadas` por pieza, no sólo el estado agregado — mismas consultas ya
+  batcheadas, sin queries nuevas.
+- **La landing de "/" con todo el alcance real del proyecto, no sólo lo de hoy.** La primera
+  versión sólo mostraba 4 fases con una frase cada una — muy por debajo del alcance real y,
+  como señaló Matías, ni mencionaba Indicadores (que la propia minuta dice que se revisa al
+  final). Se reescribió con una lista de ítems por fase (hecho/pendiente, con Indicadores
+  explícito en Fase 3 como "revisión final, una vez resuelto el resto") y una fase
+  "Próximamente" con lo que sigue después de esta reorganización — estimación de fecha de
+  entrega y simulador de cotización (ya estaba anotado como Fase 3 en
+  `docs/05-backlog-release-2.md §3`, antes de que esta Release 3 existiera como tal), puesta en
+  marcha real y cierre. Deliberadamente no se incluyó nada de costos/infraestructura de
+  traspaso (eso es una conversación aparte con Adrián, no contenido para una página pública).
+
 Pendiente: el resto de los paquetes de §18 (órdenes de trabajo/planificación semanal,
 unificar Logística+Remitos+tercerización, detalle de operaciones específico, adjuntos,
 flag compra/fabricación, indicadores).

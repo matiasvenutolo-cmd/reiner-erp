@@ -5,9 +5,9 @@ import { getPiezasPorIds, getPiezasPorConfiguracion } from "@/lib/data/maestros"
 import { getControlesArmado, getProcedimientos } from "@/lib/data/armado";
 import { getOtPiezaIdsConRevisionPendiente } from "@/lib/data/revision";
 import { EstadoBadge } from "@/components/EstadoBadge";
-import { CantidadAFabricarForm } from "@/components/CantidadAFabricarForm";
-import { completarOtConjuntoAction, agregarPiezaSueltaAction } from "@/app/actions/ot";
-import { registrarControlArmadoAction } from "@/app/actions/armado";
+import { ConjuntosView } from "@/components/ot/ConjuntosView";
+import type { ConjuntoData } from "@/components/ot/ConjuntoAccordion";
+import { completarOtConjuntoAction } from "@/app/actions/ot";
 
 export default async function OtMaquinaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,20 +29,32 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
     piezasConfigPorConjunto.set(p.conjuntoId, arr);
   }
 
-  const conjuntosConPiezas = await Promise.all(
+  const conjuntosConPiezas: ConjuntoData[] = await Promise.all(
     conjuntos
       .filter((c) => c.piezas.length > 0)
       .map(async (c) => ({
-        ...c,
-        filas: c.piezas.map(({ otPieza, estado, sinRouting }) => ({
+        otConjuntoId: c.otConjunto.id,
+        otConjuntoCodigo: c.otConjunto.codigo,
+        conjuntoNombre: c.conjunto?.nombre ?? c.otConjunto.codigo,
+        estadoConjunto: c.estadoConjunto,
+        filas: c.piezas.map(({ otPieza, estado, sinRouting, totalOps, completadas }) => ({
           otPieza,
           estado,
           sinRouting,
+          totalOps,
+          completadas,
           pieza: piezasPorId.get(otPieza.piezaId),
+          tieneRevisionPendiente: otPiezaIdsConRevision.has(otPieza.id),
+        })),
+        piezasParaAgregar: (piezasConfigPorConjunto.get(c.otConjunto.conjuntoId) ?? []).map((p) => ({
+          id: p.id,
+          codigo: p.codigo,
+          nombre: p.nombre,
         })),
         // Control de armado (docs/05-backlog-release-2.md §3, §9): sólo tiene
         // sentido cuando el conjunto está terminado — ahí se habilita.
         controlesArmado: c.estadoConjunto === "terminada" ? await getControlesArmado(c.otConjunto.id) : [],
+        procedimientos,
       })),
   );
   const conjuntosSinFabricar = conjuntos.filter((c) => c.piezas.length === 0);
@@ -69,138 +81,7 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
         <Metric label="Conjuntos a fabricar" value={String(conjuntosConPiezas.length)} />
       </div>
 
-      <div className="space-y-4">
-        {conjuntosConPiezas.map(({ otConjunto, conjunto, filas, estadoConjunto, controlesArmado }) => (
-          <div
-            key={otConjunto.id}
-            id={`seccion-${otConjunto.id}`}
-            className="bg-surface border border-border rounded-lg overflow-hidden scroll-mt-4"
-          >
-            <div className="flex items-center justify-between px-4 py-2.5 bg-surface-muted">
-              <div>
-                <span className="font-mono text-xs text-foreground-muted mr-2">{otConjunto.codigo}</span>
-                <span className="font-medium text-sm">{conjunto?.nombre}</span>
-              </div>
-              <EstadoBadge estado={estadoConjunto} />
-            </div>
-            <table className="w-full text-sm">
-              <thead className="text-foreground-muted text-xs uppercase">
-                <tr>
-                  <th className="text-left px-4 py-2 font-medium">OT pieza</th>
-                  <th className="text-left px-4 py-2 font-medium">Pieza</th>
-                  <th className="text-right px-4 py-2 font-medium">Necesaria</th>
-                  <th className="text-right px-4 py-2 font-medium">Stock al generar</th>
-                  <th className="text-right px-4 py-2 font-medium">A fabricar</th>
-                  <th className="text-left px-4 py-2 font-medium">Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map(({ otPieza, estado, sinRouting, pieza }) => (
-                  <tr key={otPieza.id} className="border-t border-border">
-                    <td className="px-4 py-2.5">
-                      <Link
-                        href={`/ot/${otMaquina.id}/pieza/${otPieza.id}`}
-                        className="font-mono text-xs text-accent hover:underline"
-                      >
-                        {otPieza.codigo}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2.5">{pieza?.nombre ?? otPieza.piezaId}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{otPieza.cantidadNecesaria}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">
-                      {otPieza.stockAlGenerar}
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <CantidadAFabricarForm
-                        otPiezaId={otPieza.id}
-                        otMaquinaId={otMaquina.id}
-                        cantidadInicial={otPieza.cantidadAFabricar}
-                      />
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <EstadoBadge estado={estado} sinRouting={sinRouting} />
-                        {otPiezaIdsConRevision.has(otPieza.id) && (
-                          <Link href={`/ot/${otMaquina.id}/pieza/${otPieza.id}`} className="badge-estado badge-alerta hover:opacity-80">
-                            revisión pendiente
-                          </Link>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <form
-              action={agregarPiezaSueltaAction}
-              className="flex flex-wrap items-center gap-1.5 px-4 py-2.5 border-t border-border bg-surface-muted/50"
-            >
-              <input type="hidden" name="otMaquinaId" value={otMaquina.id} />
-              <input type="hidden" name="otConjuntoId" value={otConjunto.id} />
-              <span className="text-xs text-foreground-muted">+ Pieza suelta</span>
-              <select name="piezaId" required defaultValue="" className="input text-xs py-1 flex-1 min-w-[10rem]">
-                <option value="" disabled>
-                  Elegir pieza…
-                </option>
-                {(piezasConfigPorConjunto.get(otConjunto.conjuntoId) ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.codigo} — {p.nombre}
-                  </option>
-                ))}
-              </select>
-              <input name="cantidad" type="number" min={1} placeholder="Cant." required className="input text-xs py-1 w-16" />
-              <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
-                Agregar
-              </button>
-            </form>
-
-            {estadoConjunto === "terminada" && (
-              <div className="px-4 py-3 border-t border-border bg-surface-muted/30 space-y-3">
-                <h3 className="text-xs font-semibold text-foreground-muted uppercase">Control de armado</h3>
-                {controlesArmado.length > 0 && (
-                  <ul className="space-y-1.5">
-                    {controlesArmado.map((c) => (
-                      <li key={c.id} className="flex items-center gap-2 text-sm">
-                        <span className={`badge-estado ${c.resultado === "ok" ? "badge-terminada" : "badge-alerta"}`}>
-                          {c.resultado === "ok" ? "Funciona OK" : "NO OK"}
-                        </span>
-                        <span className="text-foreground-muted">
-                          {c.revisadoPorNombre} · {new Date(c.fecha).toLocaleDateString("es-AR")}
-                          {c.procedimientoCodigo ? ` · ${c.procedimientoCodigo}` : ""}
-                        </span>
-                        {c.observacion && <span>— {c.observacion}</span>}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <form action={registrarControlArmadoAction} className="flex flex-wrap items-center gap-1.5">
-                  <input type="hidden" name="otMaquinaId" value={otMaquina.id} />
-                  <input type="hidden" name="otConjuntoId" value={otConjunto.id} />
-                  <select name="procedimientoId" className="input text-xs py-1" defaultValue="">
-                    <option value="">Sin procedimiento</option>
-                    {procedimientos.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.codigo} — {p.titulo}
-                      </option>
-                    ))}
-                  </select>
-                  <select name="resultado" required className="input text-xs py-1" defaultValue="">
-                    <option value="" disabled>
-                      Resultado…
-                    </option>
-                    <option value="ok">Funciona OK</option>
-                    <option value="no_ok">NO OK</option>
-                  </select>
-                  <input name="observacion" placeholder="Observación" className="input text-xs py-1 flex-1 min-w-[8rem]" />
-                  <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
-                    Registrar control
-                  </button>
-                </form>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      <ConjuntosView otMaquinaId={otMaquina.id} conjuntos={conjuntosConPiezas} />
 
       {conjuntosSinFabricar.length > 0 && (
         <div className="text-sm">

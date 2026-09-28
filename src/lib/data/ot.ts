@@ -79,8 +79,10 @@ async function estadoDePieza(pieza: OtPieza): Promise<{ estado: EstadoCalculado;
  * navegador, mismo tipo de bug que ya había tumbado el build de
  * /centros-trabajo — ver docs/05-backlog-release-2.md §9).
  */
-async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, { estado: EstadoCalculado; sinRouting: boolean }>> {
-  const resultado = new Map<string, { estado: EstadoCalculado; sinRouting: boolean }>();
+export type EstadoBatchItem = { estado: EstadoCalculado; sinRouting: boolean; totalOps: number; completadas: number };
+
+async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBatchItem>> {
+  const resultado = new Map<string, EstadoBatchItem>();
   if (piezas.length === 0) return resultado;
 
   const piezaIds = [...new Set(piezas.map((p) => p.piezaId))];
@@ -112,13 +114,13 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, { estado:
   for (const p of piezas) {
     const totalOps = totalOpsPorPieza.get(p.piezaId) ?? 0;
     if (totalOps === 0) {
-      resultado.set(p.id, { estado: "pendiente", sinRouting: true });
+      resultado.set(p.id, { estado: "pendiente", sinRouting: true, totalOps: 0, completadas: 0 });
       continue;
     }
     const completadas = completadasPorOtPieza.get(p.id)?.size ?? 0;
     const abierta = abiertaPorOtPieza.has(p.id);
     const estado: EstadoCalculado = completadas >= totalOps ? "terminada" : completadas > 0 || abierta ? "en_curso" : "pendiente";
-    resultado.set(p.id, { estado, sinRouting: false });
+    resultado.set(p.id, { estado, sinRouting: false, totalOps, completadas });
   }
   return resultado;
 }
@@ -400,6 +402,8 @@ export async function getOtMaquinaDetalle(id: string) {
       otPieza: pieza,
       estado: estados.get(pieza.id)?.estado ?? ("pendiente" as EstadoCalculado),
       sinRouting: estados.get(pieza.id)?.sinRouting ?? true,
+      totalOps: estados.get(pieza.id)?.totalOps ?? 0,
+      completadas: estados.get(pieza.id)?.completadas ?? 0,
     }));
     const estadoConjunto = agregarEstados(piezasConEstado.map((p) => p.estado));
     return { otConjunto: otc, conjunto: conjuntosMaestro.get(otc.conjuntoId), piezas: piezasConEstado, estadoConjunto };
