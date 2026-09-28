@@ -258,6 +258,13 @@ export const operacion = pgTable("operacion", {
     .references(() => proceso.id),
   secuencia: integer("secuencia").notNull().default(0),
   ops: integer("ops"), // cantidad de operaciones, ver nota de migración
+  // Detalle específico de este paso (ej. "Roscado" u "Operación 1" para un
+  // proceso genérico como "Torno" que se repite en la ruta) — Release 3,
+  // pedido del cliente (docs/06-backlog-release-3.md §5): los nombres de
+  // proceso migrados del Excel son genéricos y no alcanzan para saber qué
+  // hay que hacer, sobre todo para el operario. Opcional: si no se carga,
+  // se sigue mostrando el nombre del proceso.
+  descripcion: text("descripcion"),
   dispositivoId: text("dispositivo_id").references(() => dispositivo.id),
   procedimientoId: text("procedimiento_id").references(() => procedimiento.id),
 });

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getUsuarioActual } from "@/lib/session";
 import { getOtPieza, getEstadoYOperacionActual } from "@/lib/data/ot";
-import { getPieza, getConjunto } from "@/lib/data/maestros";
+import { getPieza, getConjunto, nombreOperacion } from "@/lib/data/maestros";
 import { getOperacionAbierta, getParadaAbierta, getTiposParada, esUltimaOperacion } from "@/lib/data/ejecucion";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import { VolverBoton } from "@/components/VolverBoton";
@@ -97,7 +97,7 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
               {registroAbiertoAqui.tipo === "setup" ? "Setup" : "Fabricación"} · operación{" "}
               {operacionDelRegistroAbierto.secuencia}
             </div>
-            <div className="text-lg font-semibold">{operacionDelRegistroAbierto.proceso.nombre}</div>
+            <div className="text-lg font-semibold">{nombreOperacion(operacionDelRegistroAbierto)}</div>
             <div className="text-sm text-foreground-muted">
               {paradaAbierta ? "En pausa" : "En curso"} · iniciado hace {minutosDesde(registroAbiertoAqui.inicio)} min
             </div>
@@ -173,7 +173,7 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
             <div className="text-xs text-foreground-muted uppercase tracking-wide">
               Siguiente · operación {operacionActual.secuencia}
             </div>
-            <div className="text-lg font-semibold">{operacionActual.proceso.nombre}</div>
+            <div className="text-lg font-semibold">{nombreOperacion(operacionActual)}</div>
             {operacionActual.dispositivoNombre && (
               <div className="text-sm text-foreground-muted">Dispositivo: {operacionActual.dispositivoNombre}</div>
             )}
@@ -203,7 +203,7 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
           {routing.map((op, i) => (
             <li key={op.id} className="flex items-center justify-between px-2 py-1">
               <span>
-                {op.secuencia}. {op.proceso.nombre}
+                {op.secuencia}. {nombreOperacion(op)}
               </span>
               {i < posActual ? (
                 <span className="text-estado-terminada-fg">✓</span>

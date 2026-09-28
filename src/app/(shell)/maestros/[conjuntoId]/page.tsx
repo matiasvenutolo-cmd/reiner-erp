@@ -38,6 +38,7 @@ export default async function ConjuntoPage({ params }: { params: Promise<{ conju
               <th className="text-left px-4 py-2 font-medium">Código</th>
               <th className="text-left px-4 py-2 font-medium">Nombre</th>
               <th className="text-left px-4 py-2 font-medium">Modelo</th>
+              <th className="text-left px-4 py-2 font-medium">Tipo</th>
               <th className="text-right px-4 py-2 font-medium">Stock</th>
               <th className="text-right px-4 py-2 font-medium">En proceso</th>
               <th className="text-right px-4 py-2 font-medium">Operaciones</th>
@@ -53,6 +54,13 @@ export default async function ConjuntoPage({ params }: { params: Promise<{ conju
                 </td>
                 <td className="px-4 py-2.5">{pieza.nombre}</td>
                 <td className="px-4 py-2.5 text-foreground-muted">{modeloDeCodigo(pieza.codigo)}</td>
+                <td className="px-4 py-2.5">
+                  {pieza.tipo === "comprada" ? (
+                    <span className="badge-estado bg-accent-soft text-accent">Compra</span>
+                  ) : (
+                    <span className="text-foreground-muted">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-2.5 text-right tabular-nums">{stock}</td>
                 <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">{wip || "—"}</td>
                 <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">

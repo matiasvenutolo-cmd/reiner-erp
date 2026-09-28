@@ -441,6 +441,35 @@ directos, fuera del orden de §18 pero rápidos de resolver:
   `getPiezasFueraDeFabrica`). Se extrajo `src/components/MetricCard.tsx` de `/inicio` para
   reusarlo acá — segunda vez que se necesitaba el mismo patrón.
 
+**✅ Paquete 10 (parcial) — Detalle de operaciones específico + flag compra/fabricación
+(2026-09-28).**
+
+- **Detalle de operaciones.** Se agregó `operacion.descripcion` (texto libre, opcional) al
+  schema — cuando se carga, reemplaza al nombre genérico del proceso ("Torno") en todas las
+  pantallas que muestran la hoja de ruta: la pantalla del operario en `/taller` (la prioridad
+  que pidió el cliente explícitamente), la ficha de la OT de pieza, y el tooltip de
+  `ProgresoOperaciones`. Se edita inline en `/maestros/pieza/[id]` → Hoja de ruta → columna
+  "Detalle" (nuevo componente `DescripcionOperacionInput`, guarda al perder el foco). Sin
+  detalle cargado, todo sigue mostrando el nombre del proceso como hasta ahora — no rompe
+  nada de lo existente.
+- **Flag compra/fabricación.** `pieza.tipo` (`fabricada`/`comprada`) **ya existía en el
+  schema desde el arranque del proyecto**, pero `scripts/migrate-excel.ts` siempre cargó
+  `"fabricada"` — no había forma de derivarlo del Excel, así que hoy ninguna pieza está
+  marcada como compra pura aunque existan casos reales (ej. "Compra Chiapas soporte Wiper",
+  el ejemplo del cliente). Se expuso como toggle manual en `/maestros/pieza/[id]` (nuevo
+  `TipoPiezaSelect`, auto-submit) y como badge "Compra" en el listado de
+  `/maestros/[conjuntoId]` — ingeniería lo va corrigiendo pieza por pieza a medida que las
+  identifica, no hay forma automática de saberlo con los datos que hay.
+
+**Gotcha técnico, no de producto:** este cambio de schema se aplicó con `drizzle-kit push`
+directo a la base de dev, igual que todos los anteriores de Release 2 y 3 — pero **no existe
+ninguna migración generada (`drizzle-kit generate`) desde la inicial del 2026-09-08**
+(`drizzle/0000_noisy_grandmaster.sql`), pese a que el schema creció mucho desde entonces
+(centro_trabajo, tarea_revision, control_armado, remito, pieza_nota, proveedor, y ahora
+operacion.descripcion). `docs/01-analisis.md §5.1` exige migraciones versionadas en el repo
+antes del traspaso a la cuenta de REINER — hoy no se está cumpliendo. No se corrigió en esta
+sesión por el riesgo de generar una migración grande sin poder probarla contra una base
+limpia; hay que resolverlo antes del traspaso de octubre (ver `docs/04-runbook-traspaso.md`).
+
 Pendiente: el resto de los paquetes de §18 (órdenes de trabajo/planificación semanal,
-unificar Logística+Remitos+tercerización, detalle de operaciones específico, adjuntos,
-flag compra/fabricación, indicadores).
+unificar Logística+Remitos+tercerización, adjuntos, indicadores).

@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getPieza, getConjunto, getRoutingPieza, modeloDeCodigo, getNotasPieza } from "@/lib/data/maestros";
 import { getStockDisponible, getWipEnCursoDePieza } from "@/lib/data/stock";
 import { actualizarMaterialAction, crearNotaPiezaAction } from "@/app/actions/maestros";
+import { DescripcionOperacionInput } from "@/components/DescripcionOperacionInput";
+import { TipoPiezaSelect } from "@/components/TipoPiezaSelect";
 
 const TIPO_NOTA_LABEL: Record<string, string> = {
   ingenieria: "Ingeniería",
@@ -39,8 +41,8 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
         <Metric label="En proceso" value={String(wip.reduce((a, w) => a + w.cantidad, 0)) || "0"} />
       </div>
 
-      <div className="bg-surface border border-border rounded-lg p-3">
-        <form action={actualizarMaterialAction} className="flex items-end gap-2">
+      <div className="bg-surface border border-border rounded-lg p-3 flex items-end gap-2">
+        <form action={actualizarMaterialAction} className="flex items-end gap-2 flex-1">
           <input type="hidden" name="piezaId" value={pieza.id} />
           <label className="flex-1 block">
             <span className="block text-xs font-medium text-foreground-muted mb-1">Material</span>
@@ -50,6 +52,10 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
             Guardar
           </button>
         </form>
+        <label className="block">
+          <span className="block text-xs font-medium text-foreground-muted mb-1">Tipo</span>
+          <TipoPiezaSelect piezaId={pieza.id} tipoActual={pieza.tipo} />
+        </label>
       </div>
 
       {wip.length > 0 && (
@@ -78,6 +84,7 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
                 <tr>
                   <th className="text-left px-4 py-2 font-medium w-12">#</th>
                   <th className="text-left px-4 py-2 font-medium">Proceso</th>
+                  <th className="text-left px-4 py-2 font-medium">Detalle</th>
                   <th className="text-left px-4 py-2 font-medium">Dispositivo</th>
                   <th className="text-right px-4 py-2 font-medium">OPS</th>
                 </tr>
@@ -91,6 +98,14 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
                       {op.proceso.esExterno && (
                         <span className="ml-2 text-xs text-foreground-muted">(tercerizado)</span>
                       )}
+                    </td>
+                    <td className="px-4 py-2.5 min-w-[12rem]">
+                      <DescripcionOperacionInput
+                        operacionId={op.id}
+                        piezaId={pieza.id}
+                        procesoNombre={op.proceso.nombre}
+                        descripcionInicial={op.descripcion}
+                      />
                     </td>
                     <td className="px-4 py-2.5 text-foreground-muted">{op.dispositivoNombre ?? "—"}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums">{op.ops}</td>

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getUsuarioActual } from "@/lib/session";
-import { actualizarMaterialPieza, crearNotaPieza } from "@/lib/data/maestros";
+import { actualizarMaterialPieza, actualizarDescripcionOperacion, actualizarTipoPieza, crearNotaPieza, getPieza } from "@/lib/data/maestros";
 
 export async function actualizarMaterialAction(formData: FormData) {
   await getUsuarioActual(); // exige sesión válida
@@ -11,6 +11,29 @@ export async function actualizarMaterialAction(formData: FormData) {
   if (!piezaId) throw new Error("Falta la pieza.");
 
   await actualizarMaterialPieza(piezaId, material);
+  revalidatePath(`/maestros/pieza/${piezaId}`);
+}
+
+export async function actualizarTipoPiezaAction(formData: FormData) {
+  await getUsuarioActual(); // exige sesión válida
+  const piezaId = String(formData.get("piezaId") ?? "");
+  const tipo = String(formData.get("tipo") ?? "");
+  if (!piezaId || (tipo !== "fabricada" && tipo !== "comprada")) throw new Error("Datos inválidos.");
+
+  await actualizarTipoPieza(piezaId, tipo);
+  revalidatePath(`/maestros/pieza/${piezaId}`);
+  const pieza = await getPieza(piezaId);
+  if (pieza) revalidatePath(`/maestros/${pieza.conjuntoId}`);
+}
+
+export async function actualizarDescripcionOperacionAction(formData: FormData) {
+  await getUsuarioActual(); // exige sesión válida
+  const operacionId = String(formData.get("operacionId") ?? "");
+  const piezaId = String(formData.get("piezaId") ?? "");
+  const descripcion = String(formData.get("descripcion") ?? "").trim();
+  if (!operacionId || !piezaId) throw new Error("Falta la operación.");
+
+  await actualizarDescripcionOperacion(operacionId, descripcion);
   revalidatePath(`/maestros/pieza/${piezaId}`);
 }
 

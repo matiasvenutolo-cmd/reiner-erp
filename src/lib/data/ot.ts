@@ -94,7 +94,13 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
 
   const [operaciones, registros] = await Promise.all([
     db
-      .select({ piezaId: operacion.piezaId, id: operacion.id, secuencia: operacion.secuencia, procesoNombre: proceso.nombre })
+      .select({
+        piezaId: operacion.piezaId,
+        id: operacion.id,
+        secuencia: operacion.secuencia,
+        procesoNombre: proceso.nombre,
+        descripcion: operacion.descripcion,
+      })
       .from(operacion)
       .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
       .where(inArray(operacion.piezaId, piezaIds))
@@ -108,7 +114,7 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
   const rutaPorPieza = new Map<string, { id: string; nombre: string }[]>();
   for (const o of operaciones) {
     const arr = rutaPorPieza.get(o.piezaId) ?? [];
-    arr.push({ id: o.id, nombre: o.procesoNombre });
+    arr.push({ id: o.id, nombre: o.descripcion?.trim() || o.procesoNombre });
     rutaPorPieza.set(o.piezaId, arr);
   }
 

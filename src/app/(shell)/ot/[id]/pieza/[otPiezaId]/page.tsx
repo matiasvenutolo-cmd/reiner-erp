@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOtPieza, estadoDePieza } from "@/lib/data/ot";
-import { getPieza, getRoutingPieza, getConjunto } from "@/lib/data/maestros";
+import { getPieza, getRoutingPieza, getConjunto, nombreOperacion } from "@/lib/data/maestros";
 import { getHistorialOtPieza, getTiempoEstandar } from "@/lib/data/ejecucion";
 import { getUsuario } from "@/lib/data/usuarios";
 import { getTareasRevisionDePieza } from "@/lib/data/revision";
@@ -149,7 +149,7 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
                     return (
                       <tr key={op.id} className="border-t border-border">
                         <td className="px-4 py-2.5 text-foreground-muted">{op.secuencia}</td>
-                        <td className="px-4 py-2.5">{op.proceso.nombre}</td>
+                        <td className="px-4 py-2.5">{nombreOperacion(op)}</td>
                         <td className="px-4 py-2.5 text-foreground-muted">{operario?.nombre ?? "—"}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums">
                           {formatearDuracion(registro?.registro.duracionSeg ?? null)}

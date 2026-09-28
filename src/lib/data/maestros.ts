@@ -128,6 +128,23 @@ export async function actualizarMaterialPieza(piezaId: string, material: string)
     .where(eq(pieza.id, piezaId));
 }
 
+/** Marca una pieza como sólo de compra o de fabricación (Release 3, pedido
+ * del cliente — docs/06-backlog-release-3.md §7: "Compra Chiapas soporte
+ * Wiper" no debería tratarse igual que una pieza que hay que fabricar).
+ * `pieza.tipo` ya existía en el schema pero la migración del Excel siempre
+ * cargó "fabricada" — no había forma de derivarlo del origen, así que se
+ * deja como toggle manual que ingeniería va corrigiendo. */
+export async function actualizarTipoPieza(piezaId: string, tipo: "fabricada" | "comprada"): Promise<void> {
+  await db.update(pieza).set({ tipo }).where(eq(pieza.id, piezaId));
+}
+
+export async function actualizarDescripcionOperacion(operacionId: string, descripcion: string): Promise<void> {
+  await db
+    .update(operacion)
+    .set({ descripcion: descripcion || null })
+    .where(eq(operacion.id, operacionId));
+}
+
 export type NotaPiezaConAutor = PiezaNota & { autorNombre: string };
 
 /** Bitácora de una pieza (docs/05-backlog-release-2.md §1, §2): notas de
@@ -179,8 +196,16 @@ export type OperacionConDetalle = {
   secuencia: number;
   ops: number;
   proceso: Proceso;
+  descripcion: string | null;
   dispositivoNombre: string | null;
 };
+
+/** Nombre a mostrar de una operación: el detalle específico si se cargó
+ * (ej. "Roscado"), si no el nombre genérico del proceso (ej. "Torno") —
+ * Release 3, docs/06-backlog-release-3.md §5. */
+export function nombreOperacion(op: { descripcion: string | null; proceso: { nombre: string } }): string {
+  return op.descripcion?.trim() || op.proceso.nombre;
+}
 
 /** Hoja de ruta de una pieza: sus operaciones en secuencia, con el proceso resuelto. */
 export async function getRoutingPieza(piezaId: string): Promise<OperacionConDetalle[]> {
@@ -196,6 +221,7 @@ export async function getRoutingPieza(piezaId: string): Promise<OperacionConDeta
     secuencia: r.operacion.secuencia,
     ops: r.operacion.ops ?? 1,
     proceso: r.proceso,
+    descripcion: r.operacion.descripcion,
     dispositivoNombre: r.dispositivoNombre,
   }));
 }
