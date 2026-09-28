@@ -471,5 +471,32 @@ antes del traspaso a la cuenta de REINER — hoy no se está cumpliendo. No se c
 sesión por el riesgo de generar una migración grande sin poder probarla contra una base
 limpia; hay que resolverlo antes del traspaso de octubre (ver `docs/04-runbook-traspaso.md`).
 
+**✅ Paquete 8 — Unificar Logística + Remitos, remito multi-pieza (2026-09-28).** Pedido
+explícito del cliente (§12 más arriba): "un remito debe poder agrupar varias piezas... para
+un mismo proveedor", y que Logística y Remitos dejen de ser conceptos separados.
+
+- Schema: `remito` pasa a ser sólo el encabezado del envío (destino, técnico involucrado,
+  observación); nueva tabla `remito_item` (pieza, cantidad, tratamiento) agrupa varias
+  piezas bajo un mismo remito. Los 3 remitos de demo que ya existían se migraron a la
+  nueva estructura sin perder datos (se hizo en dos pasos — agregar la tabla nueva y migrar
+  primero, borrar las columnas viejas después — porque `drizzle-kit push` no puede resolver
+  en modo no interactivo la ambigüedad de "¿esto es un rename o un drop+create?").
+- `src/components/logistica/ArmadoRemito.tsx` (nuevo, client): buscar y agregar piezas a un
+  carrito (con tratamiento y cantidad por pieza) antes de generar el remito — todo en un
+  solo componente para no perder lo cargado entre búsquedas, la búsqueda misma se resuelve
+  llamando un Server Action directo desde el cliente, sin recargar la página. Reemplaza el
+  viejo flujo "una pieza, un remito" que vivía en la tabla de ingresos/egresos.
+- `/remitos` y `/remitos/[id]`: listado y vista imprimible actualizados al modelo
+  multi-pieza (código, pieza, tratamiento, cantidad por fila; técnico en el encabezado si
+  se cargó).
+- `src/lib/nav.ts`: "Remitos" se saca del menú lateral — se fusiona con Logística. La ruta
+  `/remitos` sigue accesible como historial vía "Ver remitos anteriores →" dentro de
+  Logística, con una excepción en `rutaPermitida` (mismo patrón que `/taller/<id>` en
+  Release 2) ya que dejó de tener su propio ítem de `NAV_ITEMS`.
+
+Probado de punta a punta en el navegador: se armó un remito real con dos piezas distintas
+(Wiper + Tuerca de elevación) para "Cromados del Sur" desde `/logistica` y se generó
+correctamente como REMITO N° 0004 con ambas filas en la vista imprimible.
+
 Pendiente: el resto de los paquetes de §18 (órdenes de trabajo/planificación semanal,
-unificar Logística+Remitos+tercerización, adjuntos, indicadores).
+adjuntos de ingeniería, indicadores).
