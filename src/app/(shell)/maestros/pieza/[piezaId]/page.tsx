@@ -1,10 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPieza, getConjunto, getRoutingPieza, modeloDeCodigo, getNotasPieza } from "@/lib/data/maestros";
+import { getPieza, getConjunto, getRoutingPieza, modeloDeCodigo, getNotasPieza, getAdjuntosPieza } from "@/lib/data/maestros";
 import { getStockDisponible, getWipEnCursoDePieza } from "@/lib/data/stock";
-import { actualizarMaterialAction, actualizarStockMinimoAction, crearNotaPiezaAction } from "@/app/actions/maestros";
+import {
+  actualizarMaterialAction,
+  actualizarStockMinimoAction,
+  crearNotaPiezaAction,
+  subirAdjuntoPiezaAction,
+  eliminarAdjuntoPiezaAction,
+} from "@/app/actions/maestros";
 import { DescripcionOperacionInput } from "@/components/DescripcionOperacionInput";
 import { TipoPiezaSelect } from "@/components/TipoPiezaSelect";
+import { urlDeAdjunto } from "@/lib/blob";
+
+const TIPO_ADJUNTO_LABEL: Record<string, string> = {
+  plano: "Plano",
+  foto: "Foto",
+};
 
 const TIPO_NOTA_LABEL: Record<string, string> = {
   ingenieria: "Ingeniería",
@@ -16,12 +28,13 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
   const pieza = await getPieza(piezaId);
   if (!pieza) notFound();
 
-  const [conjunto, routing, stock, wip, notas] = await Promise.all([
+  const [conjunto, routing, stock, wip, notas, adjuntos] = await Promise.all([
     getConjunto(pieza.conjuntoId),
     getRoutingPieza(pieza.id),
     getStockDisponible(pieza.id),
     getWipEnCursoDePieza(pieza.id),
     getNotasPieza(pieza.id),
+    getAdjuntosPieza(pieza.id),
   ]);
 
   return (
@@ -130,6 +143,67 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
             </table>
           </div>
         )}
+      </div>
+
+      <div>
+        <h2 className="text-sm font-semibold mb-2">Adjuntos de ingeniería — planos y fotos</h2>
+        <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+          <form action={subirAdjuntoPiezaAction} className="flex flex-wrap items-center gap-2">
+            <input type="hidden" name="piezaId" value={pieza.id} />
+            <select name="tipo" required defaultValue="plano" className="input text-sm w-28">
+              <option value="plano">Plano</option>
+              <option value="foto">Foto</option>
+            </select>
+            <input
+              type="file"
+              name="archivo"
+              required
+              accept=".pdf,.png,.jpg,.jpeg,.webp,.dwg,.dxf"
+              className="text-sm flex-1 min-w-[12rem]"
+            />
+            <button
+              type="submit"
+              className="bg-accent text-accent-foreground font-medium text-sm px-3 py-1.5 rounded-md hover:opacity-90"
+            >
+              Subir
+            </button>
+          </form>
+
+          {adjuntos.length === 0 ? (
+            <p className="text-sm text-foreground-muted">Todavía no hay planos ni fotos cargadas.</p>
+          ) : (
+            <ul className="space-y-2">
+              {adjuntos.map((a) => (
+                <li key={a.id} className="flex items-center gap-3 border-t border-border pt-2 first:border-t-0 first:pt-0">
+                  {a.tipo === "foto" ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- adjunto en Vercel Blob, no un asset local optimizable
+                    <img src={urlDeAdjunto(a.pathname)} alt={a.nombreArchivo} className="w-10 h-10 rounded object-cover shrink-0" />
+                  ) : (
+                    <span className="badge-estado bg-surface-muted text-foreground-muted shrink-0">{TIPO_ADJUNTO_LABEL[a.tipo]}</span>
+                  )}
+                  <a
+                    href={urlDeAdjunto(a.pathname)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-accent hover:underline truncate flex-1"
+                  >
+                    {a.nombreArchivo}
+                  </a>
+                  <span className="text-xs text-foreground-muted shrink-0">
+                    {a.autorNombre} · {new Date(a.createdAt).toLocaleDateString("es-AR")}
+                  </span>
+                  <form action={eliminarAdjuntoPiezaAction}>
+                    <input type="hidden" name="id" value={a.id} />
+                    <input type="hidden" name="piezaId" value={pieza.id} />
+                    <button type="submit" className="text-xs text-red-700 hover:underline shrink-0">
+                      Eliminar
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       <div>

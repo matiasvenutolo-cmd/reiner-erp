@@ -87,6 +87,8 @@ export const resultadoControlEnum = pgEnum("resultado_control", ["ok", "no_ok"])
 
 export const tipoNotaPiezaEnum = pgEnum("tipo_nota_pieza", ["ingenieria", "produccion"]);
 
+export const tipoAdjuntoPiezaEnum = pgEnum("tipo_adjunto_pieza", ["plano", "foto"]);
+
 export const estadoTareaRevisionEnum = pgEnum("estado_tarea_revision", ["pendiente", "resuelta"]);
 
 // ── Transversales ────────────────────────────────────────────────────────
@@ -241,6 +243,30 @@ export const piezaNota = pgTable("pieza_nota", {
     .references(() => pieza.id),
   tipo: tipoNotaPiezaEnum("tipo").notNull(),
   texto: text("texto").notNull(),
+  usuarioId: text("usuario_id")
+    .notNull()
+    .references(() => usuario.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
+ * Adjuntos de ingeniería por pieza (planos, procedimientos, fotos) — Release
+ * 3, devolución del cliente: "ingeniería debe poder... agregar un plano y/o
+ * imágenes". Tabla aparte de `piezaNota` (no una nota más) porque esto es un
+ * archivo en Vercel Blob, no texto; y aparte del viejo `pieza.fotoPathname`
+ * (nunca usado, sólo admitía una foto) porque una pieza puede tener varios
+ * adjuntos a la vez (un plano + varias fotos). Se guarda el `pathname` del
+ * blob, NUNCA la URL completa (ver runbook §A5 — la URL cambia si cambia el
+ * store, el pathname no).
+ */
+export const piezaAdjunto = pgTable("pieza_adjunto", {
+  id: id(),
+  piezaId: text("pieza_id")
+    .notNull()
+    .references(() => pieza.id),
+  tipo: tipoAdjuntoPiezaEnum("tipo").notNull(),
+  nombreArchivo: text("nombre_archivo").notNull(),
+  pathname: text("pathname").notNull(),
   usuarioId: text("usuario_id")
     .notNull()
     .references(() => usuario.id),
@@ -580,6 +606,7 @@ export type Dispositivo = typeof dispositivo.$inferSelect;
 export type Procedimiento = typeof procedimiento.$inferSelect;
 export type Pieza = typeof pieza.$inferSelect;
 export type PiezaNota = typeof piezaNota.$inferSelect;
+export type PiezaAdjunto = typeof piezaAdjunto.$inferSelect;
 export type PiezaConfiguracion = typeof piezaConfiguracion.$inferSelect;
 export type Operacion = typeof operacion.$inferSelect;
 export type Ubicacion = typeof ubicacion.$inferSelect;

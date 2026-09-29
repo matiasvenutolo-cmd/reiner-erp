@@ -18,11 +18,12 @@ import {
   dispositivo,
   pieza,
   piezaNota,
+  piezaAdjunto,
   piezaConfiguracion,
   operacion,
   usuario,
 } from "@/lib/db/schema";
-import type { Modelo, Configuracion, Conjunto, Pieza, Proceso, PiezaNota } from "@/lib/db/schema";
+import type { Modelo, Configuracion, Conjunto, Pieza, Proceso, PiezaNota, PiezaAdjunto } from "@/lib/db/schema";
 
 /**
  * El modelo de una pieza no es un campo propio en la base (una pieza puede
@@ -174,6 +175,38 @@ export async function crearNotaPieza(input: {
   usuarioId: string;
 }): Promise<void> {
   await db.insert(piezaNota).values(input);
+}
+
+export type AdjuntoPiezaConAutor = PiezaAdjunto & { autorNombre: string };
+
+/** Adjuntos de ingeniería de una pieza (planos, fotos) — ver `piezaAdjunto` en schema.ts. */
+export async function getAdjuntosPieza(piezaId: string): Promise<AdjuntoPiezaConAutor[]> {
+  const rows = await db
+    .select({ adjunto: piezaAdjunto, autorNombre: usuario.nombre })
+    .from(piezaAdjunto)
+    .innerJoin(usuario, eq(usuario.id, piezaAdjunto.usuarioId))
+    .where(eq(piezaAdjunto.piezaId, piezaId))
+    .orderBy(desc(piezaAdjunto.createdAt));
+  return rows.map((r) => ({ ...r.adjunto, autorNombre: r.autorNombre }));
+}
+
+export async function crearAdjuntoPieza(input: {
+  piezaId: string;
+  tipo: "plano" | "foto";
+  nombreArchivo: string;
+  pathname: string;
+  usuarioId: string;
+}): Promise<void> {
+  await db.insert(piezaAdjunto).values(input);
+}
+
+export async function getAdjuntoPieza(id: string): Promise<PiezaAdjunto | undefined> {
+  const [row] = await db.select().from(piezaAdjunto).where(eq(piezaAdjunto.id, id));
+  return row;
+}
+
+export async function eliminarAdjuntoPieza(id: string): Promise<void> {
+  await db.delete(piezaAdjunto).where(eq(piezaAdjunto.id, id));
 }
 
 export async function getPiezas(modeloId?: string): Promise<Pieza[]> {

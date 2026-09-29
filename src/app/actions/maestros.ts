@@ -8,8 +8,11 @@ import {
   actualizarTipoPieza,
   actualizarStockMinimoPieza,
   crearNotaPieza,
-  getPieza,
+  crearAdjuntoPieza,
+  getAdjuntoPieza,
+  eliminarAdjuntoPieza,
 } from "@/lib/data/maestros";
+import { subirAdjunto, eliminarAdjunto } from "@/lib/blob";
 
 export async function actualizarMaterialAction(formData: FormData) {
   await getUsuarioActual(); // exige sesión válida
@@ -29,8 +32,10 @@ export async function actualizarTipoPiezaAction(formData: FormData) {
 
   await actualizarTipoPieza(piezaId, tipo);
   revalidatePath(`/maestros/pieza/${piezaId}`);
-  const pieza = await getPieza(piezaId);
-  if (pieza) revalidatePath(`/maestros/${pieza.conjuntoId}`);
+  // Se revalida todo el árbol de Maestros: una pieza puede aparecer en más
+  // de una máquina/conjunto (compra/fabricación es un atributo de la pieza,
+  // no de dónde se la ve — ver `getResumenConjuntosDeConfiguracion`).
+  revalidatePath("/maestros", "layout");
 }
 
 export async function actualizarStockMinimoAction(formData: FormData) {
@@ -66,5 +71,36 @@ export async function crearNotaPiezaAction(formData: FormData) {
   }
 
   await crearNotaPieza({ piezaId, tipo, texto, usuarioId: usuario.id });
+  revalidatePath(`/maestros/pieza/${piezaId}`);
+}
+
+const TAMANO_MAXIMO_ADJUNTO = 15 * 1024 * 1024; // 15 MB — de sobra para un plano o una foto de celular
+
+export async function subirAdjuntoPiezaAction(formData: FormData) {
+  const usuario = await getUsuarioActual();
+  const piezaId = String(formData.get("piezaId") ?? "");
+  const tipo = String(formData.get("tipo") ?? "");
+  const archivo = formData.get("archivo");
+
+  if (!piezaId || (tipo !== "plano" && tipo !== "foto")) throw new Error("Datos inválidos.");
+  if (!(archivo instanceof File) || archivo.size === 0) throw new Error("Elegí un archivo.");
+  if (archivo.size > TAMANO_MAXIMO_ADJUNTO) throw new Error("El archivo no puede superar los 15 MB.");
+
+  const { pathname } = await subirAdjunto(`piezas/${piezaId}`, archivo.name, archivo);
+  await crearAdjuntoPieza({ piezaId, tipo, nombreArchivo: archivo.name, pathname, usuarioId: usuario.id });
+  revalidatePath(`/maestros/pieza/${piezaId}`);
+}
+
+export async function eliminarAdjuntoPiezaAction(formData: FormData) {
+  await getUsuarioActual(); // exige sesión válida
+  const id = String(formData.get("id") ?? "");
+  const piezaId = String(formData.get("piezaId") ?? "");
+  if (!id || !piezaId) throw new Error("Falta el adjunto.");
+
+  const adjunto = await getAdjuntoPieza(id);
+  if (!adjunto) return;
+
+  await eliminarAdjunto(adjunto.pathname);
+  await eliminarAdjuntoPieza(id);
   revalidatePath(`/maestros/pieza/${piezaId}`);
 }

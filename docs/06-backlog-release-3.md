@@ -638,3 +638,32 @@ importantes del sistema" — quedaba pendiente del §13 original.
     caso se probó y revirtió en una ronda anterior de testing) — la sección funciona pero
     está vacía en este momento; se llena sola en cuanto ingeniería marque piezas de compra
     en Maestros.
+
+**✅ Paquete 7 — Adjuntos de ingeniería: planos y fotos por pieza (2026-09-28).** Pausado
+explícitamente hasta ahora ("no avancemos con lo de ingeniería aún, te paso las credenciales
+de Blob para que ya las tengas") — Matías dio el visto bueno para construirlo en esta misma
+ronda ("ingeniería debe poder editar los maestros y agregar no sólo observaciones, sino
+también agregar un plano y/o imágenes").
+
+- Tabla nueva `pieza_adjunto` (id, piezaId, tipo `plano`\|`foto`, nombreArchivo, pathname,
+  usuarioId, createdAt) — aparte de `pieza_nota` (esto es un archivo, no texto) y aparte del
+  viejo `pieza.fotoPathname` (nunca se usó, sólo admitía una foto; una pieza puede tener un
+  plano + varias fotos a la vez).
+- `src/lib/blob.ts`: wrapper de `@vercel/blob` — `subirAdjunto`/`eliminarAdjunto` pasan el
+  token explícito (`BLOB_READ_WRITE_TOKEN`) porque el SDK intenta autenticar por OIDC primero
+  si detecta `VERCEL_OIDC_TOKEN` en el entorno, y ese modo falla en "development" si el
+  proyecto no lo tiene habilitado ahí — gotcha encontrado al probar el primer upload.
+- **Nueva env var `BLOB_PUBLIC_BASE_URL`**: en la base sólo se guarda el `pathname` del blob
+  (nunca la URL completa, ver runbook §A5 — la URL completa incluye el store y cambia si el
+  store cambia). `urlDeAdjunto()` la reconstruye en runtime combinando esta env var con el
+  pathname — es lo único que hay que actualizar el día del traspaso a la cuenta de REINER
+  para que todos los adjuntos sigan resolviendo, sin tocar una sola fila de la base. Agregada
+  a Production/Preview/Development en Vercel además de `.env.local`.
+- `next.config.ts`: `experimental.serverActions.bodySizeLimit` subido a 15 MB (el default de
+  Next, 1 MB, no alcanza para un plano o una foto de celular).
+- Sección "Adjuntos de ingeniería" en `/maestros/pieza/[piezaId]`: subir (tipo + archivo,
+  server action directa con `FormData`), listar (miniatura para fotos, badge para planos,
+  autor y fecha) y eliminar (borra del blob y de la base). Probado en el navegador subiendo
+  un archivo de texto como "plano" y una imagen real como "foto" (miniatura visible),
+  confirmando que la URL pública resuelve y descargando el archivo; después eliminados los
+  dos adjuntos de prueba.
