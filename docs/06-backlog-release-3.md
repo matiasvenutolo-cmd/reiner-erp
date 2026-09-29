@@ -769,3 +769,35 @@ egreso a mano por separado (o no lo hiciera).
   "Cabezal parte inferior D-20" (stock 1→0 tras generarlo, confirmado en su ficha de
   Maestros), verificado el link "Ver remito →" en Movimientos recientes apuntando al
   remito correcto — remito, movimiento y stock revertidos después.
+
+**✅ Paquete extra 10 — Avance: iniciar/finalizar una operación sin entrar a cada pieza
+(2026-09-29).** Devolución del cliente: *"que se puedan modificar los estados de la pieza
+desde el avance y no tener que entrar a cada pieza (tanto así como de conjunto)."*
+
+- Cada tarjeta de máquina en `/avance` suma un "▸ Ver piezas" (estado de React, sin
+  navegar) que expande, agrupado por conjunto, las piezas todavía no terminadas con su
+  operación actual — y ahí mismo un botón ▶ Iniciar o (si el usuario tiene esa operación
+  abierta) el formulario compacto de ✔ Finalizar. Son las MISMAS acciones que ya usa
+  `/taller` (`iniciarOperacionAction`/`finalizarOperacionAction`, sin lógica nueva) — sólo
+  se les dio un lugar más para vivir, sin duplicar la máquina de estados.
+- `listarOtMaquinas` (ot.ts) extiende `secciones` con el detalle por pieza necesario
+  (`SeccionPieza`: operación actual, si es la última de la ruta) — sale de
+  `getEstadosBatch`, ya calculado en batch para toda la máquina, así que no agrega
+  ninguna consulta nueva por pieza (el mismo problema de N+1 que ya frenó a
+  `/centros-trabajo` una vez, documentado arriba en el propio archivo).
+- Respeta la regla existente de "una sola operación abierta por usuario a la vez": el
+  botón Iniciar desaparece de toda la pantalla en cuanto el usuario tiene una operación
+  abierta en cualquier lado, y sólo esa pieza puntual muestra el Finalizar — mismo
+  comportamiento que ya fuerza `/taller`, no una regla nueva.
+- Alcance acotado a propósito: no hay una acción de "cerrar todo el conjunto de un
+  golpe" — cada pieza puede estar en un paso distinto de su hoja de ruta (algunas en
+  setup, otras en fabricación), así que un cierre masivo sin que alguien confirme
+  OK/rechazadas por pieza sería inventar datos de producción. "Tanto así como de
+  conjunto" se interpretó como "agrupado por conjunto en la vista", no como un botón de
+  cierre masivo — a confirmar con el cliente si el pedido era literal.
+- Probado en el navegador: expandido "OTM999" (pendiente), iniciada la operación de
+  "Soporte superior gabinete" (Taller/armado, su última operación) directamente desde
+  Avance, confirmado que el resto de los botones Iniciar de la pantalla desaparecieron,
+  finalizada con OK=1, y confirmado que el contador de la tarjeta pasó de 0/128 a 1/128
+  y el estado de "Pendiente" a "En curso" sin recargar manualmente — revertido después
+  (borrado el registro de ejecución, restablecidos los contadores de la OT de pieza).

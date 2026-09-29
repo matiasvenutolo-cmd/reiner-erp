@@ -9,7 +9,7 @@
  */
 import { eq, inArray, and, desc, asc } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { otMaquina, otConjunto, otPieza, registroOperacion, cliente, operacion, proceso, configuracion } from "@/lib/db/schema";
+import { otMaquina, otConjunto, otPieza, registroOperacion, cliente, operacion, proceso, configuracion, pieza } from "@/lib/db/schema";
 import type { OtMaquina, OtPieza } from "@/lib/db/schema";
 import {
   getConjuntos,
@@ -82,8 +82,21 @@ async function estadoDePieza(pieza: OtPieza): Promise<{ estado: EstadoCalculado;
 /** Un paso de la hoja de ruta con su nombre, para mostrar qué es cada
  * segmento de ProgresoOperaciones sin tener que clickear (pedido de
  * Matías, docs/06-backlog-release-3.md). */
-export type PasoOperacion = { nombre: string; completado: boolean };
+export type PasoOperacion = { id: string; nombre: string; completado: boolean };
 export type EstadoBatchItem = { estado: EstadoCalculado; sinRouting: boolean; pasos: PasoOperacion[] };
+
+/** Pieza dentro de una sección de /avance, con lo mínimo para poder
+ * iniciar/finalizar su operación actual sin navegar — ver `listarOtMaquinas`. */
+export type SeccionPieza = {
+  otPiezaId: string;
+  otPiezaCodigo: string;
+  piezaNombre: string;
+  estado: EstadoCalculado;
+  sinRouting: boolean;
+  operacionActualId: string | null;
+  operacionActualNombre: string | null;
+  esUltimaOperacion: boolean;
+};
 
 async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBatchItem>> {
   const resultado = new Map<string, EstadoBatchItem>();
@@ -137,7 +150,7 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
       continue;
     }
     const completadasSet = completadasPorOtPieza.get(p.id) ?? new Set<string>();
-    const pasos = ruta.map((r) => ({ nombre: r.nombre, completado: completadasSet.has(r.id) }));
+    const pasos = ruta.map((r) => ({ id: r.id, nombre: r.nombre, completado: completadasSet.has(r.id) }));
     const completadas = pasos.filter((x) => x.completado).length;
     const abierta = abiertaPorOtPieza.has(p.id);
     const estado: EstadoCalculado = completadas >= ruta.length ? "terminada" : completadas > 0 || abierta ? "en_curso" : "pendiente";
@@ -431,7 +444,15 @@ export async function listarOtMaquinas() {
   }
 
   const conjuntoIdsTodos = conjuntosTodos.map((c) => c.id);
-  const piezasTodas = conjuntoIdsTodos.length ? await db.select().from(otPieza).where(inArray(otPieza.otConjuntoId, conjuntoIdsTodos)) : [];
+  const filasPiezas = conjuntoIdsTodos.length
+    ? await db
+        .select({ otPieza, piezaNombre: pieza.nombre })
+        .from(otPieza)
+        .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
+        .where(inArray(otPieza.otConjuntoId, conjuntoIdsTodos))
+    : [];
+  const piezasTodas = filasPiezas.map((f) => f.otPieza);
+  const piezaNombrePorOtPieza = new Map(filasPiezas.map((f) => [f.otPieza.id, f.piezaNombre]));
   const piezasPorConjunto = new Map<string, OtPieza[]>();
   for (const p of piezasTodas) {
     const arr = piezasPorConjunto.get(p.otConjuntoId) ?? [];
@@ -471,12 +492,34 @@ export async function listarOtMaquinas() {
       .map((oc) => {
         const piezasSeccion = piezasPorConjunto.get(oc.id) ?? [];
         const estadosSeccion = piezasSeccion.map((p) => estados.get(p.id)?.estado ?? "pendiente");
+        // Detalle por pieza para poder iniciar/finalizar la operación
+        // actual directo desde /avance (devolución del cliente: "que se
+        // puedan modificar los estados de la pieza desde el avance y no
+        // tener que entrar a cada pieza") — sin consultas nuevas, sale de
+        // `estados` (getEstadosBatch), ya calculado para toda la máquina.
+        const piezas: SeccionPieza[] = piezasSeccion.map((p) => {
+          const info = estados.get(p.id);
+          const pasos = info?.pasos ?? [];
+          const idxActual = pasos.findIndex((paso) => !paso.completado);
+          const operacionActual = idxActual >= 0 ? pasos[idxActual] : null;
+          return {
+            otPiezaId: p.id,
+            otPiezaCodigo: p.codigo,
+            piezaNombre: piezaNombrePorOtPieza.get(p.id) ?? p.codigo,
+            estado: info?.estado ?? "pendiente",
+            sinRouting: info?.sinRouting ?? true,
+            operacionActualId: operacionActual?.id ?? null,
+            operacionActualNombre: operacionActual?.nombre ?? null,
+            esUltimaOperacion: idxActual >= 0 && idxActual === pasos.length - 1,
+          };
+        });
         return {
           otConjuntoId: oc.id,
           nombre: conjuntosMaestro.get(oc.conjuntoId)?.nombre ?? oc.codigo,
           total: piezasSeccion.length,
           terminadas: estadosSeccion.filter((e) => e === "terminada").length,
           estado: piezasSeccion.length > 0 ? agregarEstados(estadosSeccion) : "pendiente",
+          piezas,
         };
       })
       .filter((s) => s.total > 0);

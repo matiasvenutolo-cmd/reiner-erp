@@ -24,6 +24,7 @@ export async function iniciarOperacionAction(formData: FormData): Promise<void> 
     throw new Error(resultado.error);
   }
   revalidatePath("/taller");
+  revalidatePath("/avance");
 }
 
 export async function pausarOperacionAction(formData: FormData) {

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { listarOtMaquinas } from "@/lib/data/ot";
 import { getResumenWipEnCursoPorProceso } from "@/lib/data/stock";
-import { getParadasActivas } from "@/lib/data/ejecucion";
+import { getParadasActivas, getOperacionAbierta } from "@/lib/data/ejecucion";
 import { getPiezasFueraDeFabrica } from "@/lib/data/logistica";
+import { getUsuarioActual } from "@/lib/session";
 import { MaquinaCard } from "@/components/avance/MaquinaCard";
 import { MetricCard } from "@/components/MetricCard";
 
@@ -10,11 +11,13 @@ import { MetricCard } from "@/components/MetricCard";
 export const dynamic = "force-dynamic";
 
 export default async function AvancePage() {
-  const [ordenes, wip, paradas, fueraDeFabrica] = await Promise.all([
+  const usuario = await getUsuarioActual();
+  const [ordenes, wip, paradas, fueraDeFabrica, operacionAbierta] = await Promise.all([
     listarOtMaquinas(),
     getResumenWipEnCursoPorProceso(),
     getParadasActivas(),
     getPiezasFueraDeFabrica(),
+    getOperacionAbierta(usuario.id),
   ]);
 
   const enCurso = ordenes.filter((o) => o.estadoCalculado === "en_curso").length;
@@ -61,6 +64,8 @@ export default async function AvancePage() {
                 totalPiezasAFabricar={ot.totalPiezasAFabricar}
                 plazoEntrega={ot.plazoEntrega}
                 secciones={ot.secciones}
+                otPiezaIdAbierta={operacionAbierta?.otPiezaId ?? null}
+                registroOperacionIdAbierta={operacionAbierta?.id ?? null}
               />
             );
           })}
