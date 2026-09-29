@@ -34,7 +34,6 @@ export default async function StockPage({
   const unidadesEnProceso = wip.reduce((sum, w) => sum + w.unidades, 0);
   const unidadesTercerizadas = fueraDeFabrica.reduce((sum, f) => sum + f.cantidad, 0);
   const wipOrdenado = [...wip].sort((a, b) => b.unidades - a.unidades);
-  const maxUnidades = wipOrdenado[0]?.unidades ?? 0;
 
   const piezasParaSelect = [...todasLasPiezas]
     .sort((a, b) => a.nombre.localeCompare(b.nombre))
@@ -124,29 +123,37 @@ export default async function StockPage({
 
       <div id="etapas">
         <h2 className="text-sm font-semibold mb-2">En proceso ahora mismo, por etapa</h2>
-        <p className="text-xs text-foreground-muted mb-2">Clickeá una etapa para ver qué piezas la componen.</p>
+        <p className="text-xs text-foreground-muted mb-2">
+          Cada fila es un paso de fabricación (una etapa) — cuántas piezas distintas y cuántas
+          unidades en total están hoy paradas ahí. Clickeá una etapa para ver el detalle de qué
+          piezas la componen.
+        </p>
         {wipOrdenado.length === 0 ? (
           <p className="text-sm text-foreground-muted">No hay piezas en proceso registradas en este momento.</p>
         ) : (
-          <div className="bg-surface border border-border rounded-lg p-4 space-y-2.5">
-            {wipOrdenado.map((w) => (
-              <Link
-                key={w.procesoId}
-                href={`/stock/etapa/${w.procesoId}`}
-                className="flex items-center gap-3 group -mx-2 px-2 py-1 rounded hover:bg-surface-muted"
-              >
-                <div className="w-32 shrink-0 text-sm truncate group-hover:text-accent">{w.procesoNombre}</div>
-                <div className="flex-1 h-5 rounded bg-surface-muted overflow-hidden">
-                  <div
-                    className="h-full rounded bg-accent group-hover:opacity-80"
-                    style={{ width: `${maxUnidades > 0 ? Math.max(4, (w.unidades / maxUnidades) * 100) : 0}%` }}
-                  />
-                </div>
-                <div className="w-28 shrink-0 text-xs text-foreground-muted text-right tabular-nums">
-                  {w.unidades} u. · {w.piezas} pieza{w.piezas === 1 ? "" : "s"}
-                </div>
-              </Link>
-            ))}
+          <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+                <tr>
+                  <th className="text-left px-4 py-2 font-medium">Etapa</th>
+                  <th className="text-right px-4 py-2 font-medium">Piezas distintas</th>
+                  <th className="text-right px-4 py-2 font-medium">Unidades</th>
+                </tr>
+              </thead>
+              <tbody>
+                {wipOrdenado.map((w) => (
+                  <tr key={w.procesoId} className="border-t border-border hover:bg-surface-muted/50">
+                    <td className="px-4 py-2.5">
+                      <Link href={`/stock/etapa/${w.procesoId}`} className="text-accent hover:underline">
+                        {w.procesoNombre}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums">{w.piezas}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums font-medium">{w.unidades}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
