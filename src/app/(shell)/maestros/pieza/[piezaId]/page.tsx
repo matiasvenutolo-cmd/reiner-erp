@@ -1,16 +1,30 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPieza, getConjunto, getRoutingPieza, modeloDeCodigo, getNotasPieza, getAdjuntosPieza } from "@/lib/data/maestros";
+import {
+  getPieza,
+  getConjunto,
+  getRoutingPieza,
+  getProcesos,
+  modeloDeCodigo,
+  getNotasPieza,
+  getAdjuntosPieza,
+} from "@/lib/data/maestros";
 import { getStockDisponible, getWipEnCursoDePieza } from "@/lib/data/stock";
 import {
   actualizarMaterialAction,
+  actualizarRevisionAction,
+  actualizarNumeroPlanoAction,
   actualizarStockMinimoAction,
+  agregarOperacionAction,
+  eliminarOperacionAction,
+  moverOperacionAction,
   crearNotaPiezaAction,
   subirAdjuntoPiezaAction,
   eliminarAdjuntoPiezaAction,
 } from "@/app/actions/maestros";
 import { DescripcionOperacionInput } from "@/components/DescripcionOperacionInput";
 import { TipoPiezaSelect } from "@/components/TipoPiezaSelect";
+import { ProcesoOperacionSelect } from "@/components/ProcesoOperacionSelect";
 import { urlDeAdjunto } from "@/lib/blob";
 
 const TIPO_ADJUNTO_LABEL: Record<string, string> = {
@@ -28,13 +42,14 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
   const pieza = await getPieza(piezaId);
   if (!pieza) notFound();
 
-  const [conjunto, routing, stock, wip, notas, adjuntos] = await Promise.all([
+  const [conjunto, routing, stock, wip, notas, adjuntos, procesos] = await Promise.all([
     getConjunto(pieza.conjuntoId),
     getRoutingPieza(pieza.id),
     getStockDisponible(pieza.id),
     getWipEnCursoDePieza(pieza.id),
     getNotasPieza(pieza.id),
     getAdjuntosPieza(pieza.id),
+    getProcesos(),
   ]);
 
   return (
@@ -51,17 +66,37 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Metric label="Modelo" value={modeloDeCodigo(pieza.codigo)} />
-        <Metric label="Revisión" value={pieza.revision ?? "—"} />
         <Metric label="Stock disponible" value={String(stock)} />
         <Metric label="En proceso" value={String(wip.reduce((a, w) => a + w.cantidad, 0)) || "0"} />
+        <Metric label="Conjunto" value={conjunto?.nombre ?? pieza.conjuntoId} />
       </div>
 
-      <div className="bg-surface border border-border rounded-lg p-3 flex items-end gap-2">
-        <form action={actualizarMaterialAction} className="flex items-end gap-2 flex-1">
+      <div className="bg-surface border border-border rounded-lg p-3 flex flex-wrap items-end gap-3">
+        <form action={actualizarMaterialAction} className="flex items-end gap-2">
           <input type="hidden" name="piezaId" value={pieza.id} />
-          <label className="flex-1 block">
+          <label className="block">
             <span className="block text-xs font-medium text-foreground-muted mb-1">Material</span>
             <input name="material" defaultValue={pieza.material ?? ""} placeholder="ej. Acero SAE 1045" className="input" />
+          </label>
+          <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
+            Guardar
+          </button>
+        </form>
+        <form action={actualizarRevisionAction} className="flex items-end gap-2">
+          <input type="hidden" name="piezaId" value={pieza.id} />
+          <label className="block">
+            <span className="block text-xs font-medium text-foreground-muted mb-1">Revisión</span>
+            <input name="revision" defaultValue={pieza.revision ?? ""} placeholder="ej. Rev. 3" className="input w-28" />
+          </label>
+          <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
+            Guardar
+          </button>
+        </form>
+        <form action={actualizarNumeroPlanoAction} className="flex items-end gap-2">
+          <input type="hidden" name="piezaId" value={pieza.id} />
+          <label className="block">
+            <span className="block text-xs font-medium text-foreground-muted mb-1">Nº de plano</span>
+            <input name="numeroPlano" defaultValue={pieza.numeroPlano ?? ""} placeholder="ej. PL-0234" className="input w-32" />
           </label>
           <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
             Guardar
@@ -98,12 +133,11 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
 
       <div>
         <h2 className="text-sm font-semibold mb-2">Hoja de ruta</h2>
-        {routing.length === 0 ? (
-          <div className="badge-estado badge-alerta">
-            Sin operaciones definidas — falta el insumo de routing para esta pieza (ver docs/migracion-datos.md)
-          </div>
-        ) : (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden">
+        {routing.length === 0 && (
+          <div className="badge-estado badge-alerta mb-3">Sin operaciones definidas — agregá la primera abajo.</div>
+        )}
+        {routing.length > 0 && (
+          <div className="bg-surface border border-border rounded-lg overflow-hidden mb-3">
             <table className="w-full text-sm">
               <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
                 <tr>
@@ -112,20 +146,24 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
                   <th className="text-left px-4 py-2 font-medium">Detalle</th>
                   <th className="text-left px-4 py-2 font-medium">Dispositivo</th>
                   <th className="text-right px-4 py-2 font-medium">OPS</th>
+                  <th className="px-4 py-2"></th>
                 </tr>
               </thead>
               <tbody>
-                {routing.map((op) => (
+                {routing.map((op, idx) => (
                   <tr key={op.id} className="border-t border-border">
                     <td className="px-4 py-2.5 text-foreground-muted">{op.secuencia}</td>
-                    <td className="px-4 py-2.5">
-                      {op.proceso.nombre}
+                    <td className="px-4 py-2.5 min-w-[10rem]">
+                      <ProcesoOperacionSelect
+                        operacionId={op.id}
+                        piezaId={pieza.id}
+                        procesoIdActual={op.proceso.id}
+                        procesos={procesos.map((p) => ({ id: p.id, nombre: p.nombre }))}
+                      />
                       {op.proceso.tipo === "tercerizado" && (
-                        <span className="ml-2 text-xs text-foreground-muted">(tercerizado)</span>
+                        <span className="ml-1 text-xs text-foreground-muted">(tercerizado)</span>
                       )}
-                      {op.proceso.tipo === "compras" && (
-                        <span className="ml-2 text-xs text-foreground-muted">(compra)</span>
-                      )}
+                      {op.proceso.tipo === "compras" && <span className="ml-1 text-xs text-foreground-muted">(compra)</span>}
                     </td>
                     <td className="px-4 py-2.5 min-w-[12rem]">
                       <DescripcionOperacionInput
@@ -136,13 +174,72 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
                       />
                     </td>
                     <td className="px-4 py-2.5 text-foreground-muted">{op.dispositivoNombre ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{op.ops}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">
+                      {op.ops ?? <span title="Falta cargar este dato">falta cargar</span>}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-end gap-1">
+                        <form action={moverOperacionAction}>
+                          <input type="hidden" name="operacionId" value={op.id} />
+                          <input type="hidden" name="piezaId" value={pieza.id} />
+                          <input type="hidden" name="direccion" value="arriba" />
+                          <button
+                            type="submit"
+                            disabled={idx === 0}
+                            className="text-foreground-muted hover:text-foreground disabled:opacity-30 px-1"
+                            title="Subir"
+                          >
+                            ↑
+                          </button>
+                        </form>
+                        <form action={moverOperacionAction}>
+                          <input type="hidden" name="operacionId" value={op.id} />
+                          <input type="hidden" name="piezaId" value={pieza.id} />
+                          <input type="hidden" name="direccion" value="abajo" />
+                          <button
+                            type="submit"
+                            disabled={idx === routing.length - 1}
+                            className="text-foreground-muted hover:text-foreground disabled:opacity-30 px-1"
+                            title="Bajar"
+                          >
+                            ↓
+                          </button>
+                        </form>
+                        <form action={eliminarOperacionAction}>
+                          <input type="hidden" name="operacionId" value={op.id} />
+                          <input type="hidden" name="piezaId" value={pieza.id} />
+                          <button type="submit" className="text-xs text-red-700 hover:underline px-1" title="Eliminar">
+                            Eliminar
+                          </button>
+                        </form>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
+
+        <form action={agregarOperacionAction} className="flex items-end gap-2">
+          <input type="hidden" name="piezaId" value={pieza.id} />
+          <label className="block">
+            <span className="block text-xs font-medium text-foreground-muted mb-1">Agregar operación</span>
+            <select name="procesoId" required defaultValue="" className="input text-sm">
+              <option value="" disabled>
+                Elegir proceso…
+              </option>
+              {procesos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
+            Agregar al final
+          </button>
+        </form>
       </div>
 
       <div>

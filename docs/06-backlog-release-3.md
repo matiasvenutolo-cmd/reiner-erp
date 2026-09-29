@@ -699,3 +699,49 @@ surja el caso real") y ahora apareció ese caso real.
   `OTSTEST-suelta-pieza-01`) — verificado el badge en el listado, el código con prefijo
   OTS, y que la cantidad cargada (5) persistió correctamente en el detalle; ambas órdenes
   de prueba borradas después.
+
+## 20 · Segunda devolución del cliente (2026-09-29) — organizada por área
+
+El cliente respondió las 11 preguntas del informe de Fase 2 y mandó observaciones nuevas
+por área. Antes de tocar código se cruzó cada respuesta con su pregunta original (ver
+`docs/entregables/REINER - Fase 2 - Informe de avance.docx`, sección final) — quedó
+documentado en el chat con el usuario, no repetido acá para no duplicar. Dos hallazgos de
+esa vuelta condicionan el modelo de datos y quedan como pregunta abierta, no resueltos
+unilateralmente:
+
+- **Centros de trabajo reales**: el cliente mandó una lista de 6 (Taller, Electrónica,
+  Corte por hilo, Torno, Torno CNC, Centro de mecanizado) — bastante más corta que los ~12
+  procesos que hoy generan centro propio. Falta el mapeo completo (qué proceso actual va a
+  cuál de los 6) antes de tocar `centro_trabajo`.
+- **Operario ↔ centro de trabajo es de varios a varios**, no 1 a 1 como asume hoy
+  `usuario.centroTrabajoId` (un operario puede ocupar dos puestos, un puesto puede tener
+  dos operarios) — esto es además la causa más probable de la pregunta abierta del §17
+  sobre planificación asignada fuera del centro fijo del operario. Cambio de modelo real,
+  pendiente de encarar (tabla puente `usuario_centro_trabajo` en vez del FK único).
+
+Del resto de las respuestas: 2, 3, 6, 9, 10 y 11 confirman diseño o trabajo ya construido
+(sin acción). 5, 7 y 8 alimentan el trabajo de esta sección.
+
+**✅ Paquete extra 8 — Maestros: todos los campos de la pieza editables (2026-09-29).**
+Devolución del cliente: *"todos los campos de las piezas deberían ser editables por
+ingeniería, hojas de ruta, nro de plano, revisión, material, etc."*
+
+- `pieza.revision` pasó de sólo lectura a editable (mismo patrón que Material).
+- Columna nueva `pieza.numeroPlano` (push aditivo) — editable igual que Revisión. No se
+  mezcla con los adjuntos de planos (archivo) del paquete anterior: uno es el número de
+  plano como dato, el otro es el archivo en sí.
+- **Hoja de ruta editable de verdad**, no sólo el texto de `descripcion` (que ya existía):
+  el "Proceso" de cada paso ahora es un `<select>` con auto-submit
+  (`ProcesoOperacionSelect`), se puede agregar una operación al final (elige proceso,
+  `agregarOperacion` calcula la siguiente secuencia sola), eliminarla (bloqueado por la
+  propia base si ya tiene `registro_operacion` — el error de FK no se traga en silencio) y
+  moverla un lugar arriba/abajo intercambiando `secuencia` con el vecino (nada de
+  drag&drop — una hoja de ruta rara vez pasa de 10 pasos).
+- **Corrección de la pregunta 8** (OPS vacío = dato que falta, no "1"): `OperacionConDetalle.ops`
+  pasa de `number` a `number | null` — antes `getRoutingPieza` defaulteaba a 1 con `?? 1`,
+  mostrando un valor inventado como si fuera real. Ahora un OPS vacío se muestra
+  explícitamente como "falta cargar", nunca como "1".
+- Probado en el navegador: reordenar (subir/bajar, confirmado por el orden de los
+  `<select>` en el DOM ya que varios pasos comparten el mismo proceso visualmente),
+  cambiar el proceso de un paso, agregar y eliminar una operación de prueba — todo
+  revertido al estado original después.

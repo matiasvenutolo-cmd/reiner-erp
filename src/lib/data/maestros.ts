@@ -129,6 +129,24 @@ export async function actualizarMaterialPieza(piezaId: string, material: string)
     .where(eq(pieza.id, piezaId));
 }
 
+/** Revisión y número de plano — devolución del cliente: "todos los campos de
+ * las piezas deberían ser editables por ingeniería". Antes sólo Material y
+ * Tipo lo eran; Revisión se mostraba de sólo lectura y "número de plano" no
+ * existía como campo propio. */
+export async function actualizarRevisionPieza(piezaId: string, revision: string): Promise<void> {
+  await db
+    .update(pieza)
+    .set({ revision: revision || null })
+    .where(eq(pieza.id, piezaId));
+}
+
+export async function actualizarNumeroPlanoPieza(piezaId: string, numeroPlano: string): Promise<void> {
+  await db
+    .update(pieza)
+    .set({ numeroPlano: numeroPlano || null })
+    .where(eq(pieza.id, piezaId));
+}
+
 /** Marca una pieza como sólo de compra o de fabricación (Release 3, pedido
  * del cliente — docs/06-backlog-release-3.md §7: "Compra Chiapas soporte
  * Wiper" no debería tratarse igual que una pieza que hay que fabricar).
@@ -152,6 +170,57 @@ export async function actualizarDescripcionOperacion(operacionId: string, descri
     .update(operacion)
     .set({ descripcion: descripcion || null })
     .where(eq(operacion.id, operacionId));
+}
+
+/**
+ * Hoja de ruta editable de verdad (devolución del cliente: "todos los
+ * campos de las piezas deberían ser editables... hojas de ruta") — antes
+ * sólo se podía tocar el texto de `descripcion`, no agregar, quitar,
+ * reordenar operaciones ni cambiar a qué proceso corresponde cada una.
+ */
+export async function actualizarProcesoOperacion(operacionId: string, procesoId: string): Promise<void> {
+  await db.update(operacion).set({ procesoId }).where(eq(operacion.id, operacionId));
+}
+
+export async function agregarOperacion(input: { piezaId: string; procesoId: string }): Promise<string> {
+  const existentes = await db.select({ secuencia: operacion.secuencia }).from(operacion).where(eq(operacion.piezaId, input.piezaId));
+  const siguienteSecuencia = existentes.length ? Math.max(...existentes.map((o) => o.secuencia)) + 1 : 1;
+  const id = `${input.piezaId}-op-${crypto.randomUUID().slice(0, 8)}`;
+  await db.insert(operacion).values({ id, piezaId: input.piezaId, procesoId: input.procesoId, secuencia: siguienteSecuencia });
+  return id;
+}
+
+/** Bloqueada por la propia base si la operación ya tiene ejecuciones
+ * registradas (`registro_operacion.operacion_id` referencia esta fila sin
+ * `onDelete: cascade`) — el error de FK sube tal cual, no se traga en
+ * silencio: si taller ya trabajó esa operación, no se puede borrar sin
+ * perder ese historial. */
+export async function eliminarOperacion(operacionId: string): Promise<void> {
+  await db.delete(operacion).where(eq(operacion.id, operacionId));
+}
+
+/** Sube o baja una operación un lugar en la hoja de ruta, intercambiando su
+ * `secuencia` con la del vecino — igual de simple que las flechas que ya se
+ * habían reemplazado por arrastre en Centros de trabajo, pero acá una hoja
+ * de ruta rara vez pasa de 10 pasos, así que no hace falta drag&drop. */
+export async function moverOperacion(operacionId: string, direccion: "arriba" | "abajo"): Promise<void> {
+  const [op] = await db.select().from(operacion).where(eq(operacion.id, operacionId));
+  if (!op) return;
+
+  const ruta = await db
+    .select()
+    .from(operacion)
+    .where(eq(operacion.piezaId, op.piezaId))
+    .orderBy(asc(operacion.secuencia));
+  const idx = ruta.findIndex((o) => o.id === operacionId);
+  const vecinoIdx = direccion === "arriba" ? idx - 1 : idx + 1;
+  if (vecinoIdx < 0 || vecinoIdx >= ruta.length) return;
+
+  const vecino = ruta[vecinoIdx];
+  await db.transaction(async (tx) => {
+    await tx.update(operacion).set({ secuencia: vecino.secuencia }).where(eq(operacion.id, op.id));
+    await tx.update(operacion).set({ secuencia: op.secuencia }).where(eq(operacion.id, vecino.id));
+  });
 }
 
 export type NotaPiezaConAutor = PiezaNota & { autorNombre: string };
@@ -235,7 +304,10 @@ async function getPiezasPorModelo(modeloId: string): Promise<Pieza[]> {
 export type OperacionConDetalle = {
   id: string;
   secuencia: number;
-  ops: number;
+  // El cliente confirmó (devolución de Fase 2, pregunta 8) que un OPS vacío
+  // es un dato que falta cargar, NO "1 operación" — antes el código lo
+  // defaulteaba a 1, mostrando un valor inventado como si fuera real.
+  ops: number | null;
   proceso: Proceso;
   descripcion: string | null;
   dispositivoNombre: string | null;
@@ -260,7 +332,7 @@ export async function getRoutingPieza(piezaId: string): Promise<OperacionConDeta
   return rows.map((r) => ({
     id: r.operacion.id,
     secuencia: r.operacion.secuencia,
-    ops: r.operacion.ops ?? 1,
+    ops: r.operacion.ops,
     proceso: r.proceso,
     descripcion: r.operacion.descripcion,
     dispositivoNombre: r.dispositivoNombre,

@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { getUsuarioActual } from "@/lib/session";
 import {
   actualizarMaterialPieza,
+  actualizarRevisionPieza,
+  actualizarNumeroPlanoPieza,
   actualizarDescripcionOperacion,
+  actualizarProcesoOperacion,
+  agregarOperacion,
+  eliminarOperacion,
+  moverOperacion,
   actualizarTipoPieza,
   actualizarStockMinimoPieza,
   crearNotaPieza,
@@ -21,6 +27,26 @@ export async function actualizarMaterialAction(formData: FormData) {
   if (!piezaId) throw new Error("Falta la pieza.");
 
   await actualizarMaterialPieza(piezaId, material);
+  revalidatePath(`/maestros/pieza/${piezaId}`);
+}
+
+export async function actualizarRevisionAction(formData: FormData) {
+  await getUsuarioActual(); // exige sesión válida
+  const piezaId = String(formData.get("piezaId") ?? "");
+  const revision = String(formData.get("revision") ?? "").trim();
+  if (!piezaId) throw new Error("Falta la pieza.");
+
+  await actualizarRevisionPieza(piezaId, revision);
+  revalidatePath(`/maestros/pieza/${piezaId}`);
+}
+
+export async function actualizarNumeroPlanoAction(formData: FormData) {
+  await getUsuarioActual(); // exige sesión válida
+  const piezaId = String(formData.get("piezaId") ?? "");
+  const numeroPlano = String(formData.get("numeroPlano") ?? "").trim();
+  if (!piezaId) throw new Error("Falta la pieza.");
+
+  await actualizarNumeroPlanoPieza(piezaId, numeroPlano);
   revalidatePath(`/maestros/pieza/${piezaId}`);
 }
 
@@ -57,6 +83,52 @@ export async function actualizarDescripcionOperacionAction(formData: FormData) {
   if (!operacionId || !piezaId) throw new Error("Falta la operación.");
 
   await actualizarDescripcionOperacion(operacionId, descripcion);
+  revalidatePath(`/maestros/pieza/${piezaId}`);
+}
+
+export async function actualizarProcesoOperacionAction(formData: FormData) {
+  await getUsuarioActual(); // exige sesión válida
+  const operacionId = String(formData.get("operacionId") ?? "");
+  const piezaId = String(formData.get("piezaId") ?? "");
+  const procesoId = String(formData.get("procesoId") ?? "");
+  if (!operacionId || !piezaId || !procesoId) throw new Error("Falta la operación o el proceso.");
+
+  await actualizarProcesoOperacion(operacionId, procesoId);
+  revalidatePath(`/maestros/pieza/${piezaId}`);
+}
+
+export async function agregarOperacionAction(formData: FormData) {
+  await getUsuarioActual(); // exige sesión válida
+  const piezaId = String(formData.get("piezaId") ?? "");
+  const procesoId = String(formData.get("procesoId") ?? "");
+  if (!piezaId || !procesoId) throw new Error("Elegí un proceso.");
+
+  await agregarOperacion({ piezaId, procesoId });
+  revalidatePath(`/maestros/pieza/${piezaId}`);
+}
+
+export async function eliminarOperacionAction(formData: FormData) {
+  await getUsuarioActual(); // exige sesión válida
+  const operacionId = String(formData.get("operacionId") ?? "");
+  const piezaId = String(formData.get("piezaId") ?? "");
+  if (!operacionId || !piezaId) throw new Error("Falta la operación.");
+
+  try {
+    await eliminarOperacion(operacionId);
+  } catch {
+    throw new Error("No se puede borrar: esta operación ya tiene ejecuciones registradas en taller.");
+  }
+  revalidatePath(`/maestros/pieza/${piezaId}`);
+}
+
+export async function moverOperacionAction(formData: FormData) {
+  await getUsuarioActual(); // exige sesión válida
+  const operacionId = String(formData.get("operacionId") ?? "");
+  const piezaId = String(formData.get("piezaId") ?? "");
+  const direccion = String(formData.get("direccion") ?? "");
+  if (!operacionId || !piezaId || (direccion !== "arriba" && direccion !== "abajo")) throw new Error("Datos inválidos.");
+
+  await moverOperacion(operacionId, direccion);
   revalidatePath(`/maestros/pieza/${piezaId}`);
 }
 

@@ -234,6 +234,7 @@ export const pieza = pgTable("pieza", {
     .references(() => conjunto.id),
   material: text("material"),
   revision: text("revision"),
+  numeroPlano: text("numero_plano"),
   tipo: tipoPiezaEnum("tipo").notNull().default("fabricada"),
   esDeStock: boolean("es_de_stock").notNull().default(false),
   stockMinimo: integer("stock_minimo").notNull().default(0),
