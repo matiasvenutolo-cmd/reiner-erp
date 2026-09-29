@@ -222,7 +222,17 @@ export default async function TercerizadosPage({
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-foreground-muted">{m.usuarioNombre}</td>
-                    <td className="px-4 py-2.5 text-foreground-muted">{m.observacion ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-foreground-muted">
+                      {m.observacion ?? "—"}
+                      {m.remitoId && (
+                        <>
+                          {" · "}
+                          <Link href={`/remitos/${m.remitoId}`} className="text-accent hover:underline whitespace-nowrap">
+                            Ver remito →
+                          </Link>
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

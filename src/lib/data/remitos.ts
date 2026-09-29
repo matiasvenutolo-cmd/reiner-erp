@@ -7,7 +7,8 @@
  */
 import { eq, desc, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { remito, remitoItem, pieza, usuario } from "@/lib/db/schema";
+import { remito, remitoItem, pieza, usuario, movimientoStock, stockPieza } from "@/lib/db/schema";
+import { getStockDisponible } from "./stock";
 
 export type RemitoResumen = {
   id: string;
@@ -100,6 +101,18 @@ export type GenerarRemitoInput = {
   items: { piezaId: string; cantidad: number; tratamiento?: string }[];
 };
 
+/**
+ * Genera el remito Y registra el egreso de stock de cada pieza en la misma
+ * transacción — devolución del cliente: "generar un movimiento y que quede
+ * registrado y a la vez se haga el remito... que quede toda centralizada la
+ * info, no en diferentes pestañas". Antes armar un remito y registrar el
+ * egreso eran dos acciones sueltas en la misma pantalla de Tercerizados —
+ * nada obligaba a hacer las dos, así que el stock disponible podía quedar
+ * desactualizado (una pieza mandada a cromar seguía figurando como
+ * disponible). El "Registrar ingreso o egreso" manual de Tercerizados sigue
+ * existiendo para movimientos que no van por remito (ej. compra de materia
+ * prima).
+ */
 export async function generarRemito(input: GenerarRemitoInput): Promise<string> {
   if (input.items.length === 0) throw new Error("Un remito necesita al menos una pieza.");
 
@@ -129,6 +142,23 @@ export async function generarRemito(input: GenerarRemitoInput): Promise<string> 
         tratamiento: item.tratamiento || null,
       })),
     );
+
+    for (const item of input.items) {
+      const disponible = await getStockDisponible(item.piezaId);
+      const nuevoDisponible = Math.max(0, disponible - item.cantidad);
+      await tx.insert(movimientoStock).values({
+        piezaId: item.piezaId,
+        tipo: "egreso",
+        cantidad: item.cantidad,
+        remitoId: nuevo.id,
+        usuarioId: input.usuarioId,
+        observacion: `Remito Nº ${numero}${item.tratamiento ? ` — ${item.tratamiento}` : ""}`,
+      });
+      await tx
+        .insert(stockPieza)
+        .values({ piezaId: item.piezaId, cantidadDisponible: nuevoDisponible })
+        .onConflictDoUpdate({ target: stockPieza.piezaId, set: { cantidadDisponible: nuevoDisponible, updatedAt: new Date() } });
+    }
 
     return nuevo.id;
   });

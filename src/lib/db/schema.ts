@@ -360,6 +360,12 @@ export const movimientoStock = pgTable("movimiento_stock", {
   tipo: tipoMovimientoStockEnum("tipo").notNull(),
   cantidad: integer("cantidad").notNull(),
   otPiezaId: text("ot_pieza_id"),
+  // Referencia suelta al remito que generó este egreso (mismo criterio que
+  // otPiezaId arriba: sin FK real, es sólo trazabilidad) — devolución del
+  // cliente: "generar un movimiento y que quede registrado y a la vez se
+  // haga el remito", en vez de dos acciones desconectadas en la misma
+  // pantalla (ver `generarRemito` en remitos.ts).
+  remitoId: text("remito_id"),
   usuarioId: text("usuario_id")
     .notNull()
     .references(() => usuario.id),

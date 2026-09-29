@@ -29,6 +29,7 @@ export type MovimientoConDetalle = {
   piezaNombre: string;
   usuarioNombre: string;
   proveedorNombre: string | null;
+  remitoId: string | null;
 };
 
 /** Últimos movimientos, opcionalmente filtrados por tipo — la base del panel de ingresos/egresos. */
@@ -45,6 +46,7 @@ export async function listarMovimientos(tipo?: TipoMovimientoStock, limite = 50)
       piezaNombre: pieza.nombre,
       usuarioNombre: usuario.nombre,
       proveedorNombre: proveedor.razonSocial,
+      remitoId: movimientoStock.remitoId,
     })
     .from(movimientoStock)
     .innerJoin(pieza, eq(pieza.id, movimientoStock.piezaId))

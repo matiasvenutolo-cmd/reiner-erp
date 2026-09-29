@@ -745,3 +745,27 @@ ingeniería, hojas de ruta, nro de plano, revisión, material, etc."*
   `<select>` en el DOM ya que varios pasos comparten el mismo proceso visualmente),
   cambiar el proceso de un paso, agregar y eliminar una operación de prueba — todo
   revertido al estado original después.
+
+**✅ Paquete extra 9 — Tercerizados: generar un remito registra el egreso solo
+(2026-09-29).** Devolución del cliente: *"generar un movimiento y que quede registrado y a
+la vez se haga el remito"* + *"que quede toda centralizada la info, no en diferentes
+pestañas."* Confirmado en el código antes de tocar nada: `generarRemito` y
+`registrarIngreso`/`registrarEgreso` eran dos flujos totalmente desconectados en la misma
+pantalla — armar un remito nunca tocaba `movimiento_stock` ni `stock_pieza`, así que una
+pieza mandada a cromar seguía figurando como disponible hasta que alguien registrara el
+egreso a mano por separado (o no lo hiciera).
+
+- `generarRemito` ahora inserta, en la misma transacción que crea el remito y sus items,
+  un `movimiento_stock` tipo "egreso" por cada pieza (con el número de remito y el
+  tratamiento en la observación) y descuenta `stock_pieza.cantidadDisponible`.
+- Columna nueva `movimiento_stock.remitoId` (push aditivo, sin FK real — mismo criterio
+  suelto que ya usa `otPiezaId`, es trazabilidad, no integridad referencial) para poder
+  volver del movimiento al remito que lo generó.
+- "Movimientos recientes" en Tercerizados ahora muestra un link "Ver remito →" cuando el
+  movimiento vino de uno.
+- El "Registrar ingreso o egreso" manual sigue existiendo tal cual — sigue haciendo falta
+  para movimientos que no pasan por remito (ej. compra de materia prima).
+- Probado en el navegador de punta a punta: armado un remito de prueba para
+  "Cabezal parte inferior D-20" (stock 1→0 tras generarlo, confirmado en su ficha de
+  Maestros), verificado el link "Ver remito →" en Movimientos recientes apuntando al
+  remito correcto — remito, movimiento y stock revertidos después.
