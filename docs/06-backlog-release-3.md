@@ -801,3 +801,28 @@ desde el avance y no tener que entrar a cada pieza (tanto así como de conjunto)
   finalizada con OK=1, y confirmado que el contador de la tarjeta pasó de 0/128 a 1/128
   y el estado de "Pendiente" a "En curso" sin recargar manualmente — revertido después
   (borrado el registro de ejecución, restablecidos los contadores de la OT de pieza).
+
+**✅ Paquete extra 11 — Revisión: subtareas de retrabajo con cronómetro (2026-09-29).**
+Devolución del cliente, con el ejemplo que trajo: *"hay que retrabajar un eje de
+compresión, se genera automáticamente, una vez en revisión, entro a ese retrabajo y lo
+voy editando... agrego una tarea y puedo iniciar un contador para que temporice y así
+saber cuánto me cuesta esto a fin de cuentas."*
+
+- Tabla nueva `tarea_revision_item` (descripción, inicio, fin, duracionSeg, usuario) —
+  mismo patrón inicio/fin/duracionSeg que `registro_operacion`, calculado sólo al
+  detener. Una tarea corriendo a la vez POR RETRABAJO (no por usuario global como en
+  taller) — tiene sentido acotarlo así porque un retrabajo es una unidad de trabajo en
+  sí misma, no una cola de operario.
+- Dentro de cada tarea de revisión pendiente (en la ficha de la OT de pieza, donde ya
+  vivían desde Release 3 §10): agregar una subtarea (texto libre), iniciarla (▶,
+  deshabilitado si ya hay otra corriendo en ese mismo retrabajo), detenerla (⏸, calcula
+  la duración), o eliminarla si todavía no arrancó. El total de tiempo registrado se
+  suma y se muestra arriba de la lista. El "Resolver" final (ya existía) queda
+  intacto — las subtareas son el detalle de CÓMO se llegó a esa resolución, no la
+  reemplazan.
+- Probado en el navegador de punta a punta: generado un retrabajo real (finalizando una
+  operación desde Avance con piezas a retrabajar > 0), agregadas 3 subtareas, iniciada y
+  detenida la primera (duración calculada correctamente), iniciada la segunda y
+  confirmado que el botón Iniciar de la tercera queda deshabilitado mientras la segunda
+  corre — todo revertido después (subtareas, tarea de revisión, registro de ejecución y
+  contadores de la OT de pieza).

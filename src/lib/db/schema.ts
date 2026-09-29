@@ -553,6 +553,27 @@ export const tareaRevision = pgTable("tarea_revision", {
 });
 
 /**
+ * Subtareas de un retrabajo, con cronómetro — devolución del cliente: "que
+ * en los retrabajos se puedan ir agregando tareas y te permita temporizar
+ * cuánto te lleva ese retrabajo". Mismo patrón inicio/fin/duracionSeg que
+ * `registro_operacion` (calculado sólo al cerrar) — "una tarea corriendo a
+ * la vez por tarea de revisión" es la misma regla de simplicidad que ya usa
+ * taller, aplicada acá en vez de a nivel de usuario global.
+ */
+export const tareaRevisionItem = pgTable("tarea_revision_item", {
+  id: id(),
+  tareaRevisionId: text("tarea_revision_id")
+    .notNull()
+    .references(() => tareaRevision.id),
+  descripcion: text("descripcion").notNull(),
+  inicio: timestamp("inicio"),
+  fin: timestamp("fin"),
+  duracionSeg: integer("duracion_seg"), // calculado al detener, igual que registro_operacion
+  usuarioId: text("usuario_id").references(() => usuario.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
  * Control de armado (Release 2, paquete 7 — pedido de Horacio: "que cuando
  * todas las piezas de un conjunto estén listas se habilite una sección de
  * control de armado, donde también podamos poner procedimientos de armado y
@@ -643,6 +664,7 @@ export type RegistroOperacion = typeof registroOperacion.$inferSelect;
 export type Parada = typeof parada.$inferSelect;
 export type ControlCalidad = typeof controlCalidad.$inferSelect;
 export type TareaRevision = typeof tareaRevision.$inferSelect;
+export type TareaRevisionItem = typeof tareaRevisionItem.$inferSelect;
 export type ControlArmado = typeof controlArmado.$inferSelect;
 export type Remito = typeof remito.$inferSelect;
 export type RemitoItem = typeof remitoItem.$inferSelect;

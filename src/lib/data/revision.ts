@@ -11,10 +11,10 @@
  * de pieza (`/ot/[id]/pieza/[otPiezaId]`) — este archivo sigue siendo el
  * único lugar que lee/escribe `tarea_revision`, sólo cambió quién lo llama.
  */
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, isNull, asc } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { tareaRevision, otPieza, pieza, otConjunto, otMaquina } from "@/lib/db/schema";
-import type { TareaRevision } from "@/lib/db/schema";
+import { tareaRevision, tareaRevisionItem, otPieza, pieza, otConjunto, otMaquina, usuario } from "@/lib/db/schema";
+import type { TareaRevision, TareaRevisionItem } from "@/lib/db/schema";
 
 export type TareaRevisionConDetalle = TareaRevision & {
   otPiezaCodigo: string;
@@ -90,4 +90,54 @@ export async function resolverTareaRevision(id: string, resolucion: string, usua
     .update(tareaRevision)
     .set({ estado: "resuelta", resolucion, resueltoPorId: usuarioId, resolvedAt: new Date() })
     .where(eq(tareaRevision.id, id));
+}
+
+/**
+ * Subtareas de un retrabajo, con cronómetro — devolución del cliente: "que
+ * en los retrabajos se puedan ir agregando tareas y te permita temporizar
+ * cuánto te lleva ese retrabajo". Se agregan sueltas (sin arrancar el
+ * cronómetro) y después se inician/detienen — mismo patrón inicio/fin/
+ * duracionSeg que `registro_operacion` en ejecucion.ts.
+ */
+export type ItemRevisionConAutor = TareaRevisionItem & { usuarioNombre: string | null };
+
+export async function getItemsTareaRevision(tareaRevisionId: string): Promise<ItemRevisionConAutor[]> {
+  const rows = await db
+    .select({ item: tareaRevisionItem, usuarioNombre: usuario.nombre })
+    .from(tareaRevisionItem)
+    .leftJoin(usuario, eq(usuario.id, tareaRevisionItem.usuarioId))
+    .where(eq(tareaRevisionItem.tareaRevisionId, tareaRevisionId))
+    .orderBy(asc(tareaRevisionItem.createdAt));
+  return rows.map((r) => ({ ...r.item, usuarioNombre: r.usuarioNombre }));
+}
+
+/** Ítem en curso (si hay uno) de una tarea de revisión — "una tarea corriendo
+ * a la vez por retrabajo", igual de simple que "una operación abierta a la
+ * vez por operario" en taller. */
+export async function getItemAbiertoDeTarea(tareaRevisionId: string): Promise<TareaRevisionItem | null> {
+  const [row] = await db
+    .select()
+    .from(tareaRevisionItem)
+    .where(and(eq(tareaRevisionItem.tareaRevisionId, tareaRevisionId), isNull(tareaRevisionItem.fin)));
+  return row ?? null;
+}
+
+export async function agregarItemTareaRevision(input: { tareaRevisionId: string; descripcion: string }): Promise<void> {
+  await db.insert(tareaRevisionItem).values({ tareaRevisionId: input.tareaRevisionId, descripcion: input.descripcion });
+}
+
+export async function iniciarItemTareaRevision(id: string, usuarioId: string): Promise<void> {
+  await db.update(tareaRevisionItem).set({ inicio: new Date(), usuarioId }).where(eq(tareaRevisionItem.id, id));
+}
+
+export async function detenerItemTareaRevision(id: string): Promise<void> {
+  const [item] = await db.select().from(tareaRevisionItem).where(eq(tareaRevisionItem.id, id));
+  if (!item || !item.inicio) return;
+  const fin = new Date();
+  const duracionSeg = Math.round((fin.getTime() - item.inicio.getTime()) / 1000);
+  await db.update(tareaRevisionItem).set({ fin, duracionSeg }).where(eq(tareaRevisionItem.id, id));
+}
+
+export async function eliminarItemTareaRevision(id: string): Promise<void> {
+  await db.delete(tareaRevisionItem).where(eq(tareaRevisionItem.id, id));
 }

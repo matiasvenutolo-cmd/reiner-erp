@@ -4,9 +4,15 @@ import { getOtPieza, getEstadoYOperacionActual } from "@/lib/data/ot";
 import { getPieza, getConjunto, nombreOperacion } from "@/lib/data/maestros";
 import { getHistorialOtPieza, getTiempoEstandar } from "@/lib/data/ejecucion";
 import { getUsuario } from "@/lib/data/usuarios";
-import { getTareasRevisionDePieza } from "@/lib/data/revision";
+import { getTareasRevisionDePieza, getItemsTareaRevision } from "@/lib/data/revision";
 import { getAsignacionesVigentesBatch } from "@/lib/data/planificacion";
-import { resolverTareaRevisionAction } from "@/app/actions/revision";
+import {
+  resolverTareaRevisionAction,
+  agregarItemTareaRevisionAction,
+  iniciarItemTareaRevisionAction,
+  detenerItemTareaRevisionAction,
+  eliminarItemTareaRevisionAction,
+} from "@/app/actions/revision";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import { AsignacionBadge } from "@/components/AsignacionBadge";
 
@@ -33,6 +39,9 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
   const conjunto = pieza ? await getConjunto(pieza.conjuntoId) : null;
   const revisionPendiente = tareasRevision.filter((t) => t.estado === "pendiente");
   const revisionResuelta = tareasRevision.filter((t) => t.estado === "resuelta");
+  const itemsPorTarea = new Map(
+    await Promise.all(revisionPendiente.map(async (t) => [t.id, await getItemsTareaRevision(t.id)] as const)),
+  );
 
   const registrosPorOperacion = new Map(historial.map((h) => [h.registro.operacionId, h]));
   const tiempos = await Promise.all(
@@ -79,38 +88,106 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
       {(revisionPendiente.length > 0 || revisionResuelta.length > 0) && (
         <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
           <h2 className="text-sm font-semibold">Revisión / retrabajo</h2>
-          {revisionPendiente.map((t) => (
-            <div key={t.id} className="space-y-2">
-              <div className="flex flex-wrap gap-1.5">
-                {t.piezasDefectuosas > 0 && (
-                  <span className="badge-estado badge-alerta">{t.piezasDefectuosas} defectuosas</span>
+          {revisionPendiente.map((t) => {
+            const items = itemsPorTarea.get(t.id) ?? [];
+            const itemAbierto = items.find((it) => it.inicio && !it.fin);
+            const segundosTotales = items.reduce((sum, it) => sum + (it.duracionSeg ?? 0), 0);
+            return (
+              <div key={t.id} className="space-y-2 border border-border rounded-md p-3">
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  {t.piezasDefectuosas > 0 && (
+                    <span className="badge-estado badge-alerta">{t.piezasDefectuosas} defectuosas</span>
+                  )}
+                  {t.piezasRetrabajadas > 0 && (
+                    <span className="badge-estado badge-en_curso">{t.piezasRetrabajadas} a retrabajar</span>
+                  )}
+                  <span className="text-xs text-foreground-muted">desde {new Date(t.createdAt).toLocaleString("es-AR")}</span>
+                  {segundosTotales > 0 && (
+                    <span className="text-xs text-foreground-muted ml-auto">
+                      Total registrado: {formatearDuracion(segundosTotales)}
+                    </span>
+                  )}
+                </div>
+
+                {items.length > 0 && (
+                  <ul className="space-y-1">
+                    {items.map((it) => (
+                      <li key={it.id} className="flex items-center gap-2 text-sm bg-surface-muted rounded-md px-2.5 py-1.5">
+                        <span className="flex-1 truncate">{it.descripcion}</span>
+                        {it.fin ? (
+                          <span className="text-xs text-foreground-muted shrink-0">{formatearDuracion(it.duracionSeg)}</span>
+                        ) : it.inicio ? (
+                          <>
+                            <span className="badge-estado badge-en_curso shrink-0">corriendo…</span>
+                            <form action={detenerItemTareaRevisionAction}>
+                              <input type="hidden" name="id" value={it.id} />
+                              <input type="hidden" name="otMaquinaId" value={id} />
+                              <input type="hidden" name="otPiezaId" value={otPieza.id} />
+                              <button type="submit" className="text-xs text-accent hover:underline shrink-0">
+                                ⏸ Detener
+                              </button>
+                            </form>
+                          </>
+                        ) : (
+                          <>
+                            <form action={iniciarItemTareaRevisionAction}>
+                              <input type="hidden" name="id" value={it.id} />
+                              <input type="hidden" name="tareaRevisionId" value={t.id} />
+                              <input type="hidden" name="otMaquinaId" value={id} />
+                              <input type="hidden" name="otPiezaId" value={otPieza.id} />
+                              <button
+                                type="submit"
+                                disabled={!!itemAbierto}
+                                className="text-xs text-accent hover:underline disabled:opacity-40 disabled:no-underline shrink-0"
+                              >
+                                ▶ Iniciar
+                              </button>
+                            </form>
+                            <form action={eliminarItemTareaRevisionAction}>
+                              <input type="hidden" name="id" value={it.id} />
+                              <input type="hidden" name="otMaquinaId" value={id} />
+                              <input type="hidden" name="otPiezaId" value={otPieza.id} />
+                              <button type="submit" className="text-xs text-red-700 hover:underline shrink-0">
+                                Eliminar
+                              </button>
+                            </form>
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 )}
-                {t.piezasRetrabajadas > 0 && (
-                  <span className="badge-estado badge-en_curso">{t.piezasRetrabajadas} a retrabajar</span>
-                )}
-                <span className="text-xs text-foreground-muted self-center">
-                  desde {new Date(t.createdAt).toLocaleString("es-AR")}
-                </span>
+
+                <form action={agregarItemTareaRevisionAction} className="flex gap-2">
+                  <input type="hidden" name="tareaRevisionId" value={t.id} />
+                  <input type="hidden" name="otMaquinaId" value={id} />
+                  <input type="hidden" name="otPiezaId" value={otPieza.id} />
+                  <input name="descripcion" placeholder="Agregar tarea (ej. reperforar eje)…" className="input flex-1 text-sm" />
+                  <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap px-1">
+                    + Agregar
+                  </button>
+                </form>
+
+                <form action={resolverTareaRevisionAction} className="flex gap-2 pt-2 border-t border-border">
+                  <input type="hidden" name="id" value={t.id} />
+                  <input type="hidden" name="otMaquinaId" value={id} />
+                  <input type="hidden" name="otPiezaId" value={otPieza.id} />
+                  <input
+                    name="resolucion"
+                    required
+                    placeholder="¿Qué se hizo? (ej. se refabricaron 2, se reprocesó 1)"
+                    className="input flex-1 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-accent text-accent-foreground text-sm font-medium px-3 rounded-md hover:opacity-90"
+                  >
+                    Resolver
+                  </button>
+                </form>
               </div>
-              <form action={resolverTareaRevisionAction} className="flex gap-2">
-                <input type="hidden" name="id" value={t.id} />
-                <input type="hidden" name="otMaquinaId" value={id} />
-                <input type="hidden" name="otPiezaId" value={otPieza.id} />
-                <input
-                  name="resolucion"
-                  required
-                  placeholder="¿Qué se hizo? (ej. se refabricaron 2, se reprocesó 1)"
-                  className="input flex-1 text-sm"
-                />
-                <button
-                  type="submit"
-                  className="bg-accent text-accent-foreground text-sm font-medium px-3 rounded-md hover:opacity-90"
-                >
-                  Resolver
-                </button>
-              </form>
-            </div>
-          ))}
+            );
+          })}
           {revisionResuelta.length > 0 && (
             <details className="text-sm">
               <summary className="cursor-pointer text-foreground-muted hover:text-foreground">
