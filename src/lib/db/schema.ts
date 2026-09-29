@@ -66,6 +66,19 @@ export const estadoOtEnum = pgEnum("estado_ot", [
   "terminada",
 ]);
 
+/**
+ * `maquina`: OT de una máquina completa, con su número de serie (el caso de
+ * siempre). `suelta`: sólo un conjunto o una pieza puntual, sin fabricar la
+ * máquina entera — para cuando un cliente compra un repuesto o pide un
+ * conjunto para mantenimiento (Release 3, devolución del cliente: "a veces
+ * les compran o necesitan para un mantenimiento producir sólo un conjunto o
+ * una pieza"). Sigue colgando de una fila en `ot_maquina` (mantiene la
+ * trazabilidad y el esquema de códigos existente — ver la nota de diseño en
+ * `generarOrdenSuelta`), sólo que `numeroSerie` pasa a ser una referencia
+ * libre en vez de un número de serie real.
+ */
+export const tipoOrdenEnum = pgEnum("tipo_orden", ["maquina", "suelta"]);
+
 export const tipoRegistroOperacionEnum = pgEnum("tipo_registro_operacion", [
   "setup",
   "ejecucion",
@@ -367,8 +380,9 @@ export const movimientoStock = pgTable("movimiento_stock", {
 
 export const otMaquina = pgTable("ot_maquina", {
   id: id(),
-  codigo: text("codigo").notNull().unique(), // OTM6
-  numeroSerie: text("numero_serie").notNull(),
+  codigo: text("codigo").notNull().unique(), // OTM6 (máquina) u OTS6 (suelta)
+  tipo: tipoOrdenEnum("tipo").notNull().default("maquina"),
+  numeroSerie: text("numero_serie").notNull(), // en una orden "suelta" es una referencia libre, no un número de serie real
   configuracionId: text("configuracion_id")
     .notNull()
     .references(() => configuracion.id),

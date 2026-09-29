@@ -67,10 +67,16 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
           </Link>
           <h1 className="text-xl font-semibold mt-1">{otMaquina.codigo}</h1>
           <p className="text-sm text-foreground-muted">
-            {configuracion?.nombre} · Serie {otMaquina.numeroSerie} · {clienteNombre}
+            {configuracion?.nombre} ·{" "}
+            {otMaquina.tipo === "suelta" ? otMaquina.numeroSerie : `Serie ${otMaquina.numeroSerie}`} · {clienteNombre}
           </p>
         </div>
-        <EstadoBadge estado={estadoCalculado} />
+        <div className="flex items-center gap-2">
+          {otMaquina.tipo === "suelta" && (
+            <span className="badge-estado bg-surface-muted text-foreground-muted">Orden suelta</span>
+          )}
+          <EstadoBadge estado={estadoCalculado} />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

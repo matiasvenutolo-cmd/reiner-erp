@@ -1,30 +1,45 @@
 import Link from "next/link";
-import { getConfiguraciones, getModelos } from "@/lib/data/maestros";
+import { getConfiguraciones, getModelos, getConjuntos, getPiezasPorConfiguracion } from "@/lib/data/maestros";
 import { getUsuarioActual } from "@/lib/session";
 import { getClientes } from "@/lib/data/clientes";
 import { crearOtMaquinaAction } from "@/app/actions/ot";
+import { FormTabs } from "@/components/ot/FormTabs";
+import { OrdenSueltaForm } from "@/components/ot/OrdenSueltaForm";
 
 export default async function NuevaOtPage() {
-  const [configuraciones, modelos, usuario, clientes] = await Promise.all([
+  const [configuraciones, modelos, usuario, clientes, conjuntosTodos] = await Promise.all([
     getConfiguraciones(),
     getModelos(),
     getUsuarioActual(),
     getClientes(),
+    getConjuntos(),
   ]);
+  const nombreConjunto = new Map(conjuntosTodos.map((c) => [c.id, c.nombre]));
 
-  return (
-    <div className="max-w-xl space-y-6">
-      <div>
-        <Link href="/ot" className="text-sm text-accent hover:underline">
-          ← Órdenes de trabajo
-        </Link>
-        <h1 className="text-xl font-semibold mt-1">Generar OT de máquina</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          Se explota automáticamente a OT de conjunto y OT de pieza, cruzando contra el stock
-          disponible. La cantidad a fabricar propuesta queda editable en el detalle.
-        </p>
-      </div>
+  const piezasPorConfiguracionEntries = await Promise.all(
+    configuraciones.map(async (c) => [c.id, await getPiezasPorConfiguracion(c.id)] as const),
+  );
+  const piezasPorConfiguracion: Record<string, { id: string; codigo: string; nombre: string; conjuntoId: string }[]> = {};
+  const conjuntosPorConfiguracion: Record<string, { id: string; nombre: string }[]> = {};
+  for (const [configuracionId, piezas] of piezasPorConfiguracionEntries) {
+    piezasPorConfiguracion[configuracionId] = piezas.map((p) => ({
+      id: p.id,
+      codigo: p.codigo,
+      nombre: p.nombre,
+      conjuntoId: p.conjuntoId,
+    }));
+    const conjuntoIds = [...new Set(piezas.map((p) => p.conjuntoId))];
+    conjuntosPorConfiguracion[configuracionId] = conjuntoIds
+      .map((id) => ({ id, nombre: nombreConjunto.get(id) ?? id }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }
 
+  const formaMaquina = (
+    <div>
+      <p className="text-sm text-foreground-muted mb-4">
+        Se explota automáticamente a OT de conjunto y OT de pieza, cruzando contra el stock
+        disponible. La cantidad a fabricar propuesta queda editable en el detalle.
+      </p>
       <form action={crearOtMaquinaAction} className="bg-surface border border-border rounded-lg p-5 space-y-4">
         <Field label="Configuración de máquina">
           <select name="configuracionId" required className="input">
@@ -77,6 +92,35 @@ export default async function NuevaOtPage() {
           Generar OT
         </button>
       </form>
+    </div>
+  );
+
+  const formaSuelta = (
+    <div>
+      <p className="text-sm text-foreground-muted mb-4">
+        Para cuando un cliente compra un repuesto o pide un conjunto para mantenimiento, sin
+        que se trate de fabricar una máquina entera. No lleva número de serie real.
+      </p>
+      <OrdenSueltaForm
+        configuraciones={configuraciones.map((c) => ({ id: c.id, nombre: c.nombre }))}
+        clientes={clientes.map((c) => ({ id: c.id, razonSocial: c.razonSocial }))}
+        usuarioNombre={usuario.nombre}
+        conjuntosPorConfiguracion={conjuntosPorConfiguracion}
+        piezasPorConfiguracion={piezasPorConfiguracion}
+      />
+    </div>
+  );
+
+  return (
+    <div className="max-w-xl space-y-6">
+      <div>
+        <Link href="/ot" className="text-sm text-accent hover:underline">
+          ← Órdenes de trabajo
+        </Link>
+        <h1 className="text-xl font-semibold mt-1">Generar orden de trabajo</h1>
+      </div>
+
+      <FormTabs maquina={formaMaquina} suelta={formaSuelta} />
     </div>
   );
 }

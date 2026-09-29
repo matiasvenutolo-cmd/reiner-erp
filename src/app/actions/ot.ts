@@ -2,7 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { generarOtMaquina, actualizarCantidadAFabricar, completarOtConjunto, generarOtPiezaSuelta } from "@/lib/data/ot";
+import {
+  generarOtMaquina,
+  actualizarCantidadAFabricar,
+  completarOtConjunto,
+  generarOtPiezaSuelta,
+  generarOrdenSuelta,
+} from "@/lib/data/ot";
 
 export async function crearOtMaquinaAction(formData: FormData) {
   const configuracionId = String(formData.get("configuracionId") ?? "");
@@ -58,4 +64,44 @@ export async function agregarPiezaSueltaAction(formData: FormData) {
 
   await generarOtPiezaSuelta({ otConjuntoId, piezaId, cantidadAFabricar: cantidad });
   revalidatePath(`/ot/${otMaquinaId}`);
+}
+
+export async function crearOrdenSueltaAction(formData: FormData) {
+  const configuracionId = String(formData.get("configuracionId") ?? "");
+  const referencia = String(formData.get("referencia") ?? "").trim();
+  const clienteId = String(formData.get("clienteId") ?? "").trim();
+  const ordenCompra = String(formData.get("ordenCompra") ?? "").trim();
+  const plazoEntrega = String(formData.get("plazoEntrega") ?? "").trim();
+  const emitidoPor = String(formData.get("emitidoPor") ?? "").trim();
+  const tipo = String(formData.get("tipoSuelta") ?? "");
+
+  if (!configuracionId || !referencia || !clienteId || !emitidoPor) {
+    throw new Error("Faltan datos obligatorios: máquina, referencia, cliente y emitido por.");
+  }
+
+  const base = {
+    configuracionId,
+    referencia,
+    clienteId,
+    ordenCompra: ordenCompra || undefined,
+    plazoEntrega: plazoEntrega || undefined,
+    emitidoPor,
+  };
+
+  let id: string;
+  if (tipo === "conjunto") {
+    const conjuntoId = String(formData.get("conjuntoId") ?? "");
+    if (!conjuntoId) throw new Error("Elegí un conjunto.");
+    id = await generarOrdenSuelta({ ...base, tipo: "conjunto", conjuntoId });
+  } else if (tipo === "pieza") {
+    const piezaId = String(formData.get("piezaId") ?? "");
+    const cantidad = Number(formData.get("cantidad"));
+    if (!piezaId || !Number.isFinite(cantidad) || cantidad <= 0) throw new Error("Elegí una pieza y una cantidad válida.");
+    id = await generarOrdenSuelta({ ...base, tipo: "pieza", piezaId, cantidad });
+  } else {
+    throw new Error("Elegí conjunto o pieza.");
+  }
+
+  revalidatePath("/ot");
+  redirect(`/ot/${id}`);
 }

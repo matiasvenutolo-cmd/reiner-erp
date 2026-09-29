@@ -667,3 +667,35 @@ también agregar un plano y/o imágenes").
   un archivo de texto como "plano" y una imagen real como "foto" (miniatura visible),
   confirmando que la URL pública resuelve y descargando el archivo; después eliminados los
   dos adjuntos de prueba.
+
+**✅ Paquete extra 7 — OT suelta independiente: conjunto o pieza sin máquina completa
+(2026-09-28).** Devolución del cliente: *"a veces les compran o necesitan para un
+mantenimiento producir sólo un conjunto o una pieza para un cliente."* La "OT suelta" que ya
+existía (Release 2, §6) sólo cubre agregar una pieza puntual a una máquina YA registrada en
+el sistema — el límite quedó anotado en su momento en el propio comentario del código
+("no cubre una máquina entregada antes de que existiera este sistema... queda para cuando
+surja el caso real") y ahora apareció ese caso real.
+
+- Columna nueva `ot_maquina.tipo` (`"maquina"` \| `"suelta"`, default `"maquina"` — push
+  aditivo, sin ambigüedad de rename). Una orden suelta sigue creando una fila en
+  `ot_maquina` (reutiliza todo el cálculo de estado y las pantallas existentes tal cual)
+  pero con prefijo de código **OTS** en vez de **OTM**, y `numeroSerie` pasa a usarse como
+  una referencia libre en vez de un número de serie real.
+- `generarOrdenSuelta` (`ot.ts`): a diferencia de `generarOtMaquina`, NO explota todos los
+  conjuntos del modelo — crea sólo el `ot_conjunto` pedido (uno) y, según el caso, o bien
+  la explosión normal de ESE conjunto contra stock (conjunto completo) o una única
+  `ot_pieza` con la cantidad que cargó quien la pidió (pieza puntual, mismo criterio que
+  `generarOtPiezaSuelta`: la cantidad no sale de ningún cálculo de BOM).
+- `/ot/nueva` ahora tiene dos pestañas ("Máquina completa" / "Conjunto o pieza suelta").
+  La pestaña nueva es un formulario en cascada: elegís la máquina (de ahí sale el catálogo
+  de conjuntos y piezas vía `piezaConfiguracion`), después "un conjunto completo" o "una
+  pieza puntual" con su cantidad.
+- `/ot` y `/ot/[id]` muestran un badge "Suelta"/"Orden suelta" y la referencia en vez de
+  "Serie N" cuando `tipo = "suelta"` — el resto de la pantalla de detalle (acordeón de
+  conjuntos, piezas, progreso) es la misma que ya existía, sin casos especiales.
+- Probado en el navegador de punta a punta: generada una orden suelta de conjunto completo
+  (Cabezal de PS120I, código `OTSTEST-suelta-conjunto-01`, creó sólo 1 conjunto con 9
+  piezas a fabricar) y una de pieza puntual (Freno tipo D de RD-std, cantidad 5, código
+  `OTSTEST-suelta-pieza-01`) — verificado el badge en el listado, el código con prefijo
+  OTS, y que la cantidad cargada (5) persistió correctamente en el detalle; ambas órdenes
+  de prueba borradas después.

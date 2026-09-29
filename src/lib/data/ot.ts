@@ -221,17 +221,19 @@ export async function generarOtMaquina(input: NuevaOtMaquinaInput): Promise<stri
 }
 
 /**
- * OT de conjunto o de pieza sueltas (Release 2, paquete 6 — pedido de
- * Horacio: "que se puedan generar OT tanto de conjuntos y de piezas, no
- * solo OT de máquina"). Decisión de diseño, no confirmada con Julián (ver
- * docs/05-backlog-release-2.md §9): la OT suelta siempre cuelga de una OT de
- * máquina YA EXISTENTE — no es un tipo de orden independiente. Se eligió así
- * porque preserva la trazabilidad por máquina que el propio proyecto se
- * propone (docs/01-analisis.md §5.1: "el sistema va a ser la única fuente de
- * trazabilidad de máquinas que quedan en servicio 8+ años") sin tocar el
- * esquema de códigos ni requerir una tabla nueva. Límite conocido: no cubre
- * una máquina entregada antes de que existiera este sistema, que no tiene
- * fila en `ot_maquina` — queda para cuando surja el caso real.
+ * OT de conjunto o de pieza sueltas, COLGADA DE UNA MÁQUINA YA EXISTENTE
+ * (Release 2, paquete 6 — pedido de Horacio: "que se puedan generar OT tanto
+ * de conjuntos y de piezas, no solo OT de máquina"). Decisión de diseño, no
+ * confirmada con Julián (ver docs/05-backlog-release-2.md §9): preserva la
+ * trazabilidad por máquina que el propio proyecto se propone (docs/01-
+ * análisis.md §5.1) sin tocar el esquema de códigos ni requerir una tabla
+ * nueva. Límite que quedó anotado acá mismo y que la devolución de Release 3
+ * confirmó como caso real ("a veces les compran o necesitan para un
+ * mantenimiento producir sólo un conjunto o una pieza para un cliente", sin
+ * que eso sea parte de ninguna máquina ya registrada): ver
+ * `generarOrdenSuelta` más abajo, que cubre justamente esa otra situación
+ * creando su propia fila en `ot_maquina` (con `tipo = "suelta"`) en vez de
+ * reutilizar una existente.
  *
  * A nivel de conjunto no hace falta "crear" nada: `generarOtMaquina` ya
  * inserta una fila en `ot_conjunto` para TODOS los conjuntos del modelo, no
@@ -241,6 +243,104 @@ export async function generarOtMaquina(input: NuevaOtMaquinaInput): Promise<stri
  * volver a correr la explosión de piezas sobre ese `ot_conjunto` ya
  * existente, no crear uno nuevo.
  */
+
+export type NuevaOrdenSueltaInput = {
+  configuracionId: string;
+  referencia: string; // reemplaza al número de serie — texto libre (ej. "Repuesto — Cliente X")
+  clienteId: string;
+  ordenCompra?: string;
+  plazoEntrega?: string;
+  emitidoPor: string;
+} & ({ tipo: "conjunto"; conjuntoId: string } | { tipo: "pieza"; piezaId: string; cantidad: number });
+
+/**
+ * Orden suelta INDEPENDIENTE: un conjunto completo o una pieza puntual para
+ * un cliente, sin fabricar ninguna máquina (Release 3, devolución del
+ * cliente — ver el comentario de arriba). Sigue creando una fila en
+ * `ot_maquina` para no duplicar el esquema de códigos ni el cálculo de
+ * estado (`getEstadoYOperacionActual` ya sabe leer cualquier `ot_pieza` sin
+ * importar de qué cuelga), pero con `tipo = "suelta"` y prefijo de código
+ * "OTS" en vez de "OTM" — para que no se confunda con una máquina real en
+ * ningún listado ni remito. `numeroSerie` pasa a ser la referencia libre que
+ * cargó quien la pidió.
+ */
+export async function generarOrdenSuelta(input: NuevaOrdenSueltaInput): Promise<string> {
+  const configuracionData = await getConfiguracion(input.configuracionId);
+  if (!configuracionData) throw new Error("Configuración inválida");
+
+  const codigoOrden = `OTS${input.referencia}`;
+  const [existente] = await db.select({ id: otMaquina.id }).from(otMaquina).where(eq(otMaquina.codigo, codigoOrden));
+  if (existente) throw new Error(`Ya existe una orden suelta con la referencia "${input.referencia}" (${codigoOrden})`);
+
+  const conjuntoId = input.tipo === "conjunto" ? input.conjuntoId : undefined;
+  const piezasConfig = await getPiezasPorConfiguracion(input.configuracionId);
+  const piezaSuelta = input.tipo === "pieza" ? piezasConfig.find((p) => p.id === input.piezaId) : undefined;
+  if (input.tipo === "pieza" && !piezaSuelta) throw new Error("Esa pieza no aplica a la máquina elegida.");
+  const conjuntoIdFinal = conjuntoId ?? piezaSuelta!.conjuntoId;
+
+  const [nuevaOt] = await db
+    .insert(otMaquina)
+    .values({
+      codigo: codigoOrden,
+      tipo: "suelta",
+      numeroSerie: input.referencia,
+      configuracionId: configuracionData.id,
+      clienteId: input.clienteId,
+      ordenCompra: input.ordenCompra,
+      emitidoPor: input.emitidoPor,
+      fechaEmision: new Date(),
+      plazoEntrega: input.plazoEntrega,
+      estado: "pendiente",
+    })
+    .returning();
+
+  const [nuevoConjunto] = await db
+    .insert(otConjunto)
+    .values({
+      codigo: `${codigoOrden}C01`,
+      otMaquinaId: nuevaOt.id,
+      conjuntoId: conjuntoIdFinal,
+      estado: "pendiente",
+    })
+    .returning();
+
+  if (input.tipo === "pieza") {
+    const stockDisponible = await getStockDisponible(piezaSuelta!.id);
+    await db.insert(otPieza).values({
+      codigo: `${nuevoConjunto.codigo}P1`,
+      otConjuntoId: nuevoConjunto.id,
+      piezaId: piezaSuelta!.id,
+      material: piezaSuelta!.material,
+      cantidadNecesaria: input.cantidad,
+      stockAlGenerar: stockDisponible,
+      cantidadAFabricar: input.cantidad,
+      estado: "pendiente",
+    });
+  } else {
+    const piezasDelConjunto = piezasConfig.filter((p) => p.conjuntoId === conjuntoIdFinal);
+    const piezasAInsertar: (typeof otPieza.$inferInsert)[] = [];
+    let seq = 0;
+    for (const pieza of piezasDelConjunto) {
+      const stockDisponible = await getStockDisponible(pieza.id);
+      const propuesta = Math.max(pieza.cantidadNecesaria - stockDisponible, 0);
+      if (propuesta <= 0) continue;
+      seq += 1;
+      piezasAInsertar.push({
+        codigo: `${nuevoConjunto.codigo}P${seq}`,
+        otConjuntoId: nuevoConjunto.id,
+        piezaId: pieza.id,
+        material: pieza.material,
+        cantidadNecesaria: pieza.cantidadNecesaria,
+        stockAlGenerar: stockDisponible,
+        cantidadAFabricar: propuesta,
+        estado: "pendiente",
+      });
+    }
+    if (piezasAInsertar.length) await db.insert(otPieza).values(piezasAInsertar);
+  }
+
+  return nuevaOt.id;
+}
 
 /**
  * Vuelve a correr la explosión de piezas de un conjunto que quedó sin

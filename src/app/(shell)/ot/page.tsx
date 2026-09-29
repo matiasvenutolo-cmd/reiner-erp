@@ -18,7 +18,7 @@ export default async function OtPage() {
           href="/ot/nueva"
           className="bg-accent text-accent-foreground text-sm font-medium px-4 py-2 rounded-md hover:opacity-90"
         >
-          + Generar OT de máquina
+          + Generar orden
         </Link>
       </div>
 
@@ -46,10 +46,17 @@ export default async function OtPage() {
               {ordenes.map((ot) => (
                 <tr key={ot.id} className="border-t border-border hover:bg-surface-muted/50">
                   <td className="px-4 py-2.5">
-                    <Link href={`/ot/${ot.id}`} className="font-mono text-xs text-accent hover:underline font-semibold">
-                      {ot.codigo}
-                    </Link>
-                    <div className="text-xs text-foreground-muted">Serie {ot.numeroSerie}</div>
+                    <div className="flex items-center gap-1.5">
+                      <Link href={`/ot/${ot.id}`} className="font-mono text-xs text-accent hover:underline font-semibold">
+                        {ot.codigo}
+                      </Link>
+                      {ot.tipo === "suelta" && (
+                        <span className="badge-estado bg-surface-muted text-foreground-muted">Suelta</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-foreground-muted">
+                      {ot.tipo === "suelta" ? ot.numeroSerie : `Serie ${ot.numeroSerie}`}
+                    </div>
                   </td>
                   <td className="px-4 py-2.5">{ot.configuracion?.nombre ?? "—"}</td>
                   <td className="px-4 py-2.5">{ot.clienteNombre ?? "—"}</td>
