@@ -826,3 +826,70 @@ saber cuánto me cuesta esto a fin de cuentas."*
   confirmado que el botón Iniciar de la tercera queda deshabilitado mientras la segunda
   corre — todo revertido después (subtareas, tarea de revisión, registro de ejecución y
   contadores de la OT de pieza).
+
+**✅ Paquete extra 12 — Operario ↔ centro de trabajo: de varios a varios (2026-09-30).**
+Devolución del cliente (2ª ronda, pregunta 4 de Fase 2): *"un operario puede ocupar dos
+puestos, un puesto de trabajo puede ser ocupado por dos operarios también."* El modelo
+original asumía 1 a 1 (`usuario.centroTrabajoId`, FK único) — quedaba anotado en el
+propio comentario del código como una asunción de arranque.
+
+- `usuario.centroTrabajoId` reemplazado por una tabla puente `usuario_centro_trabajo`
+  (PK compuesta usuarioId+centroTrabajoId). Migración en 3 pasos sobre la base ya
+  sembrada: tabla nueva (aditivo) → migrar el único dato real que había (Nico → Torno)
+  → recién ahí borrar la columna vieja. Sin ambigüedad de rename en ningún paso.
+  `getCentrosDeUsuario`/`getCentrosDeUsuariosBatch`/`asignarCentrosTrabajo` nuevas en
+  `produccion.ts`.
+- `/usuarios`: el `<select>` de uno solo pasa a una lista de checkboxes compacta detrás
+  de un resumen ("2 centros") — cada click llama la acción directo con la lista completa
+  ya actualizada (no depende de que el DOM de hidden inputs se sincronice a tiempo con
+  un `requestSubmit()`).
+- `/taller`: el filtro de "sólo lo que está en mi centro" pasa de `===` a
+  pertenencia a un conjunto — sin centros asignados, el operario sigue viendo todo
+  (comportamiento sin cambios).
+- **De paso, arreglada la pregunta abierta del backlog (§17)** sobre Planificación: una
+  pieza asignada para HOY ahora se ve igual aunque su etapa actual esté en otro centro —
+  antes el filtro de centro la tapaba silenciosamente incluso habiendo una asignación
+  explícita, que es justo lo que había quedado sin resolver.
+- Probado en el navegador de punta a punta con los dos roles reales: desde `/usuarios`
+  (Horacio) se le agregó "Corte por hilo" a Nico (que ya tenía "Torno" migrado),
+  confirmado "2 centros" tras recargar; logueado como Nico, `/taller` mostró 5 piezas —
+  confirmado por consulta directa que las 5 estaban en su paso actual de Corte por hilo
+  (no Torno), probando que el OR entre centros funciona. Sacado "Corte por hilo" de
+  nuevo (vuelta al estado migrado original, sólo Torno): `/taller` pasó a mostrar "No hay
+  piezas pendientes" — Torno no tiene nada disponible ahora mismo, confirmando que el
+  filtro no cae en "mostrar todo" por error.
+
+**✅ Paquete extra 13 — Centros de trabajo reales del cliente (2026-09-30).** Devolución
+del cliente (2ª ronda, pregunta 1 de Fase 2): *"los centros de trabajo serían, taller,
+electrónica, corte por hilo, torno, torno cnc, centro de mecanizado."* Su lista es más
+corta que los procesos internos que ya existían (~19), así que antes de tocar nada se
+comparó con el comentario original de la migración (`scripts/lib/normalizacion.ts`):
+*"CENTRO CNC / TORNO CNC son máquinas distintas del 'CNC'/'Torno' genérico... hasta
+confirmar con Julián si ameritan distinguirse"* — la respuesta confirma que sí son
+distintos, pero **no aclara si "Torno CNC" o "Centro de mecanizado" del cliente SON
+alguno de los centros ya existentes con nombre parecido (`CNC`="Centro CNC",
+`MECANIZADO`="Mecanizado") o son un tercer concepto**. Terminología real de taller
+("Torno CNC" = torno con control numérico, "Centro de mecanizado" = fresadora CNC) hace
+plausibles varias lecturas distintas, así que no se adivinó:
+
+- Se agregaron **tres centros/procesos nuevos** (aditivo, nada renombrado ni borrado):
+  `TORNO_CNC` ("Torno CNC"), `CENTRO_MECANIZADO` ("Centro de mecanizado") y
+  `ELECTRONICA` ("Electrónica" — no existía ningún concepto parecido antes). Los ~19
+  centros que ya existían (incluidos "Centro CNC" y "Mecanizado") quedaron intactos.
+  `procesos.json` actualizado y `scripts/seed-db.ts` re-corrido (idempotente,
+  `onConflictDoNothing`) para sembrarlos en la base ya viva sin tocar el resto.
+  `NOMBRE_PROCESO`/`ORDEN_FLUJO` en `normalizacion.ts` actualizados para que una futura
+  re-migración del Excel los reconozca.
+- Quedan vacíos (sin ninguna operación ruteada) hasta que ingeniería los empiece a usar
+  — ahora aparecen como opción en "Agregar operación" de la hoja de ruta editable de
+  Maestros (paquete extra 8).
+- **Pregunta para la próxima reunión**: ¿"Torno CNC" y "Centro de mecanizado" son estos
+  centros nuevos y vacíos, o en realidad son los ya existentes "Centro CNC"/"Mecanizado"
+  con otro nombre? Si es lo segundo, hay que fusionar en vez de dejarlos como conceptos
+  separados — y de paso hacen falta las piezas actuales para saber qué operaciones
+  reasignar.
+- Probado en el navegador: confirmado que los tres aparecen en el selector de "Agregar
+  operación" de Maestros, con ids e ítems distintos de `CNC`/`MECANIZADO`; `/centros-
+  trabajo` sigue mostrando los mismos 12 centros con trabajo real que antes (los tres
+  nuevos no tienen nada ruteado todavía, así que no aparecen ahí — mismo comportamiento
+  que cualquier centro sin cola).

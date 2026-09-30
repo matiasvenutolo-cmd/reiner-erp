@@ -28,10 +28,24 @@
     "tipo": "interno"
   },
   {
+    "id": "TORNO_CNC",
+    "codigo": "TORNO_CNC",
+    "nombre": "Torno CNC",
+    "ordenFlujo": 35,
+    "tipo": "interno"
+  },
+  {
     "id": "CNC",
     "codigo": "CNC",
     "nombre": "Centro CNC",
     "ordenFlujo": 40,
+    "tipo": "interno"
+  },
+  {
+    "id": "CENTRO_MECANIZADO",
+    "codigo": "CENTRO_MECANIZADO",
+    "nombre": "Centro de mecanizado",
+    "ordenFlujo": 45,
     "tipo": "interno"
   },
   {
@@ -158,6 +172,13 @@
     "codigo": "PINTURA",
     "nombre": "Pintura",
     "ordenFlujo": 170,
+    "tipo": "interno"
+  },
+  {
+    "id": "ELECTRONICA",
+    "codigo": "ELECTRONICA",
+    "nombre": "Electrónica",
+    "ordenFlujo": 175,
     "tipo": "interno"
   },
   {
