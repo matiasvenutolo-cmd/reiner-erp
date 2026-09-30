@@ -22,7 +22,6 @@ import {
   date,
   primaryKey,
   pgEnum,
-  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 const id = () =>
@@ -114,10 +113,6 @@ export const usuario = pgTable("usuario", {
   passwordHash: text("password_hash"),
   rol: rolUsuarioEnum("rol").notNull(),
   activo: boolean("activo").notNull().default(true),
-  // Dónde está parado hoy (Release 2, pedido de Horacio en taller): filtra la
-  // cola de /taller a las piezas cuya operación actual cae en ese centro. Sin
-  // asignar, el operario sigue viendo todas las piezas (comportamiento previo).
-  centroTrabajoId: text("centro_trabajo_id").references((): AnyPgColumn => centroTrabajo.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -198,6 +193,25 @@ export const centroTrabajo = pgTable("centro_trabajo", {
   nombre: text("nombre").notNull(),
   orden: integer("orden").notNull().default(0),
 });
+
+/**
+ * Reemplaza `usuario.centroTrabajoId` (FK único) — devolución del cliente
+ * (2ª ronda, pregunta 4 de Fase 2): "un operario puede ocupar dos puestos,
+ * un puesto de trabajo puede ser ocupado por dos operarios también". No es
+ * 1 a 1 como asumía el modelo original; es de varios a varios.
+ */
+export const usuarioCentroTrabajo = pgTable(
+  "usuario_centro_trabajo",
+  {
+    usuarioId: text("usuario_id")
+      .notNull()
+      .references(() => usuario.id),
+    centroTrabajoId: text("centro_trabajo_id")
+      .notNull()
+      .references(() => centroTrabajo.id),
+  },
+  (t) => [primaryKey({ columns: [t.usuarioId, t.centroTrabajoId] })],
+);
 
 export const proceso = pgTable("proceso", {
   id: text("id").primaryKey(), // código normalizado, ej. "CNC" (ver hallazgo 3.5)

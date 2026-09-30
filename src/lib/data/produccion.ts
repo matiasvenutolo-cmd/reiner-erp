@@ -15,6 +15,7 @@ import { asc, eq, and, inArray, isNotNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   centroTrabajo,
+  usuarioCentroTrabajo,
   otPieza,
   otConjunto,
   otMaquina,
@@ -34,6 +35,53 @@ export async function getCentrosTrabajo(): Promise<CentroTrabajo[]> {
 export async function getCentroTrabajo(id: string): Promise<CentroTrabajo | undefined> {
   const [row] = await db.select().from(centroTrabajo).where(eq(centroTrabajo.id, id));
   return row;
+}
+
+/**
+ * Centros de trabajo de un operario — reemplaza el viejo `usuario.centroTrabajoId`
+ * (FK único). Devolución del cliente (2ª ronda, pregunta 4 de Fase 2): "un
+ * operario puede ocupar dos puestos, un puesto de trabajo puede ser ocupado
+ * por dos operarios también" — de varios a varios, no 1 a 1.
+ */
+export async function getCentrosDeUsuario(usuarioId: string): Promise<CentroTrabajo[]> {
+  const rows = await db
+    .select({ centro: centroTrabajo })
+    .from(usuarioCentroTrabajo)
+    .innerJoin(centroTrabajo, eq(centroTrabajo.id, usuarioCentroTrabajo.centroTrabajoId))
+    .where(eq(usuarioCentroTrabajo.usuarioId, usuarioId))
+    .orderBy(asc(centroTrabajo.orden));
+  return rows.map((r) => r.centro);
+}
+
+/** Batcheado para pantallas con varios usuarios a la vez (ej. /usuarios) — evita N+1. */
+export async function getCentrosDeUsuariosBatch(usuarioIds: string[]): Promise<Map<string, CentroTrabajo[]>> {
+  const resultado = new Map<string, CentroTrabajo[]>();
+  if (usuarioIds.length === 0) return resultado;
+  const rows = await db
+    .select({ usuarioId: usuarioCentroTrabajo.usuarioId, centro: centroTrabajo })
+    .from(usuarioCentroTrabajo)
+    .innerJoin(centroTrabajo, eq(centroTrabajo.id, usuarioCentroTrabajo.centroTrabajoId))
+    .where(inArray(usuarioCentroTrabajo.usuarioId, usuarioIds))
+    .orderBy(asc(centroTrabajo.orden));
+  for (const r of rows) {
+    const arr = resultado.get(r.usuarioId) ?? [];
+    arr.push(r.centro);
+    resultado.set(r.usuarioId, arr);
+  }
+  return resultado;
+}
+
+/** Reemplaza el conjunto completo de centros asignados a un operario — la
+ * pantalla de /usuarios manda siempre la lista final marcada, no altas/bajas
+ * puntuales, así que "borrar todo e insertar de nuevo" es más simple y
+ * correcto que diffear. */
+export async function asignarCentrosTrabajo(usuarioId: string, centroTrabajoIds: string[]): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.delete(usuarioCentroTrabajo).where(eq(usuarioCentroTrabajo.usuarioId, usuarioId));
+    if (centroTrabajoIds.length > 0) {
+      await tx.insert(usuarioCentroTrabajo).values(centroTrabajoIds.map((centroTrabajoId) => ({ usuarioId, centroTrabajoId })));
+    }
+  });
 }
 
 export type ItemCola = {

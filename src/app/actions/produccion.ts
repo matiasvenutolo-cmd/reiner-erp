@@ -1,11 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
 import { getUsuarioActual } from "@/lib/session";
-import { reordenarCola } from "@/lib/data/produccion";
-import { db } from "@/lib/db/client";
-import { usuario } from "@/lib/db/schema";
+import { reordenarCola, asignarCentrosTrabajo } from "@/lib/data/produccion";
 
 /** Reordena la cola de "disponible ahora" de un centro a partir de un
  * arrastre en la UI (Release 3 — reemplaza las flechas de subir/bajar de
@@ -18,12 +15,18 @@ export async function reordenarColaAction(centroTrabajoId: string, ordenOtPiezaI
   revalidatePath("/centros-trabajo");
 }
 
-/** Asigna a qué centro de trabajo está "parado" un operario (docs/05-backlog-release-2.md §5). */
+/**
+ * Asigna a qué centro(s) de trabajo está "parado" un operario (docs/05-
+ * backlog-release-2.md §5) — de varios a varios desde la 2ª ronda de
+ * devolución de Fase 2 (pregunta 4): "un operario puede ocupar dos puestos,
+ * un puesto de trabajo puede ser ocupado por dos operarios también". Manda
+ * siempre la lista final completa (reemplaza, no suma/resta).
+ */
 export async function asignarCentroTrabajoAction(formData: FormData) {
   await getUsuarioActual();
   const usuarioId = String(formData.get("usuarioId") ?? "");
-  const centroTrabajoId = String(formData.get("centroTrabajoId") ?? "") || null;
+  const centroTrabajoIds = formData.getAll("centroTrabajoId").map(String).filter(Boolean);
   if (!usuarioId) throw new Error("Falta el usuario.");
-  await db.update(usuario).set({ centroTrabajoId, updatedAt: new Date() }).where(eq(usuario.id, usuarioId));
+  await asignarCentrosTrabajo(usuarioId, centroTrabajoIds);
   revalidatePath("/usuarios");
 }

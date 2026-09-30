@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUsuarioActual } from "@/lib/session";
 import { getUsuarios } from "@/lib/data/usuarios";
-import { getCentrosTrabajo } from "@/lib/data/produccion";
+import { getCentrosTrabajo, getCentrosDeUsuariosBatch } from "@/lib/data/produccion";
 import { RolSelect } from "@/components/RolSelect";
 import { CentroTrabajoSelect } from "@/components/CentroTrabajoSelect";
 import {
@@ -10,7 +10,6 @@ import {
   alternarActivoAction,
   restablecerCredencialAction,
 } from "@/app/actions/usuarios";
-import { asignarCentroTrabajoAction } from "@/app/actions/produccion";
 
 const ROL_LABEL: Record<string, string> = {
   operario: "Operario",
@@ -24,6 +23,7 @@ export default async function UsuariosPage() {
   if (actual.rol === "operario") redirect("/taller");
 
   const [usuarios, centros] = await Promise.all([getUsuarios(), getCentrosTrabajo()]);
+  const centrosPorUsuario = await getCentrosDeUsuariosBatch(usuarios.map((u) => u.id));
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -42,7 +42,7 @@ export default async function UsuariosPage() {
               <th className="text-left px-4 py-2 font-medium">Rol</th>
               <th className="text-left px-4 py-2 font-medium">Email</th>
               <th className="text-left px-4 py-2 font-medium">Estado</th>
-              <th className="text-left px-4 py-2 font-medium">Centro de trabajo</th>
+              <th className="text-left px-4 py-2 font-medium">Centros de trabajo</th>
               <th className="text-left px-4 py-2 font-medium">Restablecer clave/PIN</th>
             </tr>
           </thead>
@@ -71,10 +71,11 @@ export default async function UsuariosPage() {
                 </td>
                 <td className="px-4 py-2.5">
                   {u.rol === "operario" ? (
-                    <form action={asignarCentroTrabajoAction}>
-                      <input type="hidden" name="usuarioId" value={u.id} />
-                      <CentroTrabajoSelect centros={centros} centroTrabajoId={u.centroTrabajoId} />
-                    </form>
+                    <CentroTrabajoSelect
+                      usuarioId={u.id}
+                      centros={centros}
+                      centroTrabajoIds={(centrosPorUsuario.get(u.id) ?? []).map((c) => c.id)}
+                    />
                   ) : (
                     <span className="text-foreground-muted">—</span>
                   )}

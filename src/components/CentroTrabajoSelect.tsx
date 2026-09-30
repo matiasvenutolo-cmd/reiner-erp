@@ -1,30 +1,57 @@
 "use client";
 
+import { useState } from "react";
+import { asignarCentroTrabajoAction } from "@/app/actions/produccion";
 import type { CentroTrabajo } from "@/lib/db/schema";
 
-/** Select de centro de trabajo con auto-submit — usado en /usuarios para que
- * un operario quede "parado" en un centro y así filtrar su cola en /taller
- * (docs/05-backlog-release-2.md §5). */
+/**
+ * Centros de trabajo de un operario — de varios a varios (Release 3, 2ª
+ * ronda de devolución de Fase 2: "un operario puede ocupar dos puestos, un
+ * puesto de trabajo puede ser ocupado por dos operarios también"). Antes un
+ * `<select>` de uno solo; ahora una lista de checkboxes compacta detrás de
+ * un `<details>` para no romper el ancho de la fila en /usuarios. Cada
+ * click llama a la acción directo con la lista completa ya actualizada, sin
+ * depender de que el DOM de los hidden inputs se sincronice a tiempo con un
+ * `requestSubmit()`.
+ */
 export function CentroTrabajoSelect({
+  usuarioId,
   centros,
-  centroTrabajoId,
+  centroTrabajoIds,
 }: {
+  usuarioId: string;
   centros: CentroTrabajo[];
-  centroTrabajoId: string | null;
+  centroTrabajoIds: string[];
 }) {
+  const [seleccionados, setSeleccionados] = useState(new Set(centroTrabajoIds));
+
+  async function toggle(id: string) {
+    const siguiente = new Set(seleccionados);
+    if (siguiente.has(id)) siguiente.delete(id);
+    else siguiente.add(id);
+    setSeleccionados(siguiente);
+
+    const formData = new FormData();
+    formData.set("usuarioId", usuarioId);
+    for (const centroId of siguiente) formData.append("centroTrabajoId", centroId);
+    await asignarCentroTrabajoAction(formData);
+  }
+
+  const resumen = seleccionados.size === 0 ? "Sin asignar (ve todo)" : `${seleccionados.size} centro${seleccionados.size === 1 ? "" : "s"}`;
+
   return (
-    <select
-      name="centroTrabajoId"
-      defaultValue={centroTrabajoId ?? ""}
-      onChange={(e) => e.currentTarget.form?.requestSubmit()}
-      className="text-sm border border-border rounded-md px-1.5 py-1 bg-surface max-w-[11rem]"
-    >
-      <option value="">Sin asignar (ve todo)</option>
-      {centros.map((c) => (
-        <option key={c.id} value={c.id}>
-          {c.nombre}
-        </option>
-      ))}
-    </select>
+    <details className="text-sm">
+      <summary className="cursor-pointer border border-border rounded-md px-1.5 py-1 bg-surface-muted max-w-[11rem] truncate list-none">
+        {resumen}
+      </summary>
+      <div className="mt-1 bg-surface-muted rounded-md p-2 space-y-1 max-h-40 overflow-y-auto w-48">
+        {centros.map((c) => (
+          <label key={c.id} className="flex items-center gap-1.5 text-xs hover:bg-surface rounded px-1 py-0.5 cursor-pointer">
+            <input type="checkbox" checked={seleccionados.has(c.id)} onChange={() => toggle(c.id)} />
+            {c.nombre}
+          </label>
+        ))}
+      </div>
+    </details>
   );
 }

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getUsuarioActual } from "@/lib/session";
 import { getOperacionAbierta } from "@/lib/data/ejecucion";
 import { getPieza, getConjunto } from "@/lib/data/maestros";
+import { getCentrosDeUsuario } from "@/lib/data/produccion";
 import { getEstadoYOperacionActual, listarTodasLasOtPieza } from "@/lib/data/ot";
 import { getAsignacionesDeHoy } from "@/lib/data/planificacion";
 
@@ -11,18 +12,32 @@ export default async function TallerPage() {
   const abierta = await getOperacionAbierta(usuario.id);
   if (abierta) redirect(`/taller/${abierta.otPiezaId}`);
 
-  const [todasLasOtPieza, asignadasHoy] = await Promise.all([listarTodasLasOtPieza(), getAsignacionesDeHoy(usuario.id)]);
+  const [todasLasOtPieza, asignadasHoy, centrosDelUsuario] = await Promise.all([
+    listarTodasLasOtPieza(),
+    getAsignacionesDeHoy(usuario.id),
+    getCentrosDeUsuario(usuario.id),
+  ]);
   const otPiezaIdsAsignadosHoy = new Set(asignadasHoy.map((a) => a.otPiezaId));
+  const centroIdsDelUsuario = new Set(centrosDelUsuario.map((c) => c.id));
   const candidatas = await Promise.all(
     todasLasOtPieza.map(async (otPieza) => {
       const { estado, sinRouting, operacionActual, routing } = await getEstadoYOperacionActual(otPieza);
       if (estado === "terminada") return null;
-      // Filtro por centro de trabajo (Release 2, pedido de Horacio en taller,
-      // docs/05-backlog-release-2.md §5): sin centro asignado el operario ve
-      // todo, como antes. Con centro asignado, sólo lo que está en su centro
+      // Filtro por centro de trabajo (Release 2, pedido de Horacio en
+      // taller, docs/05-backlog-release-2.md §5): sin centros asignados el
+      // operario ve todo, como antes. Con uno o más centros asignados
+      // (de varios a varios desde la 2ª ronda de Fase 2 — un operario puede
+      // ocupar dos puestos), sólo lo que está en alguno de sus centros
       // ahora mismo — no lo que va a llegar más adelante (eso se ve en
       // /centros-trabajo, pensado para producción, no para el operario).
-      if (usuario.centroTrabajoId && operacionActual?.proceso.centroTrabajoId !== usuario.centroTrabajoId) {
+      //
+      // Excepción: si Planificación le asignó esta pieza puntual para HOY,
+      // se ve igual aunque esté en otro centro — el filtro de centro es la
+      // regla por defecto, no algo que deba tapar una asignación explícita
+      // de hoy (antes la tapaba, era la pregunta abierta del backlog §17).
+      const asignadaHoy = otPiezaIdsAsignadosHoy.has(otPieza.id);
+      const centroActual = operacionActual?.proceso.centroTrabajoId ?? null;
+      if (!asignadaHoy && centroIdsDelUsuario.size > 0 && (!centroActual || !centroIdsDelUsuario.has(centroActual))) {
         return null;
       }
       const pieza = await getPieza(otPieza.piezaId);
