@@ -69,6 +69,12 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
           <EstadoBadge estado={estado} sinRouting={sinRouting} />
           {asignacion && <AsignacionBadge asignacion={asignacion} />}
           <Link
+            href={`/ot/${id}/pieza/${otPieza.id}/imprimir`}
+            className="border border-border text-sm font-medium px-3 py-2 rounded-md hover:bg-surface-muted"
+          >
+            Imprimir OT
+          </Link>
+          <Link
             href={`/taller/${otPieza.id}`}
             className="bg-accent text-accent-foreground text-sm font-medium px-3 py-2 rounded-md hover:opacity-90"
           >

@@ -28,24 +28,10 @@
     "tipo": "interno"
   },
   {
-    "id": "TORNO_CNC",
-    "codigo": "TORNO_CNC",
-    "nombre": "Torno CNC",
-    "ordenFlujo": 35,
-    "tipo": "interno"
-  },
-  {
     "id": "CNC",
     "codigo": "CNC",
-    "nombre": "Centro CNC",
+    "nombre": "Centro de mecanizado CNC",
     "ordenFlujo": 40,
-    "tipo": "interno"
-  },
-  {
-    "id": "CENTRO_MECANIZADO",
-    "codigo": "CENTRO_MECANIZADO",
-    "nombre": "Centro de mecanizado",
-    "ordenFlujo": 45,
     "tipo": "interno"
   },
   {

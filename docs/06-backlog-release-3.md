@@ -893,3 +893,44 @@ plausibles varias lecturas distintas, así que no se adivinó:
   trabajo` sigue mostrando los mismos 12 centros con trabajo real que antes (los tres
   nuevos no tienen nada ruteado todavía, así que no aparecen ahí — mismo comportamiento
   que cualquier centro sin cola).
+
+**✅ Paquete extra 14 — Resolución de centros CNC + export de OT de pieza (2026-09-30).**
+El cliente contestó la pregunta que había quedado abierta en el paquete 13, y de paso
+mandó una foto de la "OT de pieza" real en papel que usa taller, pidiendo poder
+exportarla desde el sistema.
+
+- **Centros CNC**: la respuesta ("Torno" / "Centro de mecanizado CNC") confirma que son
+  sólo dos máquinas, no tres — así que los dos centros vacíos agregados en el paquete 13
+  (`TORNO_CNC`, `CENTRO_MECANIZADO`) se borraron (no tenían ninguna operación ruteada
+  todavía, confirmado antes de borrar) y el `CNC` existente (que sí tiene 122 operaciones
+  reales cargadas, antes "Centro CNC") se renombró directamente a "Centro de mecanizado
+  CNC". `MECANIZADO` ("Mecanizado", el de Fierro/CS-03) no se tocó — el cliente no lo
+  nombró y tiene datos reales propios. Aplicado en la base viva (updates/deletes
+  puntuales, sin duplicar) y en `procesos.json`/`normalizacion.ts` para que una
+  re-siembra futura quede consistente. Probado en `/centros-trabajo`: "Centro de
+  mecanizado CNC" muestra el mismo trabajo real que antes tenía "Centro CNC" (1 ahora,
+  122 a futuro), sin los dos centros vacíos.
+- **Export de OT de pieza**: nueva pantalla `/ot/[id]/pieza/[otPiezaId]/imprimir`
+  (botón "Imprimir OT" en la ficha de la pieza), que reproduce el papel que hoy llena
+  taller a mano — mismo layout, usando `window.print()` como ya se hacía para el remito
+  (`ImprimirButton`, mismo patrón). Se completan con datos reales todos los campos que el
+  sistema ya tiene: pieza, conjunto, cliente, OTC, Nº de orden de compra del cliente
+  (`otMaquina.ordenCompra`, que resuelve de paso la pregunta 9 de Fase 2), hoja de ruta
+  con operario y tiempo real por paso (de `registro_operacion`), tipo y tiempo de
+  paradas, y los 4 contadores de piezas OK/NO OK/defectuosas/retrabajadas. Los campos que
+  el papel trae pero el sistema no modela todavía (Armado de máquina, Fabricación/
+  dimensiones, medidas toleradas y no toleradas, Relevo, Firma) se imprimen en blanco
+  para completar a mano, igual que en el original — no son datos inventados, son huecos
+  reales del formulario que ingeniería/calidad sigue llenando a mano.
+  - `getContextoOtPieza` nueva en `data/ot.ts` (resuelve otConjunto → otMaquina →
+    cliente desde una OT de pieza).
+  - **Pendiente para la próxima reunión**: "COD HS PROD CNC/TORNO/HILO/TALLER" en el
+    papel original parece un costo/tarifa por hora por centro — si lo es, es exactamente
+    el dato que falta para los Indicadores de costo (paquete pendiente desde la primera
+    ronda). Vale la pena preguntarle al cliente qué son esos códigos antes de modelarlos,
+    en vez de adivinar.
+- Probado en el navegador con datos reales: `OTM999C16P2` (sin historial) imprime todos
+  los campos en blanco correctamente; `OTM12C01P12` (con historial real) muestra "Nico"
+  y "0 min" en el paso de Torno, "Centro de mecanizado CNC" como paso 2, y "015" como
+  orden de compra del cliente — confirmando que el merge de centros y el export leen el
+  mismo dato real sin duplicar ni inventar nada.

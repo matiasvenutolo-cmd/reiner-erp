@@ -587,6 +587,24 @@ export async function getOtPieza(id: string): Promise<OtPieza | null> {
   return row ?? null;
 }
 
+/** OT máquina + cliente detrás de una OT de pieza — usado para la impresión
+ * de la OT de pieza (docs/06-backlog-release-3.md §20): el papel que usa
+ * taller hoy trae el cliente y el Nº de orden de compra a nivel de la
+ * máquina, no de la pieza. */
+export async function getContextoOtPieza(otPiezaId: string) {
+  const piezaRow = await getOtPieza(otPiezaId);
+  if (!piezaRow) return null;
+  const [conjuntoRow] = await db.select().from(otConjunto).where(eq(otConjunto.id, piezaRow.otConjuntoId));
+  if (!conjuntoRow) return null;
+  const [row] = await db
+    .select({ otMaquina, clienteNombre: cliente.razonSocial })
+    .from(otMaquina)
+    .leftJoin(cliente, eq(cliente.id, otMaquina.clienteId))
+    .where(eq(otMaquina.id, conjuntoRow.otMaquinaId));
+  if (!row) return null;
+  return { otConjunto: conjuntoRow, otMaquina: row.otMaquina, clienteNombre: row.clienteNombre };
+}
+
 export async function actualizarCantidadAFabricar(otPiezaId: string, cantidad: number): Promise<void> {
   await db
     .update(otPieza)

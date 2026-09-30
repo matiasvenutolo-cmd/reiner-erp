@@ -106,20 +106,17 @@ export const COLUMNAS_STOCK_NO_WIP = new Set(["Finalizado"]);
 export const NOMBRE_PROCESO: Record<string, string> = {
   COMPRAS: "Compras",
   TORNO: "Torno",
-  // TORNO_CNC, CNC y CENTRO_MECANIZADO son tres centros DISTINTOS a
-  // propósito (2ª ronda de devolución de Fase 2, pregunta 1): el cliente
-  // confirmó que "Torno CNC" y "Centro de mecanizado" son puestos reales,
-  // separados de "Centro CNC" — quedaba anotado como duda desde la
-  // migración original ("CENTRO CNC / TORNO CNC son máquinas distintas del
-  // 'CNC'/'Torno' genérico... hasta confirmar con Julián"). No se tocó CNC
-  // ni MECANIZADO por las dudas: no hay forma de saber, sin preguntar de
-  // nuevo, si el "Torno CNC"/"Centro de mecanizado" del cliente ES alguno
-  // de los dos que ya existían con un nombre parecido, o si son un tercer
-  // concepto — se agregaron como centros nuevos, vacíos, listos para que
-  // ingeniería empiece a rutear operaciones ahí.
-  TORNO_CNC: "Torno CNC",
-  CNC: "Centro CNC",
-  CENTRO_MECANIZADO: "Centro de mecanizado",
+  // CNC = "Centro de mecanizado CNC" (2ª ronda de devolución de Fase 2,
+  // pregunta 1): el cliente confirmó que las máquinas quedan en sólo dos,
+  // "Torno" y "Centro de mecanizado CNC" — resolviendo la duda abierta desde
+  // la migración original ("CENTRO CNC / TORNO CNC son máquinas distintas
+  // del 'CNC'/'Torno' genérico... hasta confirmar con Julián"). Se habían
+  // agregado "Torno CNC" y "Centro de mecanizado" como centros nuevos y
+  // vacíos por las dudas; al no tener ninguna operación ruteada todavía se
+  // borraron sin riesgo y se renombró este "CNC" directamente. MECANIZADO
+  // (alias de Fierro/CS-03) no se tocó: el cliente no lo nombró y sí tiene
+  // operaciones reales cargadas.
+  CNC: "Centro de mecanizado CNC",
   CORTE_HILO: "Corte por hilo",
   FRESADO: "Fresado",
   ROSCADO: "Roscado",
@@ -154,9 +151,7 @@ export const ORDEN_FLUJO: Record<string, number> = {
   FUNDICION: 10,
   FIERRO: 20,
   TORNO: 30,
-  TORNO_CNC: 35,
   CNC: 40,
-  CENTRO_MECANIZADO: 45,
   CORTE_HILO: 50,
   FRESADO: 60,
   MECANIZADO: 70,
