@@ -108,12 +108,6 @@
     "orden": 17
   },
   {
-    "id": "dosificacion",
-    "codigo": "C19",
-    "nombre": "Dosificacion",
-    "orden": 18
-  },
-  {
     "id": "tolva-carga-forzada",
     "codigo": "C20",
     "nombre": "Tolva Carga Forzada",

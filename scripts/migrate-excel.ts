@@ -24,6 +24,7 @@ import {
   PROCESOS_TERCERIZADOS,
   PROCESOS_COMPRAS,
   COLUMNAS_STOCK_NO_WIP,
+  ALIAS_CONJUNTO,
 } from "./lib/normalizacion";
 import type {
   ModeloFx,
@@ -145,7 +146,7 @@ function main() {
   }
 
   function resolverConjunto(nombreLibre: string): string {
-    const key = slugify(nombreLibre);
+    const key = ALIAS_CONJUNTO[slugify(nombreLibre)] ?? slugify(nombreLibre);
     if (conjuntoPorNombreCanonico.has(key)) return key;
     // No reconciliado con la hoja "Listas": se crea igual (para no perder
     // piezas) pero se registra para que Julián lo confirme.

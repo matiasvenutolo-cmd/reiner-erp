@@ -185,6 +185,16 @@ export const PROCESOS_TERCERIZADOS = new Set(["CROMADO", "PAVONADO", "ANODIZADO"
 export const PROCESOS_COMPRAS = new Set(["COMPRAS"]);
 
 /**
+ * Conjuntos que el Excel nombra distinto pero son el mismo — confirmado por
+ * el cliente (2ª ronda de Fase 2, pregunta 7: "dosificador y dosificación son
+ * lo mismo"). Sin esto la migración crea un conjunto duplicado sin vincular a
+ * ningún modelo y sus piezas quedaban fuera de las OT.
+ */
+export const ALIAS_CONJUNTO: Record<string, string> = {
+  dosificacion: "dosificador",
+};
+
+/**
  * Canoniza un nombre de conjunto (case/acentos) contra la lista maestra de
  * la hoja "Listas". Devuelve el nombre canónico si hay match por
  * normalización simple (trim + minúsculas + sin acentos); si no, devuelve

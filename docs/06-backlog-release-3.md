@@ -1079,13 +1079,22 @@ vuelta a la línea base de 215 / 290 u.).
 16. Generar una OT con una serie repetida tiraba una página de error genérica: ahora
     vuelve al formulario con el mensaje.
 
-**Pendiente de decidir con Matías / el cliente**
-- **Completar las OT existentes** (OTM12, OTM010, OTM009, OTM999) con las 13–16 piezas
-  que les faltan por el bug 3. Cambia sus números de avance, por eso no se hizo solo.
-- **Unificar los conjuntos duplicados** en Maestros: Dosificacion → Dosificador ya está
-  confirmado por el cliente (pregunta 7); Tolva Carga Forzada (C20) vs Tolva de Carga
-  Forzada (C08) y Cargadora por gravedad (C23) vs Carga por Gravedad (C10) parecen el
-  mismo caso pero no están confirmados; Descartador quedó "por ahora así" según el socio.
+**✅ Resuelto después, con el visto bueno de Matías**
+- **OT existentes completadas** con las piezas que les faltaban por el bug 3, con la misma
+  regla que la explosión (lo que cubre el stock libre se reserva, en orden de antigüedad de
+  la OT; el resto se fabrica): OTM12 123→135, OTM010 118→133, OTM009 118→133, OTM999
+  128→138 piezas a fabricar. Los contadores de avance cambian por eso, no por un retroceso.
+- **Dosificacion unificado dentro de Dosificador** (confirmado por el cliente, pregunta 7):
+  las 10 piezas pasaron a Dosificador en Maestros y, en cada OT, sus OT de pieza se
+  movieron al conjunto C05 renumeradas a continuación; el conjunto duplicado se borró.
+  Actualizados `piezas.json`/`conjuntos.json` y un alias en la migración del Excel
+  (`ALIAS_CONJUNTO`) para que una carga desde cero no vuelva a crearlo.
+
+**Para preguntarle al cliente**
+- Tolva Carga Forzada (C20, con piezas) vs Tolva de Carga Forzada (C08, vacío), y
+  Cargadora por gravedad (C23, con piezas) vs Carga por Gravedad (C10, vacío): ¿son el
+  mismo conjunto? Parece que sí, pero no está confirmado. Descartador quedó "por ahora
+  así" según el socio (el cliente dijo que es parte de Canal de Descarga).
 - Alguien está usando el Avance nuevo en producción (OTM999: Cabezal marcado "en curso" y
   una pieza de PreCompresion "terminada" a mano, hoy 10:51 hs) — no se tocó.
 - Los dos errores de lint que quedan (`ColaDisponibleAhora.tsx`, `ConjuntoAccordion.tsx`)
