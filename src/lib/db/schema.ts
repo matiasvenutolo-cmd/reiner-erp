@@ -690,6 +690,10 @@ export const remitoItem = pgTable("remito_item", {
   // cliente, el mismo formulario simple que describió: "pieza, tratamiento,
   // código, destino, cantidad, observaciones".
   tratamiento: text("tratamiento"),
+  // OT de pieza que sale a un proceso tercerizado (piezas en fabricación, no
+  // del almacén): el remito registra el egreso pero no descuenta stock, y
+  // marca que esa pieza ya salió y está esperando volver.
+  otPiezaId: text("ot_pieza_id"),
 });
 
 // Nota: `tiempo_estandar` (RF-08) no es tabla: es una consulta agregada

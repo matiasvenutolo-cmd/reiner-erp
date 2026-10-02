@@ -95,6 +95,11 @@ export async function iniciarOperacion(
       piezasRechazadas: 0,
     })
     .returning();
+  // Primera vez que alguien trabaja la pieza: es su fecha de inicio (la OT impresa la muestra).
+  await db
+    .update(otPieza)
+    .set({ fechaInicio: registro.inicio })
+    .where(and(eq(otPieza.id, input.otPiezaId), isNull(otPieza.fechaInicio)));
   return { ok: true, id: registro.id };
 }
 
@@ -217,4 +222,20 @@ export async function getHistorialOtPieza(otPiezaId: string) {
       paradas: await db.select().from(parada).where(eq(parada.registroOperacionId, r.id)),
     })),
   );
+}
+
+export type ResumenOperacion = { usuarioIds: string[]; duracionSeg: number | null; paradas: Parada[] };
+
+/** Junta todos los registros de cada operación (setup + fabricación, o más de
+ * un turno): antes la ficha mostraba sólo el último y perdía el setup y sus paradas. */
+export function resumirHistorialPorOperacion(historial: Awaited<ReturnType<typeof getHistorialOtPieza>>): Map<string, ResumenOperacion> {
+  const resumen = new Map<string, ResumenOperacion>();
+  for (const { registro, paradas } of historial) {
+    const r = resumen.get(registro.operacionId) ?? { usuarioIds: [], duracionSeg: null, paradas: [] };
+    if (!r.usuarioIds.includes(registro.usuarioId)) r.usuarioIds.push(registro.usuarioId);
+    if (registro.duracionSeg !== null) r.duracionSeg = (r.duracionSeg ?? 0) + registro.duracionSeg;
+    r.paradas.push(...paradas);
+    resumen.set(registro.operacionId, r);
+  }
+  return resumen;
 }

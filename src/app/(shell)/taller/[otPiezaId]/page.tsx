@@ -95,7 +95,7 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
           <div>
             <div className="text-xs text-foreground-muted uppercase tracking-wide">
               {registroAbiertoAqui.tipo === "setup" ? "Setup" : "Fabricación"} · operación{" "}
-              {operacionDelRegistroAbierto.secuencia}
+              {routing.findIndex((op) => op.id === operacionDelRegistroAbierto.id) + 1}
             </div>
             <div className="text-lg font-semibold">{nombreOperacion(operacionDelRegistroAbierto)}</div>
             <div className="text-sm text-foreground-muted">
@@ -167,11 +167,21 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
             </>
           )}
         </div>
+      ) : operacionActual && operacionActual.proceso.tipo !== "interno" ? (
+        <div className="bg-surface border border-border rounded-xl p-5 space-y-1">
+          <div className="text-xs text-foreground-muted uppercase tracking-wide">Operación {posActual + 1}</div>
+          <div className="text-lg font-semibold">{nombreOperacion(operacionActual)}</div>
+          <p className="text-sm text-foreground-muted">
+            {operacionActual.proceso.tipo === "compras"
+              ? "Esperando la compra del material — no hay nada para hacer en taller todavía."
+              : "Es un proceso tercerizado: sale con remito y su vuelta se registra en Tercerizados."}
+          </p>
+        </div>
       ) : operacionActual ? (
         <div className="bg-surface border border-border rounded-xl p-5 space-y-3">
           <div>
             <div className="text-xs text-foreground-muted uppercase tracking-wide">
-              Siguiente · operación {operacionActual.secuencia}
+              Siguiente · operación {posActual + 1}
             </div>
             <div className="text-lg font-semibold">{nombreOperacion(operacionActual)}</div>
             {operacionActual.dispositivoNombre && (
@@ -203,7 +213,7 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
           {routing.map((op, i) => (
             <li key={op.id} className="flex items-center justify-between px-2 py-1">
               <span>
-                {op.secuencia}. {nombreOperacion(op)}
+                {i + 1}. {nombreOperacion(op)}
               </span>
               {i < posActual ? (
                 <span className="text-estado-terminada-fg">✓</span>

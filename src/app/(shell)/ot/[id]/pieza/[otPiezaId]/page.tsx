@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getOtPieza, getEstadoYOperacionActual } from "@/lib/data/ot";
+import { getOtPieza, getEstadoYOperacionActual, getContextoOtPieza } from "@/lib/data/ot";
 import { getPieza, getConjunto, nombreOperacion } from "@/lib/data/maestros";
-import { getHistorialOtPieza, getTiempoEstandar } from "@/lib/data/ejecucion";
+import { getHistorialOtPieza, getTiempoEstandar, resumirHistorialPorOperacion } from "@/lib/data/ejecucion";
+import { formatearDuracion } from "@/lib/formato";
 import { getUsuario } from "@/lib/data/usuarios";
 import { getTareasRevisionDePieza, getItemsTareaRevision } from "@/lib/data/revision";
 import { getAsignacionesVigentesBatch } from "@/lib/data/planificacion";
@@ -16,24 +17,19 @@ import {
 import { EstadoBadge } from "@/components/EstadoBadge";
 import { AsignacionBadge } from "@/components/AsignacionBadge";
 
-function formatearDuracion(seg: number | null): string {
-  if (seg === null) return "—";
-  const min = Math.round(seg / 60);
-  if (min < 60) return `${min} min`;
-  return `${Math.floor(min / 60)}h ${min % 60}min`;
-}
 
 export default async function OtPiezaPage({ params }: { params: Promise<{ id: string; otPiezaId: string }> }) {
   const { id, otPiezaId } = await params;
   const otPieza = await getOtPieza(otPiezaId);
   if (!otPieza) notFound();
 
-  const [pieza, historial, { estado, sinRouting, routing, operacionActual }, tareasRevision, asignaciones] = await Promise.all([
+  const [pieza, historial, { estado, sinRouting, routing, operacionActual }, tareasRevision, asignaciones, contexto] = await Promise.all([
     getPieza(otPieza.piezaId),
     getHistorialOtPieza(otPieza.id),
     getEstadoYOperacionActual(otPieza),
     getTareasRevisionDePieza(otPieza.id),
     getAsignacionesVigentesBatch([otPieza.id]),
+    getContextoOtPieza(otPieza.id),
   ]);
   const asignacion = asignaciones.get(otPieza.id);
   const conjunto = pieza ? await getConjunto(pieza.conjuntoId) : null;
@@ -43,7 +39,7 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
     await Promise.all(revisionPendiente.map(async (t) => [t.id, await getItemsTareaRevision(t.id)] as const)),
   );
 
-  const registrosPorOperacion = new Map(historial.map((h) => [h.registro.operacionId, h]));
+  const resumenPorOperacion = resumirHistorialPorOperacion(historial);
   const tiempos = await Promise.all(
     routing.map(async (op) => ({
       operacionId: op.id,
@@ -58,7 +54,7 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link href={`/ot/${id}`} className="text-sm text-accent hover:underline">
-            ← {id}
+            ← {contexto?.otMaquina.codigo ?? "Orden de trabajo"}
           </Link>
           <h1 className="text-xl font-semibold mt-1 font-mono">{otPieza.codigo}</h1>
           <p className="text-sm text-foreground-muted">
@@ -230,27 +226,27 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
               </thead>
               <tbody>
                 {await Promise.all(
-                  routing.map(async (op) => {
-                    const registro = registrosPorOperacion.get(op.id);
+                  routing.map(async (op, i) => {
+                    const resumen = resumenPorOperacion.get(op.id);
                     const tstd = tiempoPorOp.get(op.id)?.ejecucion;
-                    const operario = registro ? await getUsuario(registro.registro.usuarioId) : null;
+                    const operarios = resumen ? await Promise.all(resumen.usuarioIds.map((u) => getUsuario(u))) : [];
                     const esActual = operacionActual?.id === op.id;
                     return (
                       <tr key={op.id} className={`border-t border-border ${esActual ? "bg-accent/5" : ""}`}>
-                        <td className="px-4 py-2.5 text-foreground-muted">{op.secuencia}</td>
+                        <td className="px-4 py-2.5 text-foreground-muted">{i + 1}</td>
                         <td className="px-4 py-2.5">
                           {nombreOperacion(op)}
                           {esActual && <span className="badge-estado badge-en_curso ml-2">actual</span>}
                         </td>
-                        <td className="px-4 py-2.5 text-foreground-muted">{operario?.nombre ?? "—"}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">
-                          {formatearDuracion(registro?.registro.duracionSeg ?? null)}
+                        <td className="px-4 py-2.5 text-foreground-muted">
+                          {operarios.map((o) => o?.nombre).filter(Boolean).join(", ") || "—"}
                         </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{formatearDuracion(resumen?.duracionSeg ?? null)}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">
                           {tstd ? `${formatearDuracion(tstd.promedio)} (n=${tstd.observaciones})` : "sin histórico"}
                         </td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">
-                          {registro?.paradas.length ?? 0}
+                          {resumen?.paradas.length ?? 0}
                         </td>
                       </tr>
                     );

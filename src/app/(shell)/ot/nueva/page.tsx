@@ -6,7 +6,8 @@ import { crearOtMaquinaAction } from "@/app/actions/ot";
 import { FormTabs } from "@/components/ot/FormTabs";
 import { OrdenSueltaForm } from "@/components/ot/OrdenSueltaForm";
 
-export default async function NuevaOtPage() {
+export default async function NuevaOtPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
   const [configuraciones, modelos, usuario, clientes, conjuntosTodos] = await Promise.all([
     getConfiguraciones(),
     getModelos(),
@@ -119,6 +120,8 @@ export default async function NuevaOtPage() {
         </Link>
         <h1 className="text-xl font-semibold mt-1">Generar orden de trabajo</h1>
       </div>
+
+      {error && <div className="badge-estado badge-alerta text-sm px-3 py-2 block">{error}</div>}
 
       <FormTabs maquina={formaMaquina} suelta={formaSuelta} />
     </div>

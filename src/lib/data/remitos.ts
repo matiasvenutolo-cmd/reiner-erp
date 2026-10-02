@@ -98,7 +98,7 @@ export type GenerarRemitoInput = {
   tecnico?: string;
   observacion?: string;
   usuarioId: string;
-  items: { piezaId: string; cantidad: number; tratamiento?: string }[];
+  items: { piezaId: string; cantidad: number; tratamiento?: string; otPiezaId?: string }[];
 };
 
 /**
@@ -140,20 +140,24 @@ export async function generarRemito(input: GenerarRemitoInput): Promise<string> 
         piezaId: item.piezaId,
         cantidad: item.cantidad,
         tratamiento: item.tratamiento || null,
+        otPiezaId: item.otPiezaId || null,
       })),
     );
 
     for (const item of input.items) {
-      const disponible = await getStockDisponible(item.piezaId);
-      const nuevoDisponible = Math.max(0, disponible - item.cantidad);
       await tx.insert(movimientoStock).values({
         piezaId: item.piezaId,
         tipo: "egreso",
         cantidad: item.cantidad,
         remitoId: nuevo.id,
+        otPiezaId: item.otPiezaId || null,
         usuarioId: input.usuarioId,
         observacion: `Remito Nº ${numero}${item.tratamiento ? ` — ${item.tratamiento}` : ""}`,
       });
+      // Una pieza en fabricación que sale a un tercerizado no estaba en el almacén: no se descuenta.
+      if (item.otPiezaId) continue;
+      const disponible = await getStockDisponible(item.piezaId);
+      const nuevoDisponible = Math.max(0, disponible - item.cantidad);
       await tx
         .insert(stockPieza)
         .values({ piezaId: item.piezaId, cantidadDisponible: nuevoDisponible })

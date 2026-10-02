@@ -56,7 +56,11 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
         procedimientos,
       })),
   );
-  const conjuntosSinFabricar = conjuntos.filter((c) => c.piezas.length === 0);
+  const sinPiezas = conjuntos.filter((c) => c.piezas.length === 0);
+  // Cubierto por stock ≠ sin piezas en la lista de la configuración (ej. Lubricación en una PS):
+  // el texto anterior decía "el stock cubría la necesidad" para los dos casos.
+  const conjuntosSinFabricar = sinPiezas.filter((c) => (piezasConfigPorConjunto.get(c.otConjunto.conjuntoId) ?? []).length > 0);
+  const conjuntosVacios = sinPiezas.filter((c) => (piezasConfigPorConjunto.get(c.otConjunto.conjuntoId) ?? []).length === 0);
 
   return (
     <div className="space-y-6">
@@ -109,6 +113,12 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
             ))}
           </ul>
         </div>
+      )}
+
+      {conjuntosVacios.length > 0 && (
+        <p className="text-xs text-foreground-muted">
+          Sin piezas cargadas para esta máquina en Maestros: {conjuntosVacios.map((c) => c.conjunto?.nombre).join(", ")}.
+        </p>
       )}
     </div>
   );

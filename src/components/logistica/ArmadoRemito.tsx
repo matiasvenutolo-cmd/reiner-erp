@@ -5,7 +5,17 @@ import { useRouter } from "next/navigation";
 import { buscarPiezasParaRemitoAction, generarRemitoAction } from "@/app/actions/remitos";
 
 type ResultadoPieza = { id: string; codigo: string; nombre: string };
-type ItemCarrito = { piezaId: string; codigo: string; nombre: string; cantidad: number; tratamiento: string };
+type ItemCarrito = { clave: string; piezaId: string; codigo: string; nombre: string; cantidad: number; tratamiento: string; otPiezaId?: string; otPiezaCodigo?: string };
+
+export type PiezaParaMandar = {
+  otPiezaId: string;
+  otPiezaCodigo: string;
+  piezaId: string;
+  piezaCodigo: string;
+  piezaNombre: string;
+  procesoNombre: string;
+  cantidad: number;
+};
 
 /**
  * Armar un remito con varias piezas antes de finalizarlo — pedido
@@ -15,7 +25,7 @@ type ItemCarrito = { piezaId: string; codigo: string; nombre: string; cantidad: 
  * perder lo ya cargado en cada búsqueda — nada de esto se guarda hasta
  * tocar "Generar remito".
  */
-export function ArmadoRemito() {
+export function ArmadoRemito({ paraMandar = [] }: { paraMandar?: PiezaParaMandar[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
@@ -40,21 +50,37 @@ export function ArmadoRemito() {
   }
 
   function agregar(p: ResultadoPieza) {
-    if (carrito.some((it) => it.piezaId === p.id)) return;
-    setCarrito((prev) => [...prev, { piezaId: p.id, codigo: p.codigo, nombre: p.nombre, cantidad: 1, tratamiento: "" }]);
+    if (carrito.some((it) => it.clave === p.id)) return;
+    setCarrito((prev) => [...prev, { clave: p.id, piezaId: p.id, codigo: p.codigo, nombre: p.nombre, cantidad: 1, tratamiento: "" }]);
     setQuery("");
     setResultados([]);
   }
 
-  function quitar(piezaId: string) {
-    setCarrito((prev) => prev.filter((it) => it.piezaId !== piezaId));
+  // Pieza en fabricación que sale a su paso tercerizado: el tratamiento ya es ese proceso.
+  function agregarParaMandar(p: PiezaParaMandar) {
+    if (carrito.some((it) => it.clave === p.otPiezaId)) return;
+    setCarrito((prev) => [
+      ...prev,
+      {
+        clave: p.otPiezaId,
+        piezaId: p.piezaId,
+        codigo: p.piezaCodigo,
+        nombre: p.piezaNombre,
+        cantidad: p.cantidad,
+        tratamiento: p.procesoNombre,
+        otPiezaId: p.otPiezaId,
+        otPiezaCodigo: p.otPiezaCodigo,
+      },
+    ]);
   }
 
-  function actualizar(piezaId: string, campo: "cantidad" | "tratamiento", valor: string) {
+  function quitar(clave: string) {
+    setCarrito((prev) => prev.filter((it) => it.clave !== clave));
+  }
+
+  function actualizar(clave: string, campo: "cantidad" | "tratamiento", valor: string) {
     setCarrito((prev) =>
-      prev.map((it) =>
-        it.piezaId === piezaId ? { ...it, [campo]: campo === "cantidad" ? Math.max(1, Number(valor) || 1) : valor } : it,
-      ),
+      prev.map((it) => (it.clave === clave ? { ...it, [campo]: campo === "cantidad" ? Math.max(1, Number(valor) || 1) : valor } : it)),
     );
   }
 
@@ -74,7 +100,12 @@ export function ArmadoRemito() {
           destino: destino.trim(),
           tecnico: tecnico.trim() || undefined,
           observacion: observacion.trim() || undefined,
-          items: carrito.map((it) => ({ piezaId: it.piezaId, cantidad: it.cantidad, tratamiento: it.tratamiento || undefined })),
+          items: carrito.map((it) => ({
+            piezaId: it.piezaId,
+            cantidad: it.cantidad,
+            tratamiento: it.tratamiento || undefined,
+            otPiezaId: it.otPiezaId,
+          })),
         });
         router.push(`/remitos/${id}`);
       } catch (e) {
@@ -85,12 +116,42 @@ export function ArmadoRemito() {
 
   return (
     <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+      {paraMandar.length > 0 && (
+        <div>
+          <div className="text-xs font-medium text-foreground-muted mb-1.5">
+            Listas para mandar — llegaron a su paso tercerizado y todavía no salieron ({paraMandar.length})
+          </div>
+          <ul className="space-y-1">
+            {paraMandar.map((p) => {
+              const agregada = carrito.some((it) => it.clave === p.otPiezaId);
+              return (
+                <li key={p.otPiezaId} className="flex items-center gap-2 text-sm bg-surface-muted rounded-md px-2.5 py-1.5">
+                  <span className="font-mono text-xs text-foreground-muted">{p.otPiezaCodigo}</span>
+                  <span className="flex-1 truncate">{p.piezaNombre}</span>
+                  <span className="text-xs text-foreground-muted shrink-0">
+                    {p.cantidad} u. · {p.procesoNombre}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={agregada}
+                    onClick={() => agregarParaMandar(p)}
+                    className="text-xs text-accent hover:underline disabled:text-foreground-muted disabled:no-underline shrink-0"
+                  >
+                    {agregada ? "En el remito" : "+ Agregar"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       <div className="relative">
         <input
           type="text"
           value={query}
           onChange={(e) => buscar(e.target.value)}
-          placeholder="Buscar pieza por código o nombre para agregar…"
+          placeholder="…o buscar cualquier pieza del almacén por código o nombre"
           className="input"
         />
         {query && (resultados.length > 0 || buscando) && (
@@ -127,15 +188,16 @@ export function ArmadoRemito() {
             </thead>
             <tbody>
               {carrito.map((it) => (
-                <tr key={it.piezaId} className="border-t border-border">
+                <tr key={it.clave} className="border-t border-border">
                   <td className="px-3 py-2">
                     <span className="font-mono text-xs text-foreground-muted mr-1">{it.codigo}</span>
                     {it.nombre}
+                    {it.otPiezaCodigo && <div className="text-xs text-foreground-muted">de {it.otPiezaCodigo} — en fabricación, no descuenta almacén</div>}
                   </td>
                   <td className="px-3 py-2">
                     <input
                       value={it.tratamiento}
-                      onChange={(e) => actualizar(it.piezaId, "tratamiento", e.target.value)}
+                      onChange={(e) => actualizar(it.clave, "tratamiento", e.target.value)}
                       placeholder="ej. Cromado"
                       className="input text-xs py-1"
                     />
@@ -145,12 +207,12 @@ export function ArmadoRemito() {
                       type="number"
                       min={1}
                       value={it.cantidad}
-                      onChange={(e) => actualizar(it.piezaId, "cantidad", e.target.value)}
+                      onChange={(e) => actualizar(it.clave, "cantidad", e.target.value)}
                       className="input text-xs py-1 text-right"
                     />
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <button type="button" onClick={() => quitar(it.piezaId)} className="text-xs text-foreground-muted hover:text-red-700">
+                    <button type="button" onClick={() => quitar(it.clave)} className="text-xs text-foreground-muted hover:text-red-700">
                       Quitar
                     </button>
                   </td>

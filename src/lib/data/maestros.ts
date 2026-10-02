@@ -196,7 +196,16 @@ export async function agregarOperacion(input: { piezaId: string; procesoId: stri
  * silencio: si taller ya trabajó esa operación, no se puede borrar sin
  * perder ese historial. */
 export async function eliminarOperacion(operacionId: string): Promise<void> {
-  await db.delete(operacion).where(eq(operacion.id, operacionId));
+  const [op] = await db.select({ piezaId: operacion.piezaId }).from(operacion).where(eq(operacion.id, operacionId));
+  if (!op) return;
+  await db.transaction(async (tx) => {
+    await tx.delete(operacion).where(eq(operacion.id, operacionId));
+    // Renumera para que no queden huecos ("Operación 5" en una ruta de 4 pasos).
+    const restantes = await tx.select({ id: operacion.id }).from(operacion).where(eq(operacion.piezaId, op.piezaId)).orderBy(asc(operacion.secuencia));
+    for (const [i, r] of restantes.entries()) {
+      await tx.update(operacion).set({ secuencia: i + 1 }).where(eq(operacion.id, r.id));
+    }
+  });
 }
 
 /** Sube o baja una operación un lugar en la hoja de ruta, intercambiando su

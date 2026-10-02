@@ -11,7 +11,7 @@
  * de cualquier operación posterior en la misma hoja de ruta la tiene "a
  * futuro" (todavía depende de que termine lo que viene antes).
  */
-import { asc, eq, and, inArray, isNotNull } from "drizzle-orm";
+import { asc, eq, and, inArray, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   centroTrabajo,
@@ -25,6 +25,8 @@ import {
   proceso,
   registroOperacion,
   stockPieza,
+  remito,
+  remitoItem,
 } from "@/lib/db/schema";
 import type { CentroTrabajo, OtPieza } from "@/lib/db/schema";
 
@@ -287,6 +289,7 @@ export async function getPiezasCompraPendientes(): Promise<ItemCompraPendiente[]
       otMaquinaCodigo: otMaquina.codigo,
       cantidadNecesaria: otPieza.cantidadNecesaria,
       disponible: stockPieza.cantidadDisponible,
+      estadoManual: otPieza.estadoManual,
     })
     .from(otPieza)
     .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
@@ -299,7 +302,7 @@ export async function getPiezasCompraPendientes(): Promise<ItemCompraPendiente[]
 
   const piezasComprada: ItemCompraPendiente[] = filasCompradas
     .map((f) => ({ ...f, disponible: f.disponible ?? 0 }))
-    .filter((f) => f.disponible < f.cantidadNecesaria)
+    .filter((f) => f.disponible < f.cantidadNecesaria && f.estadoManual !== "terminada")
     .map((f) => ({
       otPiezaId: f.otPiezaId,
       otPiezaCodigo: f.otPiezaCodigo,
@@ -343,15 +346,33 @@ export type ItemAfueraTercerizado = {
   procesoNombre: string;
   operacionId: string;
   cantidad: number;
+  /** Remito con el que salió a este paso tercerizado — null si todavía está en planta, lista para mandar. */
+  remito: { id: string; numero: number; fecha: Date; destino: string } | null;
 };
 
-/** OT de pieza cuyo paso actual es un proceso tercerizado — es decir, afuera
- * en manos del proveedor, esperando volver. Una fila por OT de pieza (no
- * agrupado) para poder registrar la vuelta de cada una. */
+/** OT de pieza cuyo paso actual es un proceso tercerizado: o lista para
+ * mandar (sin remito todavía) o afuera esperando volver. Una fila por OT de
+ * pieza para poder mandar y registrar la vuelta de cada una. Salió si hay un
+ * remito con esa OT de pieza posterior a que llegara a este paso. */
 export async function getPiezasAfueraTercerizado(): Promise<ItemAfueraTercerizado[]> {
-  const filas = await getFilasConPosicionActual();
+  const filas = (await getFilasConPosicionActual()).filter(({ routing, posActual }) => routing[posActual].tipo === "tercerizado");
+  if (filas.length === 0) return [];
+  const ids = filas.map((f) => f.fila.otPieza.id);
+  const [remitos, cierres] = await Promise.all([
+    db
+      .select({ otPiezaId: remitoItem.otPiezaId, id: remito.id, numero: remito.numero, fecha: remito.fecha, destino: remito.destino })
+      .from(remitoItem)
+      .innerJoin(remito, eq(remito.id, remitoItem.remitoId))
+      .where(inArray(remitoItem.otPiezaId, ids)),
+    db
+      .select({ otPiezaId: registroOperacion.otPiezaId, fin: registroOperacion.fin })
+      .from(registroOperacion)
+      .where(and(inArray(registroOperacion.otPiezaId, ids), isNotNull(registroOperacion.fin))),
+  ]);
+  const llegoAlPaso = new Map<string, number>();
+  for (const c of cierres) llegoAlPaso.set(c.otPiezaId, Math.max(llegoAlPaso.get(c.otPiezaId) ?? 0, c.fin!.getTime()));
+
   return filas
-    .filter(({ routing, posActual }) => routing[posActual].tipo === "tercerizado")
     .map(({ fila, routing, posActual }) => ({
       otPiezaId: fila.otPieza.id,
       otPiezaCodigo: fila.otPieza.codigo,
@@ -363,5 +384,50 @@ export async function getPiezasAfueraTercerizado(): Promise<ItemAfueraTercerizad
       procesoNombre: routing[posActual].procesoNombre,
       operacionId: routing[posActual].id,
       cantidad: fila.otPieza.cantidadAFabricar,
+      remito:
+        remitos
+          .filter((r) => r.otPiezaId === fila.otPieza.id && r.fecha.getTime() >= (llegoAlPaso.get(fila.otPieza.id) ?? 0))
+          .sort((a, b) => b.fecha.getTime() - a.fecha.getTime())
+          .map(({ id, numero, fecha, destino }) => ({ id, numero, fecha, destino }))[0] ?? null,
     }));
+}
+
+export type CandidataTaller = {
+  otPieza: OtPieza;
+  piezaNombre: string;
+  conjuntoNombre: string;
+  centroActualId: string | null;
+  tipoPasoActual: "interno" | "tercerizado" | "compras";
+  estado: "pendiente" | "en_curso";
+  pasos: number;
+};
+
+/**
+ * Lo que puede aparecer en `/taller`: OT de pieza abiertas, con el centro de
+ * su paso actual. Antes la pantalla calculaba el estado pieza por pieza
+ * (2-4 consultas por cada una de las ~500 OT de pieza) y tardaba 30-60s en
+ * abrir — la pantalla del operario, la más usada de todas. Ahora son las
+ * mismas 3 consultas batcheadas de `getFilasConPosicionActual` + 1 más.
+ */
+export async function getCandidatasTaller(): Promise<CandidataTaller[]> {
+  const filas = await getFilasConPosicionActual();
+  if (filas.length === 0) return [];
+  const abiertas = await db
+    .select({ otPiezaId: registroOperacion.otPiezaId })
+    .from(registroOperacion)
+    .where(and(inArray(registroOperacion.otPiezaId, filas.map((f) => f.fila.otPieza.id)), isNull(registroOperacion.fin)));
+  const conAbierta = new Set(abiertas.map((a) => a.otPiezaId));
+  return filas.map(({ fila, routing, posActual }) => {
+    const derivado = posActual > 0 || conAbierta.has(fila.otPieza.id) ? "en_curso" : "pendiente";
+    const manual = fila.otPieza.estadoManual;
+    return {
+      otPieza: fila.otPieza,
+      piezaNombre: fila.piezaNombre,
+      conjuntoNombre: fila.conjuntoNombre,
+      centroActualId: routing[posActual].centroTrabajoId,
+      tipoPasoActual: routing[posActual].tipo,
+      estado: manual === "pendiente" || manual === "en_curso" ? manual : derivado,
+      pasos: routing.length,
+    };
+  });
 }

@@ -27,12 +27,14 @@ export default async function TercerizadosPage({
   const query = (q ?? "").trim();
   const tipoFiltro = (tipo ?? "") as MovimientoStock["tipo"] | "";
 
-  const [piezasEncontradas, proveedores, afuera, movimientos] = await Promise.all([
+  const [piezasEncontradas, proveedores, enPasoTercerizado, movimientos] = await Promise.all([
     query ? buscarPiezas(query) : Promise.resolve([]),
     getProveedores(),
     getPiezasAfueraTercerizado(),
     listarMovimientos(tipoFiltro || undefined),
   ]);
+  const afuera = enPasoTercerizado.filter((a) => a.remito);
+  const paraMandar = enPasoTercerizado.filter((a) => !a.remito);
   const resultados = await Promise.all(
     piezasEncontradas.map(async (p) => ({ pieza: p, stock: await getStockDisponible(p.id) })),
   );
@@ -73,6 +75,7 @@ export default async function TercerizadosPage({
                   <th className="text-left px-4 py-2 font-medium">Pieza</th>
                   <th className="text-left px-4 py-2 font-medium">OT</th>
                   <th className="text-left px-4 py-2 font-medium">Proceso</th>
+                  <th className="text-left px-4 py-2 font-medium">Salió</th>
                   <th className="text-left px-4 py-2 font-medium">Registrar vuelta</th>
                 </tr>
               </thead>
@@ -89,6 +92,17 @@ export default async function TercerizadosPage({
                       </Link>
                     </td>
                     <td className="px-4 py-2.5">{a.procesoNombre}</td>
+                    <td className="px-4 py-2.5 text-foreground-muted whitespace-nowrap">
+                      {a.remito && (
+                        <>
+                          {new Date(a.remito.fecha).toLocaleDateString("es-AR")} ·{" "}
+                          <Link href={`/remitos/${a.remito.id}`} className="text-accent hover:underline">
+                            Remito Nº {a.remito.numero}
+                          </Link>
+                          <div className="text-xs">{a.remito.destino}</div>
+                        </>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5">
                       <form action={registrarVueltaAction} className="flex flex-wrap items-center gap-1.5">
                         <input type="hidden" name="otPiezaId" value={a.otPiezaId} />
@@ -112,7 +126,17 @@ export default async function TercerizadosPage({
       <div>
         <h2 className="text-sm font-semibold mb-1">Mandar piezas afuera — armar remito</h2>
         <p className="text-xs text-foreground-muted mb-2">El remito registra solo el egreso de cada pieza.</p>
-        <ArmadoRemito />
+        <ArmadoRemito
+          paraMandar={paraMandar.map((a) => ({
+            otPiezaId: a.otPiezaId,
+            otPiezaCodigo: a.otPiezaCodigo,
+            piezaId: a.piezaId,
+            piezaCodigo: a.piezaCodigo,
+            piezaNombre: a.piezaNombre,
+            procesoNombre: a.procesoNombre,
+            cantidad: a.cantidad,
+          }))}
+        />
       </div>
 
       <div>

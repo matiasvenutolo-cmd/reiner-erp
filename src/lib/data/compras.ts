@@ -25,6 +25,7 @@ import {
   registroOperacion,
 } from "@/lib/db/schema";
 import { getStockDisponible } from "./stock";
+import { esUltimaOperacion } from "./ejecucion";
 
 export async function marcarPedido(input: {
   otPiezaId: string;
@@ -184,6 +185,7 @@ export async function registrarVueltaTercerizado(input: {
   const [op] = await db.select().from(otPieza).where(eq(otPieza.id, input.otPiezaId));
   if (!op) throw new Error("OT de pieza inexistente.");
   const ahora = new Date();
+  const cierraLaPieza = await esUltimaOperacion(op.id, input.operacionId);
   await db.transaction(async (tx) => {
     await tx.insert(movimientoStock).values({
       piezaId: op.piezaId,
@@ -207,5 +209,9 @@ export async function registrarVueltaTercerizado(input: {
       piezasOk: input.cantidad,
       observacion: "Cerrado al registrar la vuelta del proveedor",
     });
+    // Si el tercerizado era el último paso, la pieza queda terminada igual que al cerrarla en taller.
+    if (cierraLaPieza) {
+      await tx.update(otPieza).set({ piezasOk: input.cantidad, fechaFin: ahora, updatedAt: ahora }).where(eq(otPieza.id, op.id));
+    }
   });
 }

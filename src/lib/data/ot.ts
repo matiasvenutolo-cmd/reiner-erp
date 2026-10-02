@@ -198,8 +198,17 @@ export async function generarOtMaquina(input: NuevaOtMaquinaInput): Promise<stri
     })
     .returning();
 
-  const conjuntos = await getConjuntos(configuracion.modeloId);
-  const piezasConfig = await getPiezasPorConfiguracion(configuracion.id);
+  const [conjuntosDelModelo, todosLosConjuntos, piezasConfig] = await Promise.all([
+    getConjuntos(configuracion.modeloId),
+    getConjuntos(),
+    getPiezasPorConfiguracion(configuracion.id),
+  ]);
+  // Además de los conjuntos vinculados al modelo, todo conjunto que tenga
+  // piezas en la lista de esta configuración: la migración del Excel dejó
+  // conjuntos sin vincular a ningún modelo (Dosificacion, Tolva Carga
+  // Forzada, Descartador...) y sus piezas quedaban fuera de toda OT.
+  const idsConjunto = new Set([...conjuntosDelModelo.map((c) => c.id), ...piezasConfig.map((p) => p.conjuntoId)]);
+  const conjuntos = todosLosConjuntos.filter((c) => idsConjunto.has(c.id));
 
   const conjuntosAInsertar = conjuntos.map((c) => ({
     codigo: `${codigoMaquina}${c.codigo}`,
@@ -212,11 +221,16 @@ export async function generarOtMaquina(input: NuevaOtMaquinaInput): Promise<stri
     : [];
 
   const piezasAInsertar: (typeof otPieza.$inferInsert)[] = [];
+  const conjuntoIdsCreados = new Set(conjuntosCreados.map((c) => c.conjuntoId));
+  const cobertura = await reservarStockLibre({
+    otMaquinaId: nuevaOt.id,
+    piezas: piezasConfig.filter((p) => conjuntoIdsCreados.has(p.conjuntoId)).map((p) => ({ piezaId: p.id, necesaria: p.cantidadNecesaria })),
+  });
   for (const otc of conjuntosCreados) {
     const piezasDelConjunto = piezasConfig.filter((p) => p.conjuntoId === otc.conjuntoId);
     let seq = 0;
     for (const pieza of piezasDelConjunto) {
-      const stockDisponible = await reservarStockLibre({ otMaquinaId: nuevaOt.id, piezaId: pieza.id, necesaria: pieza.cantidadNecesaria });
+      const stockDisponible = cobertura.get(pieza.id)?.cubre ?? 0;
       const propuesta = Math.max(pieza.cantidadNecesaria - stockDisponible, 0);
       if (propuesta <= 0) continue; // igual que el PI-04: sólo se genera OT de pieza si Cant a Fab > 0
       seq += 1;
@@ -339,8 +353,12 @@ export async function generarOrdenSuelta(input: NuevaOrdenSueltaInput): Promise<
     const piezasDelConjunto = piezasConfig.filter((p) => p.conjuntoId === conjuntoIdFinal);
     const piezasAInsertar: (typeof otPieza.$inferInsert)[] = [];
     let seq = 0;
+    const cobertura = await reservarStockLibre({
+      otMaquinaId: nuevaOt.id,
+      piezas: piezasDelConjunto.map((p) => ({ piezaId: p.id, necesaria: p.cantidadNecesaria })),
+    });
     for (const pieza of piezasDelConjunto) {
-      const stockDisponible = await reservarStockLibre({ otMaquinaId: nuevaOt.id, piezaId: pieza.id, necesaria: pieza.cantidadNecesaria });
+      const stockDisponible = cobertura.get(pieza.id)?.cubre ?? 0;
       const propuesta = Math.max(pieza.cantidadNecesaria - stockDisponible, 0);
       if (propuesta <= 0) continue;
       seq += 1;
@@ -385,8 +403,12 @@ export async function completarOtConjunto(otConjuntoId: string): Promise<number>
   const piezasConfig = (await getPiezasPorConfiguracion(maquina.configuracionId)).filter((p) => p.conjuntoId === otc.conjuntoId);
   const piezasAInsertar: (typeof otPieza.$inferInsert)[] = [];
   let seq = 0;
+  const cobertura = await reservarStockLibre({
+    otMaquinaId: maquina.id,
+    piezas: piezasConfig.map((p) => ({ piezaId: p.id, necesaria: p.cantidadNecesaria })),
+  });
   for (const pieza of piezasConfig) {
-    const stockDisponible = await reservarStockLibre({ otMaquinaId: maquina.id, piezaId: pieza.id, necesaria: pieza.cantidadNecesaria });
+    const stockDisponible = cobertura.get(pieza.id)?.cubre ?? 0;
     const propuesta = Math.max(pieza.cantidadNecesaria - stockDisponible, 0);
     if (propuesta <= 0) continue;
     seq += 1;
@@ -581,12 +603,6 @@ export async function getOtMaquinaDetalle(id: string) {
   const estadoMaquina = agregarEstados(conjuntos.flatMap((c) => c.piezas.map((p) => p.estado)));
 
   return { otMaquina: row.otMaquina, clienteNombre: row.clienteNombre, configuracion, conjuntos, estadoCalculado: estadoMaquina };
-}
-
-/** Todas las OT de pieza existentes, sin importar su OT de máquina — usado
- * por la pantalla del operario (/taller) para listar candidatas de trabajo. */
-export async function listarTodasLasOtPieza(): Promise<OtPieza[]> {
-  return db.select().from(otPieza);
 }
 
 export async function getOtPieza(id: string): Promise<OtPieza | null> {

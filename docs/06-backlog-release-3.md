@@ -998,3 +998,95 @@ reservando stock (libre 21→20) y vuelta de tercerizado cerrando su paso.
 - ¿Quién puede retirar del almacén? Hoy cualquier usuario de oficina/taller (no operarios).
 - El estado manual de Avance no cronometra: si taller sigue cargando en `/taller`, el
   manual pisa al automático hasta volverlo a "Automático".
+
+## 22 · Testing integral punta a punta (2026-10-02)
+
+Lo que pidió el cliente en §1: seguir un trabajo real de punta a punta con los cuatro
+roles, no probar pantallas sueltas. Se generó una máquina de prueba (OTME2E, PS 124
+Instrumentada, OC "OC-E2E") y una orden suelta (OTSE2E-suelta), y se siguió una pieza
+real — Soporte de volante v2, la de la foto de la OT en papel: Compras → CNC → Corte por
+hilo → Pavonado — de principio a fin. Todo lo creado se borró al terminar (reservas de
+vuelta a la línea base de 215 / 290 u.).
+
+**Recorrido y resultado**
+
+| Paso | Rol | Resultado |
+|---|---|---|
+| Sin sesión: landing pública, todo lo demás → login | — | ✅ |
+| Operario sólo ve su pantalla; 12 rutas de oficina lo devuelven a `/taller` | Nico | ✅ |
+| Menú único para staff, Maestros/Usuarios en Administración | Julián, Horacio, Adrián | ✅ |
+| Maestros: material, revisión, Nº de plano, stock mínimo (dispara alerta en Stock e Inicio), agregar/mover/eliminar operación, detalle de operación, bitácora, adjunto (subir, descargar, borrar) | Julián | ✅ |
+| Generar OT de máquina: explosión contra stock, reservas, OC en listado y detalle | Julián | ✅ tras corregir 2 bugs (abajo) |
+| Orden suelta de conjunto | Julián | ✅ |
+| Compra: pedir → recibir con control → la pieza pasa sola a CNC | Horacio | ✅ |
+| Planificar para hoy | Horacio | ✅ tras corregir bug de fecha |
+| Operario: ve la pieza asignada primera aunque no sea de su centro, ve el detalle de ingeniería, setup + parada + reanudar + fabricación | Nico | ✅ |
+| Parada visible en Inicio ("Frenado ahora mismo") y Avance | Horacio | ✅ |
+| Cierre con defectuosa → retrabajo en Inicio → subtareas, cronómetro, resolver | Nico → Julián | ✅ |
+| Remito mixto (pieza en fabricación + pieza del almacén) → vuelta del proveedor → pieza terminada | Horacio | ✅ tras rehacer el circuito (abajo) |
+| Avance: conjunto entero a Terminada y vuelta a automático; impacto en Compras | Horacio | ✅ |
+| Retiro de stock para una OT consume su reserva | Horacio | ✅ |
+| Centros de trabajo, Indicadores, Usuarios, OT impresa | todos | ✅ |
+| Typecheck, lint de lo tocado, build de producción | — | ✅ |
+
+**Bugs encontrados y corregidos**
+
+1. **`/taller` (la pantalla del operario) tardaba 33 s a 3 min en abrir**: calculaba el
+   estado pieza por pieza sobre ~500 OT de pieza. Reescrita con las mismas consultas
+   agrupadas que Centros de trabajo (`getCandidatasTaller`): 0,4–2,7 s. Además ya no
+   lista piezas esperando compra o afuera en un tercerizado (no es trabajo de taller),
+   salvo que estén asignadas para hoy.
+2. **Generar una OT de máquina tardaba 82 s** (una a cuatro consultas por cada una de las
+   ~190 piezas; en Vercel podía cortarse). La reserva de stock ahora se resuelve con dos
+   consultas para toda la OT: 7 s.
+3. **Grave, venía de antes: cada OT de máquina dejaba afuera 13–16 piezas de la lista.**
+   La migración del Excel creó conjuntos duplicados sin vincular a ningún modelo
+   (Dosificacion C19, Tolva Carga Forzada C20, Descartador C21, Tolva C22, Cargadora por
+   gravedad C23, Señalización C24), y la explosión sólo recorría los conjuntos del modelo:
+   sus piezas (Leva de dosificación, Cilindro de tolva, Base de descartador...) no
+   entraban en ninguna OT. Afecta a OTM12, OTM010, OTM009 y OTM999. La explosión ahora
+   incluye todo conjunto con piezas en la lista de la configuración (verificado: 173 a
+   fabricar + 19 cubiertas por stock = las 192 de la lista).
+4. El texto "sin piezas a fabricar (el stock cubría la necesidad)" también aparecía para
+   conjuntos que no tienen ninguna pieza cargada en esa máquina (ej. Tolva de Carga
+   Forzada C08 en una PS): ahora se distinguen los dos casos.
+5. **Planificación asignaba por defecto al lunes de la semana**, no a hoy — la asignación
+   quedaba en el pasado. Y el "hoy" del sistema se calculaba en UTC: entre las 21 y las 24
+   hs el operario veía como "Asignado hoy" lo de mañana. Nuevo `hoyISO()` en hora de
+   Argentina (`src/lib/fecha.ts`).
+6. **Tercerizados mezclaba "lista para mandar" con "afuera"**, y el remito descontaba del
+   almacén aunque la pieza que salía estuviera en fabricación. Ahora `remito_item` puede
+   llevar la OT de pieza: esas salidas registran el egreso sin tocar el almacén, se
+   agregan al remito con un clic con el tratamiento ya cargado, y "Afuera" muestra con qué
+   remito, a qué destino y desde cuándo. La vuelta del último paso cierra la pieza igual
+   que el cierre en taller (piezas OK y fecha de fin).
+7. La ficha y la OT impresa mostraban sólo el último registro de cada operación: se perdía
+   el setup y sus paradas. Ahora suman todos los registros (`resumirHistorialPorOperacion`).
+8. `ot_pieza.fechaInicio` nunca se grababa — la OT impresa siempre salía sin fecha de
+   inicio. Se graba al iniciar la primera operación.
+9. El link de vuelta de la ficha de pieza mostraba el identificador interno de la OT en
+   vez de su código.
+10. Eliminar una operación en Maestros dejaba huecos en la numeración ("Operación 5" en una
+    ruta de 4 pasos). Se renumera, y las pantallas muestran la posición.
+11. El operario veía "Iniciar fabricación" en pasos tercerizados o de compras. Ahora ve
+    que está esperando la compra o que sale con remito.
+12. Tareas de retrabajo de pocos segundos se veían como "0 min" — ahora en segundos.
+13. "Por debajo del mínimo" no mostraba piezas que nunca entraron al almacén (sin fila de
+    stock), que son justo las más urgentes.
+14. Las piezas de compra marcadas a mano como terminadas seguían figurando para comprar.
+15. Inicio de dirección decía "OT de máquina en curso: 7" contando también las pendientes,
+    mientras Avance decía 4: ahora dice "Órdenes de trabajo abiertas (sin terminar)".
+16. Generar una OT con una serie repetida tiraba una página de error genérica: ahora
+    vuelve al formulario con el mensaje.
+
+**Pendiente de decidir con Matías / el cliente**
+- **Completar las OT existentes** (OTM12, OTM010, OTM009, OTM999) con las 13–16 piezas
+  que les faltan por el bug 3. Cambia sus números de avance, por eso no se hizo solo.
+- **Unificar los conjuntos duplicados** en Maestros: Dosificacion → Dosificador ya está
+  confirmado por el cliente (pregunta 7); Tolva Carga Forzada (C20) vs Tolva de Carga
+  Forzada (C08) y Cargadora por gravedad (C23) vs Carga por Gravedad (C10) parecen el
+  mismo caso pero no están confirmados; Descartador quedó "por ahora así" según el socio.
+- Alguien está usando el Avance nuevo en producción (OTM999: Cabezal marcado "en curso" y
+  una pieza de PreCompresion "terminada" a mano, hoy 10:51 hs) — no se tocó.
+- Los dos errores de lint que quedan (`ColaDisponibleAhora.tsx`, `ConjuntoAccordion.tsx`)
+  son de antes y no rompen nada.

@@ -6,6 +6,7 @@
  * pieza avanza de etapa antes de esa fecha, queda como referencia de que
  * alguien se comprometió a mirarla ese día.
  */
+import { hoyISO } from "@/lib/fecha";
 import { eq, and, gte, lte, inArray, asc } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { asignacionTrabajo, otPieza, pieza, otConjunto, otMaquina, usuario } from "@/lib/db/schema";
@@ -43,7 +44,7 @@ export async function getAsignacionesRango(desde: string, hasta: string): Promis
 }
 
 export async function getAsignacionesDeHoy(operarioId: string): Promise<AsignacionConDetalle[]> {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyISO();
   const todas = await getAsignacionesRango(hoy, hoy);
   return todas.filter((a) => a.operarioId === operarioId);
 }
@@ -73,7 +74,7 @@ export type AsignacionVigente = { fecha: string; operarioNombre: string };
  */
 export async function getAsignacionesVigentesBatch(otPiezaIds: string[]): Promise<Map<string, AsignacionVigente>> {
   if (otPiezaIds.length === 0) return new Map();
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyISO();
   const filas = await db
     .select({
       otPiezaId: asignacionTrabajo.otPiezaId,

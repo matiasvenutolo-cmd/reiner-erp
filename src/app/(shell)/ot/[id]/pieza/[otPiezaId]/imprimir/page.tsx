@@ -3,16 +3,11 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getOtPieza, getEstadoYOperacionActual, getContextoOtPieza } from "@/lib/data/ot";
 import { getPieza, getConjunto, nombreOperacion } from "@/lib/data/maestros";
-import { getHistorialOtPieza, getTiposParada } from "@/lib/data/ejecucion";
+import { getHistorialOtPieza, getTiposParada, resumirHistorialPorOperacion } from "@/lib/data/ejecucion";
+import { formatearDuracion } from "@/lib/formato";
 import { getUsuario } from "@/lib/data/usuarios";
 import { ImprimirButton } from "@/components/ImprimirButton";
 
-function formatearDuracion(seg: number | null): string {
-  if (seg === null) return "";
-  const min = Math.round(seg / 60);
-  if (min < 60) return `${min} min`;
-  return `${Math.floor(min / 60)}h ${min % 60}min`;
-}
 
 function formatearFecha(fecha: Date | null): string {
   if (!fecha) return "";
@@ -42,18 +37,18 @@ export default async function ImprimirOtPiezaPage({ params }: { params: Promise<
   const conjunto = pieza ? await getConjunto(pieza.conjuntoId) : null;
   const nombreTipoParada = new Map(tiposParada.map((t) => [t.id, t.nombre]));
 
-  const registrosPorOperacion = new Map(historial.map((h) => [h.registro.operacionId, h]));
+  const resumenPorOperacion = resumirHistorialPorOperacion(historial);
   const filas = await Promise.all(
     routing.map(async (op) => {
-      const registro = registrosPorOperacion.get(op.id);
-      const operario = registro ? await getUsuario(registro.registro.usuarioId) : null;
-      const paradas = registro?.paradas ?? [];
+      const resumen = resumenPorOperacion.get(op.id);
+      const operarios = resumen ? await Promise.all(resumen.usuarioIds.map((u) => getUsuario(u))) : [];
+      const paradas = resumen?.paradas ?? [];
       return {
         op,
-        operario,
+        operario: operarios.map((o) => o?.nombre).filter(Boolean).join(", "),
         paradasTexto: paradas.map((p) => nombreTipoParada.get(p.tipoParadaId) ?? "—").join(", "),
-        paradasTiempo: formatearDuracion(paradas.reduce((sum, p) => sum + (p.duracionSeg ?? 0), 0) || null),
-        tiempoTotal: formatearDuracion(registro?.registro.duracionSeg ?? null),
+        paradasTiempo: formatearDuracion(paradas.reduce((sum, p) => sum + (p.duracionSeg ?? 0), 0) || null, ""),
+        tiempoTotal: formatearDuracion(resumen?.duracionSeg ?? null, ""),
       };
     }),
   );
@@ -122,7 +117,7 @@ export default async function ImprimirOtPiezaPage({ params }: { params: Promise<
                 <tr key={op.id} className="h-7">
                   <td className="border border-foreground/40 px-1.5">{nombreOperacion(op)}</td>
                   <td className="border border-foreground/40 px-1.5 text-center">{op.ops ?? ""}</td>
-                  <td className="border border-foreground/40 px-1.5">{operario?.nombre ?? ""}</td>
+                  <td className="border border-foreground/40 px-1.5">{operario}</td>
                   <td className="border border-foreground/40 px-1.5"></td>
                   <td className="border border-foreground/40 px-1.5"></td>
                   <td className="border border-foreground/40 px-1.5">{paradasTexto}</td>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { hoyISO } from "@/lib/fecha";
 import { getAsignacionesRango } from "@/lib/data/planificacion";
 import { getUsuariosPorRol } from "@/lib/data/usuarios";
 import { getColaPorCentroTrabajo } from "@/lib/data/produccion";
@@ -33,7 +34,8 @@ export default async function PlanificacionPage({
   searchParams: Promise<{ desde?: string }>;
 }) {
   const { desde } = await searchParams;
-  const lunes = desde ? lunesDe(new Date(`${desde}T00:00:00`)) : lunesDe(new Date());
+  const hoy = hoyISO();
+  const lunes = lunesDe(new Date(`${desde ?? hoy}T00:00:00`));
   const dias = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(lunes);
     d.setDate(d.getDate() + i);
@@ -164,7 +166,7 @@ export default async function PlanificacionPage({
                             </option>
                           ))}
                         </select>
-                        <input type="date" name="fecha" required defaultValue={dias[0]} min={dias[0]} max={dias[dias.length - 1]} className="input text-xs py-1" />
+                        <input type="date" name="fecha" required defaultValue={dias.includes(hoy) ? hoy : dias[0]} min={dias[0]} max={dias[dias.length - 1]} className="input text-xs py-1" />
                         <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
                           Asignar
                         </button>

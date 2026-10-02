@@ -2,51 +2,37 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUsuarioActual } from "@/lib/session";
 import { getOperacionAbierta } from "@/lib/data/ejecucion";
-import { getPieza, getConjunto } from "@/lib/data/maestros";
-import { getCentrosDeUsuario } from "@/lib/data/produccion";
-import { getEstadoYOperacionActual, listarTodasLasOtPieza } from "@/lib/data/ot";
+import { getCentrosDeUsuario, getCandidatasTaller } from "@/lib/data/produccion";
 import { getAsignacionesDeHoy } from "@/lib/data/planificacion";
+
+export const dynamic = "force-dynamic";
 
 export default async function TallerPage() {
   const usuario = await getUsuarioActual();
   const abierta = await getOperacionAbierta(usuario.id);
   if (abierta) redirect(`/taller/${abierta.otPiezaId}`);
 
-  const [todasLasOtPieza, asignadasHoy, centrosDelUsuario] = await Promise.all([
-    listarTodasLasOtPieza(),
+  const [candidatas, asignadasHoy, centrosDelUsuario] = await Promise.all([
+    getCandidatasTaller(),
     getAsignacionesDeHoy(usuario.id),
     getCentrosDeUsuario(usuario.id),
   ]);
   const otPiezaIdsAsignadosHoy = new Set(asignadasHoy.map((a) => a.otPiezaId));
   const centroIdsDelUsuario = new Set(centrosDelUsuario.map((c) => c.id));
-  const candidatas = await Promise.all(
-    todasLasOtPieza.map(async (otPieza) => {
-      const { estado, sinRouting, operacionActual, routing } = await getEstadoYOperacionActual(otPieza);
-      if (estado === "terminada") return null;
-      // Filtro por centro de trabajo (Release 2, pedido de Horacio en
-      // taller, docs/05-backlog-release-2.md §5): sin centros asignados el
-      // operario ve todo, como antes. Con uno o más centros asignados
-      // (de varios a varios desde la 2ª ronda de Fase 2 — un operario puede
-      // ocupar dos puestos), sólo lo que está en alguno de sus centros
-      // ahora mismo — no lo que va a llegar más adelante (eso se ve en
-      // /centros-trabajo, pensado para producción, no para el operario).
-      //
-      // Excepción: si Planificación le asignó esta pieza puntual para HOY,
-      // se ve igual aunque esté en otro centro — el filtro de centro es la
-      // regla por defecto, no algo que deba tapar una asignación explícita
-      // de hoy (antes la tapaba, era la pregunta abierta del backlog §17).
-      const asignadaHoy = otPiezaIdsAsignadosHoy.has(otPieza.id);
-      const centroActual = operacionActual?.proceso.centroTrabajoId ?? null;
-      if (!asignadaHoy && centroIdsDelUsuario.size > 0 && (!centroActual || !centroIdsDelUsuario.has(centroActual))) {
-        return null;
-      }
-      const pieza = await getPieza(otPieza.piezaId);
-      const conjunto = pieza ? await getConjunto(pieza.conjuntoId) : null;
-      return { otPieza, pieza, conjunto, estado, sinRouting, pasos: routing.length };
-    }),
-  );
+
+  // Filtro por centro de trabajo (Release 2, pedido de Horacio): sin centros
+  // asignados el operario ve todo; con uno o más (de varios a varios desde la
+  // 2ª ronda de Fase 2), sólo lo que está en alguno de sus centros ahora
+  // mismo. Lo que espera una compra o está afuera en un tercerizado no es
+  // trabajo de taller y no se lista. Excepción: si Planificación le asignó
+  // esta pieza para HOY, se ve igual — la asignación explícita manda.
   const pendientes = candidatas
-    .filter((c): c is NonNullable<typeof c> => c !== null)
+    .filter((c) => {
+      if (otPiezaIdsAsignadosHoy.has(c.otPieza.id)) return true;
+      if (c.tipoPasoActual !== "interno") return false;
+      if (centroIdsDelUsuario.size === 0) return true;
+      return c.centroActualId !== null && centroIdsDelUsuario.has(c.centroActualId);
+    })
     .sort((a, b) => Number(otPiezaIdsAsignadosHoy.has(b.otPieza.id)) - Number(otPiezaIdsAsignadosHoy.has(a.otPieza.id)));
 
   return (
@@ -62,14 +48,11 @@ export default async function TallerPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {pendientes.map(({ otPieza, pieza, conjunto, estado, sinRouting, pasos }) => (
+          {pendientes.map(({ otPieza, piezaNombre, conjuntoNombre, estado, pasos }) => (
             <Link
               key={otPieza.id}
-              href={sinRouting ? "#" : `/taller/${otPieza.id}`}
-              aria-disabled={sinRouting}
-              className={`block bg-surface border rounded-xl p-4 ${
-                sinRouting ? "opacity-50 pointer-events-none border-border" : "border-border hover:border-accent active:scale-[0.99]"
-              } transition`}
+              href={`/taller/${otPieza.id}`}
+              className="block bg-surface border border-border rounded-xl p-4 hover:border-accent active:scale-[0.99] transition"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-xs text-foreground-muted">{otPieza.codigo}</span>
@@ -80,9 +63,9 @@ export default async function TallerPage() {
                   </span>
                 </div>
               </div>
-              <div className="font-semibold mt-1">{pieza?.nombre}</div>
+              <div className="font-semibold mt-1">{piezaNombre}</div>
               <div className="text-sm text-foreground-muted">
-                {conjunto?.nombre} · a fabricar: {otPieza.cantidadAFabricar}
+                {conjuntoNombre} · a fabricar: {otPieza.cantidadAFabricar}
               </div>
             </Link>
           ))}

@@ -1,7 +1,8 @@
+import { hoyISO } from "@/lib/fecha";
 import type { AsignacionVigente } from "@/lib/data/planificacion";
 
 function etiquetaFecha(fecha: string): string {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyISO();
   if (fecha === hoy) return "hoy";
   const [, m, d] = fecha.split("-");
   return `el ${d}/${m}`;

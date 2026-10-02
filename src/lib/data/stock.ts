@@ -90,13 +90,36 @@ export async function getStockLibre(piezaId: string): Promise<number> {
  * devuelve cuánto cubrió — reemplaza al `getStockDisponible` que usaba la
  * explosión de OT, que leía el stock sin apartarlo.
  */
-export async function reservarStockLibre(input: { otMaquinaId: string; piezaId: string; necesaria: number }): Promise<number> {
-  const libre = await getStockLibre(input.piezaId);
-  const cubre = Math.min(libre, input.necesaria);
-  if (cubre > 0) {
-    await db.insert(reservaStock).values({ otMaquinaId: input.otMaquinaId, piezaId: input.piezaId, cantidad: cubre });
+export async function reservarStockLibre(input: {
+  otMaquinaId: string;
+  piezas: { piezaId: string; necesaria: number }[];
+}): Promise<Map<string, { cubre: number; disponible: number }>> {
+  const resultado = new Map<string, { cubre: number; disponible: number }>();
+  const piezaIds = [...new Set(input.piezas.map((p) => p.piezaId))];
+  if (piezaIds.length === 0) return resultado;
+
+  // 2 consultas para toda la OT — una por pieza tardaba más de un minuto en una máquina completa.
+  const [stockRows, reservadoRows] = await Promise.all([
+    db.select({ piezaId: stockPieza.piezaId, cantidad: stockPieza.cantidadDisponible }).from(stockPieza).where(inArray(stockPieza.piezaId, piezaIds)),
+    db
+      .select({ piezaId: reservaStock.piezaId, total: sql<number>`sum(${reservaStock.cantidad})`.mapWith(Number) })
+      .from(reservaStock)
+      .where(and(inArray(reservaStock.piezaId, piezaIds), gt(reservaStock.cantidad, 0)))
+      .groupBy(reservaStock.piezaId),
+  ]);
+  const disponible = new Map(stockRows.map((r) => [r.piezaId, r.cantidad]));
+  const libre = new Map(piezaIds.map((id) => [id, Math.max(0, (disponible.get(id) ?? 0) - (reservadoRows.find((r) => r.piezaId === id)?.total ?? 0))]));
+
+  const aInsertar: { otMaquinaId: string; piezaId: string; cantidad: number }[] = [];
+  for (const p of input.piezas) {
+    const l = libre.get(p.piezaId) ?? 0;
+    const cubre = Math.min(l, p.necesaria);
+    libre.set(p.piezaId, l - cubre);
+    if (cubre > 0) aInsertar.push({ otMaquinaId: input.otMaquinaId, piezaId: p.piezaId, cantidad: cubre });
+    resultado.set(p.piezaId, { cubre, disponible: disponible.get(p.piezaId) ?? 0 });
   }
-  return cubre;
+  if (aInsertar.length) await db.insert(reservaStock).values(aInsertar);
+  return resultado;
 }
 
 export type ReservaConOt = { id: string; otMaquinaId: string; otMaquinaCodigo: string; cantidad: number; createdAt: Date };
@@ -516,15 +539,17 @@ export type PiezaStockBajo = { piezaId: string; piezaCodigo: string; piezaNombre
 
 /** Piezas con stock disponible por debajo de su mínimo (RF sugerido, Fase 2). */
 export async function getPiezasStockBajo(): Promise<PiezaStockBajo[]> {
+  // leftJoin: una pieza que nunca entró al almacén no tiene fila en stock_pieza y es justo la más urgente.
+  const disponible = sql<number>`coalesce(${stockPieza.cantidadDisponible}, 0)`.mapWith(Number);
   return db
     .select({
       piezaId: pieza.id,
       piezaCodigo: pieza.codigo,
       piezaNombre: pieza.nombre,
-      disponible: stockPieza.cantidadDisponible,
+      disponible,
       minimo: pieza.stockMinimo,
     })
     .from(pieza)
-    .innerJoin(stockPieza, eq(stockPieza.piezaId, pieza.id))
-    .where(lt(stockPieza.cantidadDisponible, pieza.stockMinimo));
+    .leftJoin(stockPieza, eq(stockPieza.piezaId, pieza.id))
+    .where(and(gt(pieza.stockMinimo, 0), lt(sql`coalesce(${stockPieza.cantidadDisponible}, 0)`, pieza.stockMinimo)));
 }
