@@ -178,6 +178,11 @@ export async function actualizarDescripcionOperacion(operacionId: string, descri
  * sólo se podía tocar el texto de `descripcion`, no agregar, quitar,
  * reordenar operaciones ni cambiar a qué proceso corresponde cada una.
  */
+/** Centro de trabajo para una operación de una pieza puntual; null vuelve al del tipo de operación. */
+export async function actualizarCentroOperacion(operacionId: string, centroTrabajoId: string | null): Promise<void> {
+  await db.update(operacion).set({ centroTrabajoId }).where(eq(operacion.id, operacionId));
+}
+
 export async function actualizarProcesoOperacion(operacionId: string, procesoId: string): Promise<void> {
   await db.update(operacion).set({ procesoId }).where(eq(operacion.id, operacionId));
 }
@@ -320,6 +325,8 @@ export type OperacionConDetalle = {
   proceso: Proceso;
   descripcion: string | null;
   dispositivoNombre: string | null;
+  /** Centro elegido para esta pieza; null = el del tipo de operación (proceso.centroTrabajoId). */
+  centroTrabajoId: string | null;
 };
 
 /** Nombre a mostrar de una operación: el detalle específico si se cargó
@@ -345,6 +352,7 @@ export async function getRoutingPieza(piezaId: string): Promise<OperacionConDeta
     proceso: r.proceso,
     descripcion: r.operacion.descripcion,
     dispositivoNombre: r.dispositivoNombre,
+    centroTrabajoId: r.operacion.centroTrabajoId,
   }));
 }
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getColaPorCentroTrabajo, getPiezasCompraPendientes } from "@/lib/data/produccion";
+import { getColaPorCentroTrabajo, getPiezasCompraPendientes, contarPiezasSinCentro } from "@/lib/data/produccion";
 import { getAsignacionesVigentesBatch } from "@/lib/data/planificacion";
 import { ColaDisponibleAhora } from "@/components/ColaDisponibleAhora";
 import { AsignacionBadge } from "@/components/AsignacionBadge";
@@ -10,7 +10,7 @@ import type { AsignacionVigente } from "@/lib/data/planificacion";
 export const dynamic = "force-dynamic";
 
 export default async function CentrosTrabajoPage() {
-  const [colas, compraPendiente] = await Promise.all([getColaPorCentroTrabajo(), getPiezasCompraPendientes()]);
+  const [colas, compraPendiente, sinCentro] = await Promise.all([getColaPorCentroTrabajo(), getPiezasCompraPendientes(), contarPiezasSinCentro()]);
   const conTrabajo = colas.filter((c) => c.disponibleAhora.length > 0 || c.aFuturo.length > 0);
 
   const todosLosOtPiezaIds = colas.flatMap((c) => [...c.disponibleAhora, ...c.aFuturo].map((it) => it.otPieza.id));
@@ -27,6 +27,18 @@ export default async function CentrosTrabajoPage() {
           clickeá una pieza para ver su detalle completo — qué operación es, y si está asignada.
         </p>
       </div>
+
+      {sinCentro > 0 && (
+        <div className="badge-estado badge-pendiente text-sm px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+          <span>
+            {sinCentro} pieza{sinCentro === 1 ? "" : "s"} están en una operación que todavía no tiene centro de trabajo — no aparecen en
+            ninguna cola.
+          </span>
+          <Link href="/operaciones" className="underline whitespace-nowrap">
+            Asignar centro de trabajo →
+          </Link>
+        </div>
+      )}
 
       {conTrabajo.length === 0 ? (
         <div className="bg-surface border border-border rounded-lg p-6 text-center text-foreground-muted text-sm">

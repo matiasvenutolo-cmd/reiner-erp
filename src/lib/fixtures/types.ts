@@ -43,7 +43,10 @@ export type ProcesoFx = {
   nombre: string;
   ordenFlujo: number;
   tipo: "interno" | "tercerizado" | "compras";
+  centroTrabajoId?: string | null;
 };
+
+export type CentroTrabajoFx = { id: string; codigo: string; nombre: string; orden: number };
 
 export type DispositivoFx = {
   id: string;

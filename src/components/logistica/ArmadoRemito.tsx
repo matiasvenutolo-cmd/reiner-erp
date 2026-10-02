@@ -57,11 +57,10 @@ export function ArmadoRemito({ paraMandar = [] }: { paraMandar?: PiezaParaMandar
   }
 
   // Pieza en fabricación que sale a su paso tercerizado: el tratamiento ya es ese proceso.
-  function agregarParaMandar(p: PiezaParaMandar) {
-    if (carrito.some((it) => it.clave === p.otPiezaId)) return;
+  function agregarParaMandar(...piezas: PiezaParaMandar[]) {
     setCarrito((prev) => [
       ...prev,
-      {
+      ...piezas.filter((p) => !prev.some((it) => it.clave === p.otPiezaId)).map((p) => ({
         clave: p.otPiezaId,
         piezaId: p.piezaId,
         codigo: p.piezaCodigo,
@@ -70,9 +69,12 @@ export function ArmadoRemito({ paraMandar = [] }: { paraMandar?: PiezaParaMandar
         tratamiento: p.procesoNombre,
         otPiezaId: p.otPiezaId,
         otPiezaCodigo: p.otPiezaCodigo,
-      },
+      })),
     ]);
   }
+
+  // Lo pendiente de tercerizar, agrupado por operación: para juntar y mandar todo junto.
+  const porOperacion = [...paraMandar.reduce((m, p) => m.set(p.procesoNombre, [...(m.get(p.procesoNombre) ?? []), p]), new Map<string, PiezaParaMandar[]>())];
 
   function quitar(clave: string) {
     setCarrito((prev) => prev.filter((it) => it.clave !== clave));
@@ -119,30 +121,50 @@ export function ArmadoRemito({ paraMandar = [] }: { paraMandar?: PiezaParaMandar
       {paraMandar.length > 0 && (
         <div>
           <div className="text-xs font-medium text-foreground-muted mb-1.5">
-            Listas para mandar — llegaron a su paso tercerizado y todavía no salieron ({paraMandar.length})
+            Pendientes de tercerizar — llegaron a su paso tercerizado y todavía no salieron ({paraMandar.length})
           </div>
-          <ul className="space-y-1">
-            {paraMandar.map((p) => {
-              const agregada = carrito.some((it) => it.clave === p.otPiezaId);
+          <div className="space-y-2">
+            {porOperacion.map(([operacion, piezas]) => {
+              const faltan = piezas.filter((p) => !carrito.some((it) => it.clave === p.otPiezaId));
               return (
-                <li key={p.otPiezaId} className="flex items-center gap-2 text-sm bg-surface-muted rounded-md px-2.5 py-1.5">
-                  <span className="font-mono text-xs text-foreground-muted">{p.otPiezaCodigo}</span>
-                  <span className="flex-1 truncate">{p.piezaNombre}</span>
-                  <span className="text-xs text-foreground-muted shrink-0">
-                    {p.cantidad} u. · {p.procesoNombre}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={agregada}
-                    onClick={() => agregarParaMandar(p)}
-                    className="text-xs text-accent hover:underline disabled:text-foreground-muted disabled:no-underline shrink-0"
-                  >
-                    {agregada ? "En el remito" : "+ Agregar"}
-                  </button>
-                </li>
+                <div key={operacion}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-medium">
+                      {operacion} · {piezas.length} pieza{piezas.length === 1 ? "" : "s"}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={faltan.length === 0}
+                      onClick={() => agregarParaMandar(...faltan)}
+                      className="text-accent hover:underline disabled:text-foreground-muted disabled:no-underline"
+                    >
+                      {faltan.length === 0 ? "Todas en el remito" : `+ Agregar todas (${faltan.length})`}
+                    </button>
+                  </div>
+                  <ul className="space-y-1">
+                    {piezas.map((p) => {
+                      const agregada = carrito.some((it) => it.clave === p.otPiezaId);
+                      return (
+                        <li key={p.otPiezaId} className="flex items-center gap-2 text-sm bg-surface-muted rounded-md px-2.5 py-1.5">
+                          <span className="font-mono text-xs text-foreground-muted">{p.otPiezaCodigo}</span>
+                          <span className="flex-1 truncate">{p.piezaNombre}</span>
+                          <span className="text-xs text-foreground-muted shrink-0">{p.cantidad} u.</span>
+                          <button
+                            type="button"
+                            disabled={agregada}
+                            onClick={() => agregarParaMandar(p)}
+                            className="text-xs text-accent hover:underline disabled:text-foreground-muted disabled:no-underline shrink-0"
+                          >
+                            {agregada ? "En el remito" : "+ Agregar"}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               );
             })}
-          </ul>
+          </div>
         </div>
       )}
 

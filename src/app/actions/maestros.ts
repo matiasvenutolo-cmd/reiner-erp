@@ -8,6 +8,7 @@ import {
   actualizarNumeroPlanoPieza,
   actualizarDescripcionOperacion,
   actualizarProcesoOperacion,
+  actualizarCentroOperacion,
   agregarOperacion,
   eliminarOperacion,
   moverOperacion,
@@ -95,6 +96,19 @@ export async function actualizarProcesoOperacionAction(formData: FormData) {
 
   await actualizarProcesoOperacion(operacionId, procesoId);
   revalidatePath(`/maestros/pieza/${piezaId}`);
+}
+
+export async function actualizarCentroOperacionAction(formData: FormData) {
+  await getUsuarioActual(); // exige sesión válida
+  const operacionId = String(formData.get("operacionId") ?? "");
+  const piezaId = String(formData.get("piezaId") ?? "");
+  const centroTrabajoId = String(formData.get("centroTrabajoId") ?? "") || null;
+  if (!operacionId || !piezaId) throw new Error("Falta la operación.");
+
+  await actualizarCentroOperacion(operacionId, centroTrabajoId);
+  revalidatePath(`/maestros/pieza/${piezaId}`);
+  revalidatePath("/planificacion");
+  revalidatePath("/centros-trabajo");
 }
 
 export async function agregarOperacionAction(formData: FormData) {

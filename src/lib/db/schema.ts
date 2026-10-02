@@ -183,13 +183,12 @@ export const conjuntoModelo = pgTable(
 );
 
 /**
- * Centro de trabajo (Release 2, pedido de Horacio — docs/05-backlog-release-2.md
- * §1, §3): lugar físico de taller con su propia cola de tareas. Sembrado 1:1
- * desde `proceso` por `scripts/seed-db.ts` — es una asunción de arranque, no
- * una confirmación de Julián/Horacio (ver §7 del backlog): puede haber
- * procesos que en la planta real comparten un mismo centro físico (ej. Torno
- * y Torno CNC bajo un único "Tornos"). Se puede reagrupar después sin tocar
- * `operacion` ni `registro_operacion`, sólo reapuntando `proceso.centroTrabajoId`.
+ * Centro de trabajo: lugar físico (máquina o puesto) con su propia cola de
+ * tareas — los 6 del cliente (Taller, Electrónica, Corte por hilo, Torno,
+ * Torno CNC, Centro de mecanizado). No es lo mismo que una operación
+ * (`proceso`): cada tipo de operación tiene un centro por defecto
+ * (`proceso.centroTrabajoId`, editable en Administración → Operaciones y
+ * centros) y una pieza puntual puede usar otro (`operacion.centroTrabajoId`).
  */
 export const centroTrabajo = pgTable("centro_trabajo", {
   id: text("id").primaryKey(),
@@ -338,6 +337,9 @@ export const operacion = pgTable("operacion", {
   descripcion: text("descripcion"),
   dispositivoId: text("dispositivo_id").references(() => dispositivo.id),
   procedimientoId: text("procedimiento_id").references(() => procedimiento.id),
+  // Centro de trabajo para ESTA pieza, distinto del que tiene por defecto su
+  // tipo de operación (proceso.centroTrabajoId). null = usar el de defecto.
+  centroTrabajoId: text("centro_trabajo_id").references(() => centroTrabajo.id),
 });
 
 // ── Stock (con posición por etapa — hallazgo 3.1) ───────────────────────

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "TORNO",
+    "codigo": "TORNO",
+    "nombre": "Torno",
+    "orden": 30
+  },
+  {
+    "id": "TORNO_CNC",
+    "codigo": "TORNO_CNC",
+    "nombre": "Torno CNC",
+    "orden": 35
+  },
+  {
+    "id": "CENTRO_MECANIZADO",
+    "codigo": "CENTRO_MECANIZADO",
+    "nombre": "Centro de mecanizado",
+    "orden": 45
+  },
+  {
+    "id": "CORTE_HILO",
+    "codigo": "CORTE_HILO",
+    "nombre": "Corte por hilo",
+    "orden": 50
+  },
+  {
+    "id": "ELECTRONICA",
+    "codigo": "ELECTRONICA",
+    "nombre": "Electrónica",
+    "orden": 175
+  },
+  {
+    "id": "TALLER",
+    "codigo": "TALLER",
+    "nombre": "Taller",
+    "orden": 180
+  }
+]

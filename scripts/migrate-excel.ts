@@ -25,6 +25,8 @@ import {
   PROCESOS_COMPRAS,
   COLUMNAS_STOCK_NO_WIP,
   ALIAS_CONJUNTO,
+  CENTROS_TRABAJO,
+  CENTRO_POR_DEFECTO,
 } from "./lib/normalizacion";
 import type {
   ModeloFx,
@@ -425,6 +427,7 @@ function main() {
     nombre: NOMBRE_PROCESO[codigo] ?? codigo,
     ordenFlujo: ORDEN_FLUJO[codigo] ?? 999,
     tipo: PROCESOS_COMPRAS.has(codigo) ? "compras" : PROCESOS_TERCERIZADOS.has(codigo) ? "tercerizado" : "interno",
+    centroTrabajoId: CENTRO_POR_DEFECTO[codigo] ?? null,
   }));
   procesos.sort((a, b) => a.ordenFlujo - b.ordenFlujo);
 
@@ -442,6 +445,7 @@ function main() {
   escribir("conjuntos", conjuntos);
   escribir("conjunto-modelo", conjuntoModelo);
   escribir("procesos", procesos);
+  escribir("centros-trabajo", CENTROS_TRABAJO);
   escribir("dispositivos", dispositivos);
   escribir("piezas", piezasFinal);
   escribir("pieza-configuracion", piezaConfiguracion);

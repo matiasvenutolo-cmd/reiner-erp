@@ -65,7 +65,14 @@ export default async function PlanificacionPage({
   const pendientes = await getPendientesDePlanificar(claves);
 
   const pendientesPorCentro = new Map<string, PendienteDePlanificar[]>();
-  for (const p of pendientes) pendientesPorCentro.set(p.centroTrabajoId, [...(pendientesPorCentro.get(p.centroTrabajoId) ?? []), p]);
+  const sinCentro: PendienteDePlanificar[] = [];
+  for (const p of pendientes) {
+    if (!p.centroTrabajoId) sinCentro.push(p);
+    else pendientesPorCentro.set(p.centroTrabajoId, [...(pendientesPorCentro.get(p.centroTrabajoId) ?? []), p]);
+  }
+  // Operaciones sin centro, agrupadas por tipo de operación: se resuelven en Administración.
+  const sinCentroPorOperacion = [...sinCentro.reduce((m, p) => m.set(p.operacionNombre, (m.get(p.operacionNombre) ?? 0) + 1), new Map<string, number>())]
+    .sort((a, b) => b[1] - a[1]);
   const centrosConAlgo = centros.filter((c) => pendientesPorCentro.has(c.id) || asignaciones.some((a) => a.centroTrabajoId === c.id));
   const operariosActivos = operarios.filter((o) => o.activo);
 
@@ -150,10 +157,26 @@ export default async function PlanificacionPage({
           Por centro de trabajo. &ldquo;Se puede hacer ya&rdquo; = es el paso actual de la pieza; el resto llega cuando termine el paso anterior,
           y se puede ir asignando para los próximos días.
         </p>
-        {pendientes.length === 0 ? (
+        {pendientes.length === 0 && sinCentro.length === 0 ? (
           <p className="text-sm text-foreground-muted">No hay nada pendiente de asignar.</p>
         ) : (
           <div className="space-y-2">
+            {sinCentro.length > 0 && (
+              <div className="bg-surface border border-border rounded-lg px-4 py-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    <span className="font-medium">Sin centro de trabajo asignado</span>
+                    <span className="text-foreground-muted"> · {sinCentro.length} operaciones — no se pueden planificar hasta saber dónde se hacen</span>
+                  </span>
+                  <Link href="/operaciones" className="text-accent hover:underline whitespace-nowrap">
+                    Asignar centro de trabajo →
+                  </Link>
+                </div>
+                <div className="text-xs text-foreground-muted mt-1">
+                  {sinCentroPorOperacion.map(([nombre, n]) => `${nombre} (${n})`).join(" · ")}
+                </div>
+              </div>
+            )}
             {centros
               .filter((c) => pendientesPorCentro.has(c.id))
               .map((c) => {

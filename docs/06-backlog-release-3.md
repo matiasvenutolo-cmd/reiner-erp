@@ -1183,3 +1183,67 @@ interpretó como una sola máquina (hoy hay 5). Preguntas para el cliente:
 
 **Sin cambios, a propósito:** Stock, Tercerizados y Remitos (punto 12); la tabla "por etapa"
 de Avance que repite la de Stock (se marca, no se sacó: no estaba pedido).
+
+## 24 · Operaciones ≠ centros de trabajo (2026-10-02)
+
+Definición de Matías sobre la duda de §23: los centros son los 6 del cliente, **Taller,
+Electrónica, Corte por hilo, Torno, Torno CNC y Centro de mecanizado** — Torno, Torno CNC y
+Centro de mecanizado son máquinas distintas (se descarta la fusión del paquete 14). Roscado,
+Rectificado, Pintura, etc. son operaciones que se hacen en alguno de esos centros o se
+tercerizan; no son centros, y no se asume dónde se hace cada una si no está confirmado.
+
+**Chequeo previo contra lo definido por el cliente:** sin conflictos. La lista de centros
+coincide con su respuesta (pregunta 1); Compras sigue separado de tercerizado (lo dijo el
+cliente) y no se edita desde el panel; el filtro de centros del operario (pedido de Horacio)
+sigue igual. El modelo ya separaba operación (`proceso`) de centro (`centro_trabajo`) con un
+centro por defecto por tipo de operación; faltaba que fuera editable, por pieza, y con las
+opciones "Tercerizado" y "sin asignar".
+
+**Hallazgo en los Excel originales:** las hojas de ruta (OT - BASE GENERAL) usan una sola
+operación "CNC"; CS-03 tiene columnas "TORNO CNC" y "CENTRO CNC" (existen las dos máquinas),
+pero nada dice cuál hace cada operación CNC. Decisión de Matías: CNC queda **sin centro**
+hasta que confirme el cliente.
+
+**✅ Paquete extra 22 — Panel "Operaciones y centros" (Administración).**
+- Centros: renombrar, agregar uno nuevo (ej. una máquina que compren) y eliminar sólo si
+  nada lo usa.
+- Operaciones: para cada tipo, dónde se hace por defecto — un centro, "Tercerizado" (va a
+  Tercerizados, no a una cola de taller) o "Asignar centro de trabajo…" (sin decidir).
+  Compras se muestra fijo ("se resuelve con stock").
+- Por pieza: en su hoja de ruta (Maestros) cada paso interno tiene "Centro de trabajo": el
+  de defecto o uno elegido sólo para esa pieza (`operacion.centro_trabajo_id`, nueva). Todo
+  el sistema (colas, /taller, Planificación y su carga por centro) usa el de la pieza si lo
+  tiene y si no el de defecto.
+- Sin centro: no entra en ninguna cola ni se puede planificar. Aparece en Planificación
+  ("Sin centro de trabajo asignado", por operación) y como aviso en Centros de trabajo, con
+  link a asignarlo.
+- Tercerizados: lo pendiente de tercerizar se agrupa por operación con "Agregar todas" para
+  juntarlo en un mismo remito.
+
+**Datos (base compartida):** quedaron los 6 centros (se creó Torno CNC y Centro de
+mecanizado; Taller pasó a llamarse "Taller"); se borraron los 15 centros 1:1 que venían de
+cada proceso y el "Centro de mecanizado CNC" de la fusión anterior (ninguno lo usaba un
+operario ni una pieza). Por defecto sólo quedaron asignadas las inequívocas: Torno → Torno,
+Corte por hilo → Corte por hilo, Taller → Taller, Electrónica → Electrónica. CNC, Fresado,
+Roscado, Chavetero, Tallado, Soldadura, Templado, Rectificado, Arenado, Grabado láser,
+Impresión 3D y Pintura quedaron sin asignar; los 4 tercerizados de siempre siguen
+tercerizados. **No se borró ninguna operación de ninguna pieza.** La operación "Centro de
+mecanizado CNC" volvió a llamarse "CNC", como en el Excel.
+
+**Siembra:** `seed-db.ts` ya no crea un centro por proceso ni re-pisa el centro por defecto en
+cada corrida (lo que se configure en el panel se respeta); los 6 centros y el mapeo inicial
+salen de `centros-trabajo.json`/`procesos.json` (`CENTROS_TRABAJO`/`CENTRO_POR_DEFECTO` en
+`scripts/lib/normalizacion.ts`).
+
+**Bug corregido de paso:** los selects que guardan solos al cambiar (centro, destino, proceso,
+tipo de pieza, rol) volvían a mostrar el valor anterior después de guardar — React 19 resetea
+el formulario al terminar la acción. Ahora se rearman con el valor guardado.
+
+Probado: crear y borrar un centro; Roscado → Torno CNC (aparece su grupo en Planificación
+con 6 pendientes) y vuelta a sin asignar; Rectificado → Tercerizado (sale de Planificación) y
+vuelta; centro propio de una pieza (sus 3 OT pasan a Centro de mecanizado, el resto de CNC
+no) y vuelta. Todo revertido a la línea base.
+
+**Para preguntarle al cliente:** dónde se hace cada operación sin asignar — en particular
+**CNC (113 pasos): ¿Torno CNC o Centro de mecanizado?**, y cuáles de Roscado, Rectificado,
+Templado, Arenado, Pintura, etc. son tercerizadas. Se carga directo en el panel, sin código.

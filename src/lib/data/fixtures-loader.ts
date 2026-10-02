@@ -12,6 +12,7 @@ import type {
   ConjuntoFx,
   ConjuntoModeloFx,
   ProcesoFx,
+  CentroTrabajoFx,
   DispositivoFx,
   PiezaFx,
   PiezaConfiguracionFx,
@@ -25,6 +26,7 @@ import configuracionesData from "@/lib/fixtures/data/configuraciones.json";
 import conjuntosData from "@/lib/fixtures/data/conjuntos.json";
 import conjuntoModeloData from "@/lib/fixtures/data/conjunto-modelo.json";
 import procesosData from "@/lib/fixtures/data/procesos.json";
+import centrosTrabajoData from "@/lib/fixtures/data/centros-trabajo.json";
 import dispositivosData from "@/lib/fixtures/data/dispositivos.json";
 import piezasData from "@/lib/fixtures/data/piezas.json";
 import piezaConfiguracionData from "@/lib/fixtures/data/pieza-configuracion.json";
@@ -39,6 +41,7 @@ export const FIXTURES = {
   conjuntos: conjuntosData as ConjuntoFx[],
   conjuntoModelo: conjuntoModeloData as ConjuntoModeloFx[],
   procesos: procesosData as ProcesoFx[],
+  centrosTrabajo: centrosTrabajoData as CentroTrabajoFx[],
   dispositivos: dispositivosData as DispositivoFx[],
   piezas: piezasData as PiezaFx[],
   piezaConfiguracion: piezaConfiguracionData as PiezaConfiguracionFx[],

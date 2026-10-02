@@ -51,7 +51,7 @@ export default async function UsuariosPage() {
               <tr key={u.id} className="border-t border-border align-top">
                 <td className="px-4 py-2.5 font-medium">{u.nombre}</td>
                 <td className="px-4 py-2.5">
-                  <form action={actualizarRolAction} className="flex items-center gap-1">
+                  <form action={actualizarRolAction} className="flex items-center gap-1" key={u.rol}>
                     <input type="hidden" name="usuarioId" value={u.id} />
                     <RolSelect rol={u.rol} />
                   </form>

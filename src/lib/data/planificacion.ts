@@ -49,7 +49,7 @@ export async function getAsignacionesRango(desde: string, hasta: string): Promis
     .innerJoin(usuario, eq(usuario.id, asignacionTrabajo.operarioId))
     .leftJoin(operacion, eq(operacion.id, asignacionTrabajo.operacionId))
     .leftJoin(proceso, eq(proceso.id, operacion.procesoId))
-    .leftJoin(centroTrabajo, eq(centroTrabajo.id, proceso.centroTrabajoId))
+    .leftJoin(centroTrabajo, eq(centroTrabajo.id, sql`coalesce(${operacion.centroTrabajoId}, ${proceso.centroTrabajoId})`))
     .where(and(gte(asignacionTrabajo.fecha, desde), lte(asignacionTrabajo.fecha, hasta)))
     .orderBy(asc(asignacionTrabajo.createdAt));
 }

@@ -25,6 +25,8 @@ import {
 import { DescripcionOperacionInput } from "@/components/DescripcionOperacionInput";
 import { TipoPiezaSelect } from "@/components/TipoPiezaSelect";
 import { ProcesoOperacionSelect } from "@/components/ProcesoOperacionSelect";
+import { CentroOperacionSelect } from "@/components/CentroOperacionSelect";
+import { getCentrosTrabajo } from "@/lib/data/produccion";
 import { urlDeAdjunto } from "@/lib/blob";
 
 const TIPO_ADJUNTO_LABEL: Record<string, string> = {
@@ -42,7 +44,7 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
   const pieza = await getPieza(piezaId);
   if (!pieza) notFound();
 
-  const [conjunto, routing, stock, wip, notas, adjuntos, procesos] = await Promise.all([
+  const [conjunto, routing, stock, wip, notas, adjuntos, procesos, centros] = await Promise.all([
     getConjunto(pieza.conjuntoId),
     getRoutingPieza(pieza.id),
     getStockDisponible(pieza.id),
@@ -50,6 +52,7 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
     getNotasPieza(pieza.id),
     getAdjuntosPieza(pieza.id),
     getProcesos(),
+    getCentrosTrabajo(),
   ]);
 
   return (
@@ -143,6 +146,7 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
                 <tr>
                   <th className="text-left px-4 py-2 font-medium w-12">#</th>
                   <th className="text-left px-4 py-2 font-medium">Proceso</th>
+                  <th className="text-left px-4 py-2 font-medium">Centro de trabajo</th>
                   <th className="text-left px-4 py-2 font-medium">Detalle</th>
                   <th className="text-left px-4 py-2 font-medium">Dispositivo</th>
                   <th className="text-right px-4 py-2 font-medium">OPS</th>
@@ -164,6 +168,19 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
                         <span className="ml-1 text-xs text-foreground-muted">(tercerizado)</span>
                       )}
                       {op.proceso.tipo === "compras" && <span className="ml-1 text-xs text-foreground-muted">(compra)</span>}
+                    </td>
+                    <td className="px-4 py-2.5 min-w-[11rem]">
+                      {op.proceso.tipo === "interno" ? (
+                        <CentroOperacionSelect
+                          operacionId={op.id}
+                          piezaId={pieza.id}
+                          centroElegido={op.centroTrabajoId}
+                          centroPorDefecto={centros.find((c) => c.id === op.proceso.centroTrabajoId) ?? null}
+                          centros={centros.map((c) => ({ id: c.id, nombre: c.nombre }))}
+                        />
+                      ) : (
+                        <span className="text-xs text-foreground-muted">{op.proceso.tipo === "tercerizado" ? "Tercerizado" : "Compra"}</span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 min-w-[12rem]">
                       <DescripcionOperacionInput

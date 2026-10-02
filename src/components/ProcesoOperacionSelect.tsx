@@ -17,7 +17,8 @@ export function ProcesoOperacionSelect({
   procesos: { id: string; nombre: string }[];
 }) {
   return (
-    <form action={actualizarProcesoOperacionAction}>
+    // key: React 19 resetea el form tras la acción; así se rearma con el valor guardado.
+    <form action={actualizarProcesoOperacionAction} key={procesoIdActual}>
       <input type="hidden" name="operacionId" value={operacionId} />
       <input type="hidden" name="piezaId" value={piezaId} />
       <select

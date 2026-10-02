@@ -11,7 +11,7 @@
  * de cualquier operación posterior en la misma hoja de ruta la tiene "a
  * futuro" (todavía depende de que termine lo que viene antes).
  */
-import { asc, eq, and, inArray, isNotNull, isNull } from "drizzle-orm";
+import { asc, eq, and, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   centroTrabajo,
@@ -160,7 +160,8 @@ async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing
         secuencia: operacion.secuencia,
         procesoNombre: proceso.nombre,
         descripcion: operacion.descripcion,
-        centroTrabajoId: proceso.centroTrabajoId,
+        // El de esta pieza si se cambió en Maestros; si no, el del tipo de operación.
+        centroTrabajoId: sql<string | null>`coalesce(${operacion.centroTrabajoId}, ${proceso.centroTrabajoId})`,
         tipo: proceso.tipo,
       })
       .from(operacion)
@@ -455,7 +456,8 @@ export type PendienteDePlanificar = {
   otMaquinaCodigo: string;
   operacionId: string;
   operacionNombre: string;
-  centroTrabajoId: string;
+  /** null = el tipo de operación todavía no tiene centro de trabajo asignado. */
+  centroTrabajoId: string | null;
   cantidad: number;
   /** null si se puede hacer ya; si no, el paso anterior que tiene que terminar antes. */
   despuesDe: string | null;
@@ -474,7 +476,7 @@ export async function getPendientesDePlanificar(asignadas: Set<string>): Promise
   for (const { fila, routing, posActual } of filas) {
     for (let i = posActual; i < routing.length; i++) {
       const paso = routing[i];
-      if (paso.tipo !== "interno" || !paso.centroTrabajoId) continue;
+      if (paso.tipo !== "interno") continue;
       if (asignadas.has(`${fila.otPieza.id}::${paso.id}`)) continue;
       resultado.push({
         otPiezaId: fila.otPieza.id,
@@ -491,4 +493,10 @@ export async function getPendientesDePlanificar(asignadas: Set<string>): Promise
     }
   }
   return resultado;
+}
+
+/** Piezas enviadas a producción cuyo paso actual es una operación interna sin centro asignado. */
+export async function contarPiezasSinCentro(): Promise<number> {
+  const filas = (await getFilasConPosicionActual()).filter(({ fila }) => fila.otPieza.enviadaProduccionAt);
+  return filas.filter(({ routing, posActual }) => routing[posActual].tipo === "interno" && !routing[posActual].centroTrabajoId).length;
 }

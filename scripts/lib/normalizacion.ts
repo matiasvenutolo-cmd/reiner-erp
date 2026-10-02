@@ -106,17 +106,10 @@ export const COLUMNAS_STOCK_NO_WIP = new Set(["Finalizado"]);
 export const NOMBRE_PROCESO: Record<string, string> = {
   COMPRAS: "Compras",
   TORNO: "Torno",
-  // CNC = "Centro de mecanizado CNC" (2ª ronda de devolución de Fase 2,
-  // pregunta 1): el cliente confirmó que las máquinas quedan en sólo dos,
-  // "Torno" y "Centro de mecanizado CNC" — resolviendo la duda abierta desde
-  // la migración original ("CENTRO CNC / TORNO CNC son máquinas distintas
-  // del 'CNC'/'Torno' genérico... hasta confirmar con Julián"). Se habían
-  // agregado "Torno CNC" y "Centro de mecanizado" como centros nuevos y
-  // vacíos por las dudas; al no tener ninguna operación ruteada todavía se
-  // borraron sin riesgo y se renombró este "CNC" directamente. MECANIZADO
-  // (alias de Fierro/CS-03) no se tocó: el cliente no lo nombró y sí tiene
-  // operaciones reales cargadas.
-  CNC: "Centro de mecanizado CNC",
+  // "CNC" es la operación tal como figura en las hojas de ruta del Excel. En
+  // qué máquina se hace (Torno CNC o Centro de mecanizado — CS-03 tiene las
+  // dos) no está confirmado: queda sin centro por defecto, ver CENTRO_POR_DEFECTO.
+  CNC: "CNC",
   CORTE_HILO: "Corte por hilo",
   FRESADO: "Fresado",
   ROSCADO: "Roscado",
@@ -139,6 +132,30 @@ export const NOMBRE_PROCESO: Record<string, string> = {
   FIERRO: "Fierro",
   MECANIZADO: "Mecanizado",
   PULIDO: "Pulido",
+};
+
+/**
+ * Centros de trabajo del cliente (2ª ronda de Fase 2, pregunta 1, confirmado
+ * por Matías el 2026-10-02: Torno, Torno CNC y Centro de mecanizado son tres
+ * máquinas distintas). Las operaciones (procesos) son otra cosa: se hacen en
+ * alguno de estos centros, se tercerizan, o todavía no se sabe — se edita en
+ * Administración → Operaciones y centros, esto es sólo el arranque.
+ */
+export const CENTROS_TRABAJO = [
+  { id: "TORNO", codigo: "TORNO", nombre: "Torno", orden: 30 },
+  { id: "TORNO_CNC", codigo: "TORNO_CNC", nombre: "Torno CNC", orden: 35 },
+  { id: "CENTRO_MECANIZADO", codigo: "CENTRO_MECANIZADO", nombre: "Centro de mecanizado", orden: 45 },
+  { id: "CORTE_HILO", codigo: "CORTE_HILO", nombre: "Corte por hilo", orden: 50 },
+  { id: "ELECTRONICA", codigo: "ELECTRONICA", nombre: "Electrónica", orden: 175 },
+  { id: "TALLER", codigo: "TALLER", nombre: "Taller", orden: 180 },
+];
+
+/** Sólo las operaciones cuyo centro es inequívoco; el resto arranca sin centro (no se inventa). */
+export const CENTRO_POR_DEFECTO: Record<string, string> = {
+  TORNO: "TORNO",
+  CORTE_HILO: "CORTE_HILO",
+  TALLER: "TALLER",
+  ELECTRONICA: "ELECTRONICA",
 };
 
 /**
