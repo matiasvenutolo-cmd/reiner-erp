@@ -4,7 +4,7 @@ const TIPO_LABEL: Record<string, string> = {
   ingreso: "Ingreso",
   egreso: "Egreso",
   ajuste: "Ajuste",
-  retiro_ot: "Retiro por OT",
+  retiro_ot: "Retiro de stock",
 };
 
 /** Select de tipo de movimiento con auto-submit — filtro de /tercerizados. */

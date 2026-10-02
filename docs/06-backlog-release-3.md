@@ -934,3 +934,67 @@ exportarla desde el sistema.
   y "0 min" en el paso de Torno, "Centro de mecanizado CNC" como paso 2, y "015" como
   orden de compra del cliente — confirmando que el merge de centros y el export leen el
   mismo dato real sin duplicar ni inventar nada.
+
+## 21 · Revisión del socio antes de enviar a REINER (2026-10-02)
+
+Matías pasó el listado de respuestas del cliente con comentarios de su socio en rojo
+(`listado de respuestas reiner.docx`). Cada comentario se contrastó contra el código
+antes de tocar nada:
+
+| Comentario del socio | Diagnóstico | Qué se hizo |
+|---|---|---|
+| #1 centros "Corregirlo" | Ya resuelto en el paquete 14 (Torno + Centro de mecanizado CNC) | — |
+| #2 "No lo veo resuelto" | El cliente contestó "no" (sólo taller ajusta stock): no había cambio que hacer | — |
+| #5 stock futuro/comprometido "No lo veo implementado" | Cierto. "Futuro" existía como "En proceso" sin ese nombre; "comprometido" no existía: la explosión de OT leía el stock sin reservarlo, dos máquinas podían contar la misma pieza | Paquete 15 |
+| #7 Descartador | El socio indica dejarlo así | — |
+| #9 orden de compra "no veo nada vinculado" | Existía (alta de OT, detalle, OT impresa) pero no en el listado de OT | Columna en `/ot` |
+| Revisión "No lo veo resuelto" | El cronómetro existe, pero sólo aparece dentro de una pieza con retrabajo pendiente y no había ninguno. No se volvió a crear `/revision` (el cliente pidió sacarla en §10) | Más visible: tarjeta en Inicio para todo el staff (antes sólo ingeniería/dirección) y marca "retrabajo →" en Avance |
+| Stock confuso + "te manda a maestros" | Cierto | Paquete 15 |
+| Logística (egreso manual, búsqueda, ingreso/egreso poco claros, tabla de "en manos del proveedor") | Cierto | Paquete 16 |
+| Avance "no lo veo bien resuelto" | Lo del paquete 10 era iniciar/finalizar cronometrado, a nombre de quien lo usaba, en una lista plana de 100+ piezas | Paquete 17 |
+| Indicadores de costo | Sigue pendiente de que el cliente defina de dónde sale el costo | — |
+
+**✅ Paquete extra 15 — Stock en cuatro grupos + ficha de stock + compras.**
+- `reserva_stock` (nueva): al generar una OT (máquina, suelta de conjunto, completar
+  conjunto) lo que el stock cubre queda reservado para esa máquina (`reservarStockLibre`
+  reemplaza al `getStockDisponible` de la explosión). Libre = almacén − comprometido. Las
+  4 OT existentes se reconstruyeron con un script único sobre datos reales (lista de
+  piezas de la configuración vs. lo que el stock cubrió al generar, topeado por el stock
+  real y en orden de creación): 215 reservas, 290 unidades.
+- `/stock`: cuatro tarjetas — en almacén libre, comprometido, stock futuro (en
+  fabricación), compras pedidas / por pedir. "Compras" ya no figura como una etapa del
+  stock futuro (era la fila más grande y mezclaba "falta comprar" con "en fabricación").
+- `/stock/pieza/[id]` (nueva): reemplaza el link a Maestros. Muestra almacén, libre,
+  comprometido por OT, en fabricación y pedido; **"Registrar retiro"** con cantidad, OT y
+  motivo, que guarda quién lo sacó. Sin OT sólo puede tocar lo libre; con OT consume su
+  reserva. La corrección de conteo (sólo taller) quedó plegada abajo.
+- `pedido_compra` (nueva) + `/stock/compras`: pendientes de pedir → "Pedido" (proveedor,
+  cantidad) → "Pedidas, esperando que lleguen" → registrar llegada con control. NO OK
+  queda asentado y el pedido sigue abierto; OK cierra el paso de Compras de la pieza
+  fabricada (pasa sola a su siguiente etapa) o, si es pieza comprada, suma al almacén ya
+  reservada para su OT. Esos cierres van sin duración y se excluyen del tiempo estándar.
+
+**✅ Paquete extra 16 — Tercerizados ordenado por circuito.** Arriba "Afuera, esperando
+que vuelvan" (una fila por OT de pieza, con "Registrar vuelta" + control: OK cierra el
+paso tercerizado); después armar remito (genera el egreso solo); después movimientos con
+tipo en color (↓ Ingreso verde, ↑ Egreso rojo, cantidades +/− coloreadas). **Se sacó el
+egreso manual.** El ingreso suelto (sin pedido ni remito) quedó plegado al final.
+
+**✅ Paquete extra 17 — Avance: cambiar estados de pieza y de conjunto.** Reemplaza el
+iniciar/finalizar del paquete 10. Cada cuadradito de "Por sección" despliega ese conjunto
+dentro de la tarjeta; cada pieza tiene un selector Pendiente/En curso/Terminada y cada
+conjunto un "Cambiar todo a…". Se guarda en `ot_pieza.estado_manual` (pisa al estado
+derivado en Avance, OT, Stock, Centros de trabajo y Taller), sin crear registros ni
+tiempos; "Automático" lo devuelve a lo que calcula taller.
+
+Probado en el navegador y con scripts (todo revertido después): estado por pieza y por
+conjunto en OTM999 (0→1→25→0/25 piezas); pedido → llegada NO OK (sigue abierto) → OK
+(cierra Compras, dos ingresos asentados); retiro rechazado por exceder lo libre (mensaje
+en pantalla) y retiro para OTM999 (almacén 32→29, reserva 8→5); OT suelta de prueba
+reservando stock (libre 21→20) y vuelta de tercerizado cerrando su paso.
+
+**Para la próxima reunión:**
+- Indicadores de costo: de dónde sale el costo (¿los "COD HS PROD" del papel de OT?).
+- ¿Quién puede retirar del almacén? Hoy cualquier usuario de oficina/taller (no operarios).
+- El estado manual de Avance no cronometra: si taller sigue cargando en `/taller`, el
+  manual pisa al automático hasta volverlo a "Automático".

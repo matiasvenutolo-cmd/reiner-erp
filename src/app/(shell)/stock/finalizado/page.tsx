@@ -19,6 +19,7 @@ export default async function StockFinalizadoPage({
     getConfiguraciones(),
   ]);
   const totalUnidades = piezas.reduce((sum, p) => sum + p.disponible, 0);
+  const totalComprometido = piezas.reduce((sum, p) => sum + p.comprometido, 0);
 
   return (
     <div className="space-y-6">
@@ -26,10 +27,10 @@ export default async function StockFinalizadoPage({
         <Link href="/stock" className="text-sm text-accent hover:underline">
           ← Stock
         </Link>
-        <h1 className="text-xl font-semibold mt-1">Finalizado</h1>
+        <h1 className="text-xl font-semibold mt-1">En almacén</h1>
         <p className="text-sm text-foreground-muted mt-1">
-          {piezas.length} pieza{piezas.length === 1 ? "" : "s"} distinta{piezas.length === 1 ? "" : "s"} disponibles ·{" "}
-          {totalUnidades} unidades en total.
+          Existencias físicas reales: {piezas.length} pieza{piezas.length === 1 ? "" : "s"} distinta{piezas.length === 1 ? "" : "s"} ·{" "}
+          {totalUnidades} unidades, de las cuales {totalComprometido} ya están comprometidas para una máquina vendida.
         </p>
       </div>
 
@@ -50,14 +51,16 @@ export default async function StockFinalizadoPage({
                 <th className="text-left px-4 py-2 font-medium">Pieza</th>
                 <th className="text-left px-4 py-2 font-medium">Conjunto</th>
                 <th className="text-left px-4 py-2 font-medium">Tipo</th>
-                <th className="text-right px-4 py-2 font-medium">Disponible</th>
+                <th className="text-right px-4 py-2 font-medium">En almacén</th>
+                <th className="text-right px-4 py-2 font-medium">Comprometido</th>
+                <th className="text-right px-4 py-2 font-medium">Libre</th>
               </tr>
             </thead>
             <tbody>
               {piezas.map((p) => (
                 <tr key={p.piezaId} className="border-t border-border hover:bg-surface-muted/50">
                   <td className="px-4 py-2.5">
-                    <Link href={`/maestros/pieza/${p.piezaId}`} className="font-mono text-xs text-accent hover:underline mr-1">
+                    <Link href={`/stock/pieza/${p.piezaId}`} className="font-mono text-xs text-accent hover:underline mr-1">
                       {p.piezaCodigo}
                     </Link>
                     {p.piezaNombre}
@@ -71,6 +74,8 @@ export default async function StockFinalizadoPage({
                     )}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{p.disponible}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">{p.comprometido || "—"}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums font-medium">{p.disponible - p.comprometido}</td>
                 </tr>
               ))}
             </tbody>

@@ -37,6 +37,7 @@ export default async function OtPage() {
                 <th className="text-left px-4 py-2 font-medium">OT</th>
                 <th className="text-left px-4 py-2 font-medium">Configuración</th>
                 <th className="text-left px-4 py-2 font-medium">Cliente</th>
+                <th className="text-left px-4 py-2 font-medium">Orden de compra</th>
                 <th className="text-left px-4 py-2 font-medium">Plazo</th>
                 <th className="text-right px-4 py-2 font-medium">Piezas a fabricar</th>
                 <th className="text-left px-4 py-2 font-medium">Estado</th>
@@ -60,6 +61,7 @@ export default async function OtPage() {
                   </td>
                   <td className="px-4 py-2.5">{ot.configuracion?.nombre ?? "—"}</td>
                   <td className="px-4 py-2.5">{ot.clienteNombre ?? "—"}</td>
+                  <td className="px-4 py-2.5 font-mono text-xs text-foreground-muted">{ot.ordenCompra ?? "—"}</td>
                   <td className="px-4 py-2.5 text-foreground-muted">{ot.plazoEntrega ?? "—"}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">
                     {ot.piezasTerminadas} / {ot.totalPiezasAFabricar}

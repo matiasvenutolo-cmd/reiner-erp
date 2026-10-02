@@ -21,9 +21,10 @@
  * estaba en curso antes de este sistema) — a confirmar con Julián/Horacio
  * antes de eliminar la tabla del todo (ver pregunta abierta en el backlog).
  */
-import { asc, eq, and, inArray, isNotNull, lt, gt } from "drizzle-orm";
+import { asc, eq, and, inArray, isNotNull, lt, gt, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
+  reservaStock,
   stockPieza,
   pieza,
   conjunto,
@@ -52,6 +53,7 @@ async function piezaIdsDeConfiguracion(configuracionId: string): Promise<Set<str
   return new Set(filas.map((f) => f.piezaId));
 }
 
+/** Total físico en almacén — incluye lo comprometido para otras máquinas. */
 export async function getStockDisponible(piezaId: string): Promise<number> {
   const [row] = await db
     .select({ cantidad: stockPieza.cantidadDisponible })
@@ -60,13 +62,133 @@ export async function getStockDisponible(piezaId: string): Promise<number> {
   return row?.cantidad ?? 0;
 }
 
+export async function getComprometido(piezaId: string): Promise<number> {
+  const [row] = await db
+    .select({ total: sql<number>`coalesce(sum(${reservaStock.cantidad}), 0)`.mapWith(Number) })
+    .from(reservaStock)
+    .where(and(eq(reservaStock.piezaId, piezaId), gt(reservaStock.cantidad, 0)));
+  return row?.total ?? 0;
+}
+
+export async function getComprometidoBatch(): Promise<Map<string, number>> {
+  const rows = await db
+    .select({ piezaId: reservaStock.piezaId, total: sql<number>`sum(${reservaStock.cantidad})`.mapWith(Number) })
+    .from(reservaStock)
+    .where(gt(reservaStock.cantidad, 0))
+    .groupBy(reservaStock.piezaId);
+  return new Map(rows.map((r) => [r.piezaId, r.total]));
+}
+
+/** Lo que se puede usar para una OT nueva: almacén menos lo ya comprometido. */
+export async function getStockLibre(piezaId: string): Promise<number> {
+  const [disponible, comprometido] = await Promise.all([getStockDisponible(piezaId), getComprometido(piezaId)]);
+  return Math.max(0, disponible - comprometido);
+}
+
+/**
+ * Reserva para una OT lo que el stock libre cubra de lo que necesita, y
+ * devuelve cuánto cubrió — reemplaza al `getStockDisponible` que usaba la
+ * explosión de OT, que leía el stock sin apartarlo.
+ */
+export async function reservarStockLibre(input: { otMaquinaId: string; piezaId: string; necesaria: number }): Promise<number> {
+  const libre = await getStockLibre(input.piezaId);
+  const cubre = Math.min(libre, input.necesaria);
+  if (cubre > 0) {
+    await db.insert(reservaStock).values({ otMaquinaId: input.otMaquinaId, piezaId: input.piezaId, cantidad: cubre });
+  }
+  return cubre;
+}
+
+export type ReservaConOt = { id: string; otMaquinaId: string; otMaquinaCodigo: string; cantidad: number; createdAt: Date };
+
+export async function getReservasDePieza(piezaId: string): Promise<ReservaConOt[]> {
+  return db
+    .select({
+      id: reservaStock.id,
+      otMaquinaId: reservaStock.otMaquinaId,
+      otMaquinaCodigo: otMaquina.codigo,
+      cantidad: reservaStock.cantidad,
+      createdAt: reservaStock.createdAt,
+    })
+    .from(reservaStock)
+    .innerJoin(otMaquina, eq(otMaquina.id, reservaStock.otMaquinaId))
+    .where(and(eq(reservaStock.piezaId, piezaId), gt(reservaStock.cantidad, 0)))
+    .orderBy(asc(reservaStock.createdAt));
+}
+
+/**
+ * Retiro físico del almacén (devolución del socio: "poner que te agarraste x
+ * cantidad y registrar quién sacó del stock"). Con OT, consume su reserva;
+ * sin OT, sólo puede tocar lo libre — lo comprometido es de otra máquina.
+ */
+export async function retirarStock(input: {
+  piezaId: string;
+  cantidad: number;
+  otMaquinaId?: string;
+  observacion?: string;
+  usuarioId: string;
+}): Promise<void> {
+  if (input.cantidad <= 0) throw new Error("La cantidad tiene que ser mayor a cero.");
+  const [disponible, comprometido, reservas] = await Promise.all([
+    getStockDisponible(input.piezaId),
+    getComprometido(input.piezaId),
+    getReservasDePieza(input.piezaId),
+  ]);
+  if (input.cantidad > disponible) throw new Error(`Sólo hay ${disponible} en almacén.`);
+
+  let otCodigo: string | undefined;
+  const reservaUpdates: { id: string; cantidad: number }[] = [];
+  if (input.otMaquinaId) {
+    const deEsaOt = reservas.filter((r) => r.otMaquinaId === input.otMaquinaId);
+    const reservadoOt = deEsaOt.reduce((s, r) => s + r.cantidad, 0);
+    const libre = Math.max(0, disponible - comprometido);
+    if (input.cantidad > reservadoOt + libre) {
+      throw new Error(`Para esa OT hay ${reservadoOt} reservadas y ${libre} libres.`);
+    }
+    otCodigo = deEsaOt[0]?.otMaquinaCodigo;
+    if (!otCodigo) {
+      const [m] = await db.select({ codigo: otMaquina.codigo }).from(otMaquina).where(eq(otMaquina.id, input.otMaquinaId));
+      otCodigo = m?.codigo;
+    }
+    let resto = input.cantidad;
+    for (const r of deEsaOt) {
+      if (resto <= 0) break;
+      const usa = Math.min(resto, r.cantidad);
+      reservaUpdates.push({ id: r.id, cantidad: r.cantidad - usa });
+      resto -= usa;
+    }
+  } else {
+    const libre = Math.max(0, disponible - comprometido);
+    if (input.cantidad > libre) {
+      throw new Error(`Hay ${libre} libres; el resto está comprometido para otra máquina — elegí la OT para la que lo retirás.`);
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    for (const u of reservaUpdates) {
+      await tx.update(reservaStock).set({ cantidad: u.cantidad }).where(eq(reservaStock.id, u.id));
+    }
+    await tx
+      .insert(stockPieza)
+      .values({ piezaId: input.piezaId, cantidadDisponible: disponible - input.cantidad })
+      .onConflictDoUpdate({ target: stockPieza.piezaId, set: { cantidadDisponible: disponible - input.cantidad, updatedAt: new Date() } });
+    await tx.insert(movimientoStock).values({
+      piezaId: input.piezaId,
+      tipo: "retiro_ot",
+      cantidad: input.cantidad,
+      usuarioId: input.usuarioId,
+      observacion: [otCodigo ? `Para ${otCodigo}` : null, input.observacion?.trim() || null].filter(Boolean).join(" — ") || null,
+    });
+  });
+}
+
 export type WipEtapa = { procesoNombre: string; cantidad: number };
 
 /** WIP en vivo de UNA pieza puntual — para la búsqueda de /stock. Sin riesgo
  * de N+1: una pieza tiene a lo sumo un puñado de OT de pieza abiertas. */
 export async function getWipEnCursoDePieza(piezaId: string): Promise<WipEtapa[]> {
   const rutaRows = await db
-    .select({ id: operacion.id, secuencia: operacion.secuencia, procesoId: proceso.id, procesoNombre: proceso.nombre })
+    .select({ id: operacion.id, secuencia: operacion.secuencia, procesoId: proceso.id, procesoNombre: proceso.nombre, tipo: proceso.tipo })
     .from(operacion)
     .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
     .where(eq(operacion.piezaId, piezaId))
@@ -94,9 +216,9 @@ export async function getWipEnCursoDePieza(piezaId: string): Promise<WipEtapa[]>
   const acumulado = new Map<string, WipEtapa>();
   for (const otp of otPiezas) {
     const completadas = completadasPorOtPieza.get(otp.id) ?? new Set<string>();
-    if (completadas.size >= rutaRows.length) continue; // terminada — ya pasó a stock "Finalizado"
+    if (completadas.size >= rutaRows.length || otp.estadoManual === "terminada") continue; // terminada — ya pasó a stock "Finalizado"
     const actual = rutaRows.find((op) => !completadas.has(op.id));
-    if (!actual) continue;
+    if (!actual || actual.tipo === "compras") continue; // esperando compra: va en Compras, no en fabricación
     const acc = acumulado.get(actual.procesoId) ?? { procesoNombre: actual.procesoNombre, cantidad: 0 };
     acc.cantidad += otp.cantidadAFabricar;
     acumulado.set(actual.procesoId, acc);
@@ -132,6 +254,7 @@ export async function getResumenWipEnCursoPorProceso(): Promise<WipEtapaResumen[
         secuencia: operacion.secuencia,
         procesoId: proceso.id,
         procesoNombre: proceso.nombre,
+        tipo: proceso.tipo,
       })
       .from(operacion)
       .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
@@ -145,10 +268,10 @@ export async function getResumenWipEnCursoPorProceso(): Promise<WipEtapaResumen[
       ),
   ]);
 
-  const rutaPorPieza = new Map<string, { id: string; procesoId: string; procesoNombre: string }[]>();
+  const rutaPorPieza = new Map<string, { id: string; procesoId: string; procesoNombre: string; tipo: string }[]>();
   for (const r of rutaRows) {
     const arr = rutaPorPieza.get(r.piezaId) ?? [];
-    arr.push({ id: r.id, procesoId: r.procesoId, procesoNombre: r.procesoNombre });
+    arr.push({ id: r.id, procesoId: r.procesoId, procesoNombre: r.procesoNombre, tipo: r.tipo });
     rutaPorPieza.set(r.piezaId, arr);
   }
 
@@ -164,9 +287,9 @@ export async function getResumenWipEnCursoPorProceso(): Promise<WipEtapaResumen[
     const routing = rutaPorPieza.get(fila.piezaId) ?? [];
     if (routing.length === 0) continue;
     const completadas = completadasPorOtPieza.get(fila.otPieza.id) ?? new Set<string>();
-    if (completadas.size >= routing.length) continue;
+    if (completadas.size >= routing.length || fila.otPieza.estadoManual === "terminada") continue;
     const actual = routing.find((op) => !completadas.has(op.id));
-    if (!actual) continue;
+    if (!actual || actual.tipo === "compras") continue; // esperando compra: va en Compras, no en fabricación
 
     const acc = acumulado.get(actual.procesoId) ?? { procesoNombre: actual.procesoNombre, piezas: new Set<string>(), unidades: 0 };
     acc.piezas.add(fila.piezaId);
@@ -238,7 +361,7 @@ export async function getPiezasEnProceso(procesoId?: string, filtros: FiltrosSto
 
   const [rutaRows, completadasRows] = await Promise.all([
     db
-      .select({ piezaId: operacion.piezaId, id: operacion.id, secuencia: operacion.secuencia, procesoId: proceso.id, procesoNombre: proceso.nombre })
+      .select({ piezaId: operacion.piezaId, id: operacion.id, secuencia: operacion.secuencia, procesoId: proceso.id, procesoNombre: proceso.nombre, tipo: proceso.tipo })
       .from(operacion)
       .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
       .where(inArray(operacion.piezaId, piezaIds))
@@ -251,10 +374,10 @@ export async function getPiezasEnProceso(procesoId?: string, filtros: FiltrosSto
       ),
   ]);
 
-  const rutaPorPieza = new Map<string, { id: string; procesoId: string; procesoNombre: string }[]>();
+  const rutaPorPieza = new Map<string, { id: string; procesoId: string; procesoNombre: string; tipo: string }[]>();
   for (const r of rutaRows) {
     const arr = rutaPorPieza.get(r.piezaId) ?? [];
-    arr.push({ id: r.id, procesoId: r.procesoId, procesoNombre: r.procesoNombre });
+    arr.push({ id: r.id, procesoId: r.procesoId, procesoNombre: r.procesoNombre, tipo: r.tipo });
     rutaPorPieza.set(r.piezaId, arr);
   }
 
@@ -270,9 +393,9 @@ export async function getPiezasEnProceso(procesoId?: string, filtros: FiltrosSto
     const routing = rutaPorPieza.get(fila.piezaId) ?? [];
     if (routing.length === 0) continue;
     const completadas = completadasPorOtPieza.get(fila.otPieza.id) ?? new Set<string>();
-    if (completadas.size >= routing.length) continue;
+    if (completadas.size >= routing.length || fila.otPieza.estadoManual === "terminada") continue;
     const actual = routing.find((op) => !completadas.has(op.id));
-    if (!actual || (procesoId && actual.procesoId !== procesoId)) continue;
+    if (!actual || actual.tipo === "compras" || (procesoId && actual.procesoId !== procesoId)) continue;
     if (piezaIdsPermitidos && !piezaIdsPermitidos.has(fila.piezaId)) continue;
 
     resultado.push({
@@ -333,11 +456,15 @@ export async function ajustarStock(input: {
 /** Métricas generales para el panel de /stock — pedido de Matías/Julián:
  * la pantalla no puede abrir en blanco con sólo un buscador, tiene que dar
  * una imagen general accionable de entrada. */
-export async function getResumenStockGeneral(): Promise<{ piezasConStock: number; unidadesFinalizadas: number }> {
-  const rows = await db.select({ cantidad: stockPieza.cantidadDisponible }).from(stockPieza);
+export async function getResumenStockGeneral(): Promise<{ piezasConStock: number; unidadesFinalizadas: number; unidadesComprometidas: number }> {
+  const [rows, comprometido] = await Promise.all([
+    db.select({ piezaId: stockPieza.piezaId, cantidad: stockPieza.cantidadDisponible }).from(stockPieza),
+    getComprometidoBatch(),
+  ]);
   return {
     piezasConStock: rows.filter((r) => r.cantidad > 0).length,
     unidadesFinalizadas: rows.reduce((sum, r) => sum + r.cantidad, 0),
+    unidadesComprometidas: rows.reduce((sum, r) => sum + Math.min(r.cantidad, comprometido.get(r.piezaId) ?? 0), 0),
   };
 }
 
@@ -348,6 +475,7 @@ export type PiezaFinalizada = {
   conjuntoNombre: string;
   tipo: "fabricada" | "comprada";
   disponible: number;
+  comprometido: number;
 };
 
 /** Detalle pieza por pieza de lo "Finalizado" — mismo motivo que
@@ -361,22 +489,26 @@ export async function getPiezasFinalizadas(filtros: FiltrosStock = {}): Promise<
 
   const piezaIdsPermitidos = filtros.configuracionId ? await piezaIdsDeConfiguracion(filtros.configuracionId) : null;
 
-  const rows = await db
-    .select({
-      piezaId: pieza.id,
-      piezaCodigo: pieza.codigo,
-      piezaNombre: pieza.nombre,
-      conjuntoNombre: conjunto.nombre,
-      tipo: pieza.tipo,
-      disponible: stockPieza.cantidadDisponible,
-    })
-    .from(stockPieza)
-    .innerJoin(pieza, eq(pieza.id, stockPieza.piezaId))
-    .innerJoin(conjunto, eq(conjunto.id, pieza.conjuntoId))
-    .where(and(...condiciones));
+  const [rows, comprometido] = await Promise.all([
+    db
+      .select({
+        piezaId: pieza.id,
+        piezaCodigo: pieza.codigo,
+        piezaNombre: pieza.nombre,
+        conjuntoNombre: conjunto.nombre,
+        tipo: pieza.tipo,
+        disponible: stockPieza.cantidadDisponible,
+      })
+      .from(stockPieza)
+      .innerJoin(pieza, eq(pieza.id, stockPieza.piezaId))
+      .innerJoin(conjunto, eq(conjunto.id, pieza.conjuntoId))
+      .where(and(...condiciones)),
+    getComprometidoBatch(),
+  ]);
 
   return rows
     .filter((r) => !piezaIdsPermitidos || piezaIdsPermitidos.has(r.piezaId))
+    .map((r) => ({ ...r, comprometido: Math.min(r.disponible, comprometido.get(r.piezaId) ?? 0) }))
     .sort((a, b) => b.disponible - a.disponible);
 }
 

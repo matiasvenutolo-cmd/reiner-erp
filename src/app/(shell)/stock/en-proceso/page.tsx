@@ -60,7 +60,7 @@ export default async function StockEnProcesoPage({
               {items.map((it) => (
                 <tr key={it.otPiezaId} className="border-t border-border hover:bg-surface-muted/50">
                   <td className="px-4 py-2.5">
-                    <Link href={`/maestros/pieza/${it.piezaId}`} className="font-mono text-xs text-accent hover:underline mr-1">
+                    <Link href={`/stock/pieza/${it.piezaId}`} className="font-mono text-xs text-accent hover:underline mr-1">
                       {it.piezaCodigo}
                     </Link>
                     {it.piezaNombre}

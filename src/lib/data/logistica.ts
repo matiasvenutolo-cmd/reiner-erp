@@ -33,7 +33,7 @@ export type MovimientoConDetalle = {
 };
 
 /** Últimos movimientos, opcionalmente filtrados por tipo — la base del panel de ingresos/egresos. */
-export async function listarMovimientos(tipo?: TipoMovimientoStock, limite = 50): Promise<MovimientoConDetalle[]> {
+export async function listarMovimientos(tipo?: TipoMovimientoStock, limite = 50, piezaId?: string): Promise<MovimientoConDetalle[]> {
   const rows = await db
     .select({
       id: movimientoStock.id,
@@ -52,7 +52,7 @@ export async function listarMovimientos(tipo?: TipoMovimientoStock, limite = 50)
     .innerJoin(pieza, eq(pieza.id, movimientoStock.piezaId))
     .innerJoin(usuario, eq(usuario.id, movimientoStock.usuarioId))
     .leftJoin(proveedor, eq(proveedor.id, movimientoStock.proveedorId))
-    .where(tipo ? eq(movimientoStock.tipo, tipo) : undefined)
+    .where(and(tipo ? eq(movimientoStock.tipo, tipo) : undefined, piezaId ? eq(movimientoStock.piezaId, piezaId) : undefined))
     .orderBy(desc(movimientoStock.fecha))
     .limit(limite);
   return rows;
@@ -126,7 +126,7 @@ export async function getPiezasFueraDeFabrica(): Promise<PiezaFueraDeFabrica[]> 
     const routing = rutaPorPieza.get(fila.piezaId) ?? [];
     if (routing.length === 0) continue;
     const completadas = completadasPorOtPieza.get(fila.otPieza.id) ?? new Set<string>();
-    if (completadas.size >= routing.length) continue;
+    if (completadas.size >= routing.length || fila.otPieza.estadoManual === "terminada") continue;
     const actual = routing.find((op) => !completadas.has(op.id));
     if (!actual || actual.tipo !== "tercerizado") continue;
 
@@ -183,28 +183,5 @@ export async function registrarIngreso(input: RegistrarIngresoInput): Promise<vo
           set: { cantidadDisponible: actual + input.cantidad, updatedAt: new Date() },
         });
     }
-  });
-}
-
-export type RegistrarEgresoInput = { piezaId: string; cantidad: number; observacion?: string; usuarioId: string };
-
-/** Egreso simple (pieza sale de fábrica) — sin control de calidad, ese chequeo es sólo al ingresar. */
-export async function registrarEgreso(input: RegistrarEgresoInput): Promise<void> {
-  await db.transaction(async (tx) => {
-    const actual = await getStockDisponible(input.piezaId);
-    await tx.insert(movimientoStock).values({
-      piezaId: input.piezaId,
-      tipo: "egreso",
-      cantidad: input.cantidad,
-      observacion: input.observacion,
-      usuarioId: input.usuarioId,
-    });
-    await tx
-      .insert(stockPieza)
-      .values({ piezaId: input.piezaId, cantidadDisponible: Math.max(0, actual - input.cantidad) })
-      .onConflictDoUpdate({
-        target: stockPieza.piezaId,
-        set: { cantidadDisponible: Math.max(0, actual - input.cantidad), updatedAt: new Date() },
-      });
   });
 }

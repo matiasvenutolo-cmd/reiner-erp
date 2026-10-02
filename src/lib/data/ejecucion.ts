@@ -197,6 +197,8 @@ export async function getTiempoEstandar(operacionId: string, tipo: "setup" | "ej
         eq(registroOperacion.operacionId, operacionId),
         eq(registroOperacion.tipo, tipo),
         sql`${registroOperacion.fin} is not null`,
+        // Compras/tercerizados recibidos cierran su paso sin duración — no es tiempo de máquina.
+        sql`${registroOperacion.duracionSeg} is not null`,
       ),
     );
   if (!row || row.observaciones === 0) return null;

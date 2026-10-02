@@ -8,7 +8,11 @@ import {
   completarOtConjunto,
   generarOtPiezaSuelta,
   generarOrdenSuelta,
+  setEstadoManual,
+  getOtPiezaIdsDeConjunto,
+  type EstadoCalculado,
 } from "@/lib/data/ot";
+import { getUsuarioActual } from "@/lib/session";
 
 export async function crearOtMaquinaAction(formData: FormData) {
   const configuracionId = String(formData.get("configuracionId") ?? "");
@@ -104,4 +108,35 @@ export async function crearOrdenSueltaAction(formData: FormData) {
 
   revalidatePath("/ot");
   redirect(`/ot/${id}`);
+}
+
+const ESTADOS_MANUALES: EstadoCalculado[] = ["pendiente", "en_curso", "terminada"];
+
+function revalidarEstado() {
+  for (const ruta of ["/avance", "/ot", "/stock", "/centros-trabajo", "/tercerizados", "/inicio"]) {
+    revalidatePath(ruta, "layout");
+  }
+}
+
+/** Estado manual desde /avance: "auto" vuelve al estado derivado de taller. */
+export async function cambiarEstadoPiezaAction(formData: FormData) {
+  const usuario = await getUsuarioActual();
+  if (usuario.rol === "operario") throw new Error("No autorizado.");
+  const otPiezaId = String(formData.get("otPiezaId") ?? "");
+  const estado = String(formData.get("estado") ?? "");
+  if (!otPiezaId) throw new Error("Falta la pieza.");
+  if (estado !== "auto" && !ESTADOS_MANUALES.includes(estado as EstadoCalculado)) throw new Error("Estado inválido.");
+  await setEstadoManual([otPiezaId], estado === "auto" ? null : (estado as EstadoCalculado));
+  revalidarEstado();
+}
+
+export async function cambiarEstadoConjuntoAction(formData: FormData) {
+  const usuario = await getUsuarioActual();
+  if (usuario.rol === "operario") throw new Error("No autorizado.");
+  const otConjuntoId = String(formData.get("otConjuntoId") ?? "");
+  const estado = String(formData.get("estado") ?? "");
+  if (!otConjuntoId) throw new Error("Falta el conjunto.");
+  if (estado !== "auto" && !ESTADOS_MANUALES.includes(estado as EstadoCalculado)) throw new Error("Estado inválido.");
+  await setEstadoManual(await getOtPiezaIdsDeConjunto(otConjuntoId), estado === "auto" ? null : (estado as EstadoCalculado));
+  revalidarEstado();
 }

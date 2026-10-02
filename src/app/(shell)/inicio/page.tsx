@@ -73,8 +73,8 @@ export default async function InicioPage() {
         </Tarjeta>
       )}
 
-      {(usuario.rol === "ingenieria" || usuario.rol === "direccion") && revisionPendiente.length > 0 && (
-        <Tarjeta titulo={`Revisión pendiente (${revisionPendiente.length})`}>
+      {revisionPendiente.length > 0 && (
+        <Tarjeta titulo={`Retrabajos pendientes (${revisionPendiente.length}) — entrá para cargar tareas y cronometrarlas`}>
           <ul className="divide-y divide-border">
             {revisionPendiente.slice(0, 5).map((t) => (
               <li key={t.id} className="py-2">

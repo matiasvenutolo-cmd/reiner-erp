@@ -188,7 +188,7 @@ async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing
     if (routing.length === 0) continue; // sin hoja de ruta — no aparece en ninguna cola
 
     const completadas = completadasPorOtPieza.get(fila.otPieza.id) ?? new Set<string>();
-    if (completadas.size >= routing.length) continue; // terminada
+    if (completadas.size >= routing.length || fila.otPieza.estadoManual === "terminada") continue; // terminada
 
     const posActual = routing.findIndex((op) => !completadas.has(op.id));
     if (posActual === -1) continue;
@@ -255,6 +255,10 @@ export type ItemCompraPendiente = {
   otMaquinaId: string;
   otMaquinaCodigo: string;
   detalle: string;
+  /** Unidades a comprar (pieza comprada) o a abastecer de material (fabricada). */
+  cantidad: number;
+  /** Paso de Compras a cerrar cuando llega el material — null si es una pieza comprada entera. */
+  operacionCompraId: string | null;
 };
 
 /**
@@ -305,12 +309,14 @@ export async function getPiezasCompraPendientes(): Promise<ItemCompraPendiente[]
       otMaquinaId: f.otMaquinaId,
       otMaquinaCodigo: f.otMaquinaCodigo,
       detalle: `faltan ${f.cantidadNecesaria - f.disponible} de ${f.cantidadNecesaria}`,
+      cantidad: f.cantidadNecesaria - f.disponible,
+      operacionCompraId: null,
     }));
 
   const filasConPosicion = await getFilasConPosicionActual();
   const piezasMaterialPendiente: ItemCompraPendiente[] = filasConPosicion
     .filter(({ routing, posActual }) => routing[posActual].tipo === "compras")
-    .map(({ fila }) => ({
+    .map(({ fila, routing, posActual }) => ({
       otPiezaId: fila.otPieza.id,
       otPiezaCodigo: fila.otPieza.codigo,
       piezaCodigo: fila.piezaCodigo,
@@ -319,7 +325,43 @@ export async function getPiezasCompraPendientes(): Promise<ItemCompraPendiente[]
       otMaquinaId: fila.otMaquinaId,
       otMaquinaCodigo: fila.otMaquinaCodigo,
       detalle: `${fila.otPieza.cantidadAFabricar} u. esperando compra de material para arrancar`,
+      cantidad: fila.otPieza.cantidadAFabricar,
+      operacionCompraId: routing[posActual].id,
     }));
 
   return [...piezasComprada, ...piezasMaterialPendiente];
+}
+
+export type ItemAfueraTercerizado = {
+  otPiezaId: string;
+  otPiezaCodigo: string;
+  piezaId: string;
+  piezaCodigo: string;
+  piezaNombre: string;
+  otMaquinaId: string;
+  otMaquinaCodigo: string;
+  procesoNombre: string;
+  operacionId: string;
+  cantidad: number;
+};
+
+/** OT de pieza cuyo paso actual es un proceso tercerizado — es decir, afuera
+ * en manos del proveedor, esperando volver. Una fila por OT de pieza (no
+ * agrupado) para poder registrar la vuelta de cada una. */
+export async function getPiezasAfueraTercerizado(): Promise<ItemAfueraTercerizado[]> {
+  const filas = await getFilasConPosicionActual();
+  return filas
+    .filter(({ routing, posActual }) => routing[posActual].tipo === "tercerizado")
+    .map(({ fila, routing, posActual }) => ({
+      otPiezaId: fila.otPieza.id,
+      otPiezaCodigo: fila.otPieza.codigo,
+      piezaId: fila.otPieza.piezaId,
+      piezaCodigo: fila.piezaCodigo,
+      piezaNombre: fila.piezaNombre,
+      otMaquinaId: fila.otMaquinaId,
+      otMaquinaCodigo: fila.otMaquinaCodigo,
+      procesoNombre: routing[posActual].procesoNombre,
+      operacionId: routing[posActual].id,
+      cantidad: fila.otPieza.cantidadAFabricar,
+    }));
 }

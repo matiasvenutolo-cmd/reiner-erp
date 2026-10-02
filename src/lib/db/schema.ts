@@ -461,8 +461,53 @@ export const otPieza = pgTable("ot_pieza", {
   // se quiere hacer primero"). Menor = primero. No es prioridad de negocio,
   // sólo el orden que taller eligió — ver /centros-trabajo.
   prioridad: integer("prioridad").notNull().default(0),
+  // Estado cargado a mano desde /avance (devolución del cliente: "modificar
+  // los estados de la pieza desde el avance"). null = automático, derivado
+  // de registro_operacion. Pisa al derivado sin inventar registros ni
+  // tiempos, así no ensucia el tiempo estándar.
+  estadoManual: estadoOtEnum("estado_manual"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+/**
+ * Stock comprometido (2ª ronda de Fase 2, pregunta 5: "piezas que están en
+ * stock, que serán utilizadas para una máquina ya vendida"). Al generar una
+ * OT, lo que el stock cubre queda reservado para esa máquina y deja de
+ * contar como libre — antes dos OT podían descontar la misma pieza del
+ * almacén. `cantidad` es lo que sigue reservado: baja al retirarla.
+ */
+export const reservaStock = pgTable("reserva_stock", {
+  id: id(),
+  otMaquinaId: text("ot_maquina_id")
+    .notNull()
+    .references(() => otMaquina.id),
+  piezaId: text("pieza_id")
+    .notNull()
+    .references(() => pieza.id),
+  cantidad: integer("cantidad").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
+ * Compra pedida al proveedor y todavía no recibida — separa en Stock
+ * "pendiente de compra" de "comprado, esperando que llegue". Cuelga de la
+ * OT de pieza que la necesita (pieza comprada entera o materia prima de una
+ * pieza fabricada cuyo paso actual es Compras).
+ */
+export const pedidoCompra = pgTable("pedido_compra", {
+  id: id(),
+  otPiezaId: text("ot_pieza_id")
+    .notNull()
+    .references(() => otPieza.id),
+  proveedorId: text("proveedor_id").references(() => proveedor.id),
+  cantidad: integer("cantidad").notNull(),
+  observacion: text("observacion"),
+  usuarioId: text("usuario_id")
+    .notNull()
+    .references(() => usuario.id),
+  fechaPedido: timestamp("fecha_pedido").notNull().defaultNow(),
+  recibidoAt: timestamp("recibido_at"),
 });
 
 /**
@@ -685,3 +730,5 @@ export type RemitoItem = typeof remitoItem.$inferSelect;
 export type Usuario = typeof usuario.$inferSelect;
 export type Cliente = typeof cliente.$inferSelect;
 export type Proveedor = typeof proveedor.$inferSelect;
+export type ReservaStock = typeof reservaStock.$inferSelect;
+export type PedidoCompra = typeof pedidoCompra.$inferSelect;

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { listarOtMaquinas } from "@/lib/data/ot";
 import { getResumenWipEnCursoPorProceso } from "@/lib/data/stock";
-import { getParadasActivas, getOperacionAbierta } from "@/lib/data/ejecucion";
+import { getParadasActivas } from "@/lib/data/ejecucion";
 import { getPiezasFueraDeFabrica } from "@/lib/data/logistica";
-import { getUsuarioActual } from "@/lib/session";
+import { getTareasRevision } from "@/lib/data/revision";
 import { MaquinaCard } from "@/components/avance/MaquinaCard";
 import { MetricCard } from "@/components/MetricCard";
 
@@ -11,14 +11,14 @@ import { MetricCard } from "@/components/MetricCard";
 export const dynamic = "force-dynamic";
 
 export default async function AvancePage() {
-  const usuario = await getUsuarioActual();
-  const [ordenes, wip, paradas, fueraDeFabrica, operacionAbierta] = await Promise.all([
+  const [ordenes, wip, paradas, fueraDeFabrica, retrabajos] = await Promise.all([
     listarOtMaquinas(),
     getResumenWipEnCursoPorProceso(),
     getParadasActivas(),
     getPiezasFueraDeFabrica(),
-    getOperacionAbierta(usuario.id),
+    getTareasRevision("pendiente"),
   ]);
+  const otPiezaIdsConRetrabajo = [...new Set(retrabajos.map((t) => t.otPiezaId))];
 
   const enCurso = ordenes.filter((o) => o.estadoCalculado === "en_curso").length;
   const piezasTerminadas = ordenes.reduce((sum, o) => sum + o.piezasTerminadas, 0);
@@ -64,8 +64,7 @@ export default async function AvancePage() {
                 totalPiezasAFabricar={ot.totalPiezasAFabricar}
                 plazoEntrega={ot.plazoEntrega}
                 secciones={ot.secciones}
-                otPiezaIdAbierta={operacionAbierta?.otPiezaId ?? null}
-                registroOperacionIdAbierta={operacionAbierta?.id ?? null}
+                otPiezaIdsConRetrabajo={otPiezaIdsConRetrabajo}
               />
             );
           })}
