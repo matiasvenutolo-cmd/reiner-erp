@@ -78,6 +78,10 @@ export const estadoOtEnum = pgEnum("estado_ot", [
  */
 export const tipoOrdenEnum = pgEnum("tipo_orden", ["maquina", "suelta"]);
 
+/** De qué es una orden suelta: un conjunto completo o una pieza puntual — para
+ * mostrar en /ot "OT Piezas", "OT Conjuntos" y "Máquinas completas" por separado. */
+export const alcanceSueltaEnum = pgEnum("alcance_suelta", ["conjunto", "pieza"]);
+
 export const tipoRegistroOperacionEnum = pgEnum("tipo_registro_operacion", [
   "setup",
   "ejecucion",
@@ -403,6 +407,7 @@ export const otMaquina = pgTable("ot_maquina", {
   id: id(),
   codigo: text("codigo").notNull().unique(), // OTM6 (máquina) u OTS6 (suelta)
   tipo: tipoOrdenEnum("tipo").notNull().default("maquina"),
+  alcance: alcanceSueltaEnum("alcance"), // sólo en tipo "suelta"
   numeroSerie: text("numero_serie").notNull(), // en una orden "suelta" es una referencia libre, no un número de serie real
   configuracionId: text("configuracion_id")
     .notNull()
@@ -461,11 +466,11 @@ export const otPieza = pgTable("ot_pieza", {
   // se quiere hacer primero"). Menor = primero. No es prioridad de negocio,
   // sólo el orden que taller eligió — ver /centros-trabajo.
   prioridad: integer("prioridad").notNull().default(0),
-  // Estado cargado a mano desde /avance (devolución del cliente: "modificar
-  // los estados de la pieza desde el avance"). null = automático, derivado
-  // de registro_operacion. Pisa al derivado sin inventar registros ni
-  // tiempos, así no ensucia el tiempo estándar.
-  estadoManual: estadoOtEnum("estado_manual"),
+  // Pedido de fabricación: al generar la OT la pieza queda en ingeniería; recién
+  // cuando ingeniería la envía a producción aparece para planificar, en las colas
+  // de los centros y en /taller. null = todavía no enviada.
+  enviadaProduccionAt: timestamp("enviada_produccion_at"),
+  enviadaProduccionPorId: text("enviada_produccion_por_id").references(() => usuario.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -527,6 +532,9 @@ export const asignacionTrabajo = pgTable("asignacion_trabajo", {
   operarioId: text("operario_id")
     .notNull()
     .references(() => usuario.id),
+  // Qué operación de la hoja de ruta se hace ese día — de ahí sale el centro de
+  // trabajo y la carga por centro × día en Planificación.
+  operacionId: text("operacion_id").references(() => operacion.id),
   fecha: date("fecha").notNull(),
   asignadoPorId: text("asignado_por_id")
     .notNull()

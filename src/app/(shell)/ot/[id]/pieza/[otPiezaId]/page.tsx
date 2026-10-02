@@ -7,6 +7,7 @@ import { formatearDuracion } from "@/lib/formato";
 import { getUsuario } from "@/lib/data/usuarios";
 import { getTareasRevisionDePieza, getItemsTareaRevision } from "@/lib/data/revision";
 import { getAsignacionesVigentesBatch } from "@/lib/data/planificacion";
+import { enviarAProduccionAction } from "@/app/actions/ot";
 import {
   resolverTareaRevisionAction,
   agregarItemTareaRevisionAction,
@@ -63,6 +64,7 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
         </div>
         <div className="flex items-center gap-2">
           <EstadoBadge estado={estado} sinRouting={sinRouting} />
+          {!otPieza.enviadaProduccionAt && <span className="badge-estado badge-pendiente">En ingeniería</span>}
           {asignacion && <AsignacionBadge asignacion={asignacion} />}
           <Link
             href={`/ot/${id}/pieza/${otPieza.id}/imprimir`}
@@ -70,12 +72,21 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
           >
             Imprimir OT
           </Link>
-          <Link
-            href={`/taller/${otPieza.id}`}
-            className="bg-accent text-accent-foreground text-sm font-medium px-3 py-2 rounded-md hover:opacity-90"
-          >
-            Abrir en taller →
-          </Link>
+          {otPieza.enviadaProduccionAt ? (
+            <Link
+              href="/planificacion"
+              className="bg-accent text-accent-foreground text-sm font-medium px-3 py-2 rounded-md hover:opacity-90"
+            >
+              Planificar →
+            </Link>
+          ) : (
+            <form action={enviarAProduccionAction}>
+              <input type="hidden" name="otPiezaId" value={otPieza.id} />
+              <button type="submit" className="bg-accent text-accent-foreground text-sm font-medium px-3 py-2 rounded-md hover:opacity-90">
+                Enviar a producción
+              </button>
+            </form>
+          )}
         </div>
       </div>
 

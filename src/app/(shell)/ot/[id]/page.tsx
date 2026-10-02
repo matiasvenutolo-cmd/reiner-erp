@@ -7,7 +7,7 @@ import { getOtPiezaIdsConRevisionPendiente } from "@/lib/data/revision";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import { ConjuntosView } from "@/components/ot/ConjuntosView";
 import type { ConjuntoData } from "@/components/ot/ConjuntoAccordion";
-import { completarOtConjuntoAction } from "@/app/actions/ot";
+import { completarOtConjuntoAction, enviarAProduccionAction } from "@/app/actions/ot";
 
 export default async function OtMaquinaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -57,6 +57,7 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
       })),
   );
   const sinPiezas = conjuntos.filter((c) => c.piezas.length === 0);
+  const sinEnviar = conjuntos.reduce((n, c) => n + c.piezas.filter((p) => !p.otPieza.enviadaProduccionAt).length, 0);
   // Cubierto por stock ≠ sin piezas en la lista de la configuración (ej. Lubricación en una PS):
   // el texto anterior decía "el stock cubría la necesidad" para los dos casos.
   const conjuntosSinFabricar = sinPiezas.filter((c) => (piezasConfigPorConjunto.get(c.otConjunto.conjuntoId) ?? []).length > 0);
@@ -77,11 +78,26 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
         </div>
         <div className="flex items-center gap-2">
           {otMaquina.tipo === "suelta" && (
-            <span className="badge-estado bg-surface-muted text-foreground-muted">Orden suelta</span>
+            <span className="badge-estado bg-surface-muted text-foreground-muted">
+              {otMaquina.alcance === "pieza" ? "Orden de pieza" : "Orden de conjunto"}
+            </span>
           )}
           <EstadoBadge estado={estadoCalculado} />
         </div>
       </div>
+
+      {sinEnviar > 0 && (
+        <form action={enviarAProduccionAction} className="bg-accent-soft rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+          <input type="hidden" name="otMaquinaId" value={otMaquina.id} />
+          <span className="text-sm">
+            {sinEnviar} pieza{sinEnviar === 1 ? "" : "s"} todavía en ingeniería. Al enviarlas a producción aparecen en Planificación para
+            asignarles día y operario.
+          </span>
+          <button type="submit" className="bg-accent text-accent-foreground text-sm font-medium px-3 py-2 rounded-md hover:opacity-90">
+            Enviar {sinEnviar === conjuntos.reduce((n, c) => n + c.piezas.length, 0) ? "toda la OT" : `las ${sinEnviar} restantes`} a producción
+          </button>
+        </form>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Metric label="Emitido por" value={otMaquina.emitidoPor ?? "—"} />

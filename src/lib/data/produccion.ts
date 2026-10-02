@@ -100,7 +100,15 @@ export type ItemCola = {
 
 export type ColaCentro = { centro: CentroTrabajo; disponibleAhora: ItemCola[]; aFuturo: ItemCola[] };
 
-type PasoRuta = { id: string; secuencia: number; procesoNombre: string; centroTrabajoId: string | null; tipo: "interno" | "tercerizado" | "compras" };
+type PasoRuta = {
+  id: string;
+  secuencia: number;
+  procesoNombre: string;
+  /** Detalle de la operación si ingeniería lo cargó (ej. "CNC – desbaste"), si no el proceso. */
+  nombre: string;
+  centroTrabajoId: string | null;
+  tipo: "interno" | "tercerizado" | "compras";
+};
 
 type FilaOtPieza = {
   otPieza: OtPieza;
@@ -151,6 +159,7 @@ async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing
         id: operacion.id,
         secuencia: operacion.secuencia,
         procesoNombre: proceso.nombre,
+        descripcion: operacion.descripcion,
         centroTrabajoId: proceso.centroTrabajoId,
         tipo: proceso.tipo,
       })
@@ -173,7 +182,14 @@ async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing
   const rutaPorPieza = new Map<string, PasoRuta[]>();
   for (const r of rutaRows) {
     const arr = rutaPorPieza.get(r.piezaId) ?? [];
-    arr.push({ id: r.id, secuencia: r.secuencia, procesoNombre: r.procesoNombre, centroTrabajoId: r.centroTrabajoId, tipo: r.tipo });
+    arr.push({
+      id: r.id,
+      secuencia: r.secuencia,
+      procesoNombre: r.procesoNombre,
+      nombre: r.descripcion?.trim() || r.procesoNombre,
+      centroTrabajoId: r.centroTrabajoId,
+      tipo: r.tipo,
+    });
     rutaPorPieza.set(r.piezaId, arr);
   }
 
@@ -190,7 +206,7 @@ async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing
     if (routing.length === 0) continue; // sin hoja de ruta — no aparece en ninguna cola
 
     const completadas = completadasPorOtPieza.get(fila.otPieza.id) ?? new Set<string>();
-    if (completadas.size >= routing.length || fila.otPieza.estadoManual === "terminada") continue; // terminada
+    if (completadas.size >= routing.length) continue; // terminada
 
     const posActual = routing.findIndex((op) => !completadas.has(op.id));
     if (posActual === -1) continue;
@@ -204,7 +220,8 @@ export async function getColaPorCentroTrabajo(): Promise<ColaCentro[]> {
   const centros = await getCentrosTrabajo();
   const porCentro = new Map<string, ColaCentro>(centros.map((c) => [c.id, { centro: c, disponibleAhora: [], aFuturo: [] }]));
 
-  const filasConPosicion = await getFilasConPosicionActual();
+  // Sólo lo que ingeniería ya envió a producción: lo demás todavía no es trabajo de taller.
+  const filasConPosicion = (await getFilasConPosicionActual()).filter(({ fila }) => fila.otPieza.enviadaProduccionAt);
 
   for (const { fila, routing, posActual } of filasConPosicion) {
     for (let i = posActual; i < routing.length; i++) {
@@ -289,7 +306,6 @@ export async function getPiezasCompraPendientes(): Promise<ItemCompraPendiente[]
       otMaquinaCodigo: otMaquina.codigo,
       cantidadNecesaria: otPieza.cantidadNecesaria,
       disponible: stockPieza.cantidadDisponible,
-      estadoManual: otPieza.estadoManual,
     })
     .from(otPieza)
     .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
@@ -302,7 +318,7 @@ export async function getPiezasCompraPendientes(): Promise<ItemCompraPendiente[]
 
   const piezasComprada: ItemCompraPendiente[] = filasCompradas
     .map((f) => ({ ...f, disponible: f.disponible ?? 0 }))
-    .filter((f) => f.disponible < f.cantidadNecesaria && f.estadoManual !== "terminada")
+    .filter((f) => f.disponible < f.cantidadNecesaria)
     .map((f) => ({
       otPiezaId: f.otPiezaId,
       otPiezaCodigo: f.otPiezaCodigo,
@@ -410,7 +426,7 @@ export type CandidataTaller = {
  * mismas 3 consultas batcheadas de `getFilasConPosicionActual` + 1 más.
  */
 export async function getCandidatasTaller(): Promise<CandidataTaller[]> {
-  const filas = await getFilasConPosicionActual();
+  const filas = (await getFilasConPosicionActual()).filter(({ fila }) => fila.otPieza.enviadaProduccionAt);
   if (filas.length === 0) return [];
   const abiertas = await db
     .select({ otPiezaId: registroOperacion.otPiezaId })
@@ -419,15 +435,60 @@ export async function getCandidatasTaller(): Promise<CandidataTaller[]> {
   const conAbierta = new Set(abiertas.map((a) => a.otPiezaId));
   return filas.map(({ fila, routing, posActual }) => {
     const derivado = posActual > 0 || conAbierta.has(fila.otPieza.id) ? "en_curso" : "pendiente";
-    const manual = fila.otPieza.estadoManual;
     return {
       otPieza: fila.otPieza,
       piezaNombre: fila.piezaNombre,
       conjuntoNombre: fila.conjuntoNombre,
       centroActualId: routing[posActual].centroTrabajoId,
       tipoPasoActual: routing[posActual].tipo,
-      estado: manual === "pendiente" || manual === "en_curso" ? manual : derivado,
+      estado: derivado,
       pasos: routing.length,
     };
   });
+}
+
+export type PendienteDePlanificar = {
+  otPiezaId: string;
+  otPiezaCodigo: string;
+  piezaNombre: string;
+  otMaquinaId: string;
+  otMaquinaCodigo: string;
+  operacionId: string;
+  operacionNombre: string;
+  centroTrabajoId: string;
+  cantidad: number;
+  /** null si se puede hacer ya; si no, el paso anterior que tiene que terminar antes. */
+  despuesDe: string | null;
+};
+
+/**
+ * Lo que falta planificar: cada operación interna pendiente de cada OT de
+ * pieza enviada a producción — la actual ("se puede hacer ya") y las que
+ * vienen después ("después de …"), para poder planificar los días siguientes.
+ * Una operación con asignación de hoy en adelante ya no aparece; si la
+ * asignación quedó en un día pasado sin hacerse, vuelve a aparecer.
+ */
+export async function getPendientesDePlanificar(asignadas: Set<string>): Promise<PendienteDePlanificar[]> {
+  const filas = (await getFilasConPosicionActual()).filter(({ fila }) => fila.otPieza.enviadaProduccionAt);
+  const resultado: PendienteDePlanificar[] = [];
+  for (const { fila, routing, posActual } of filas) {
+    for (let i = posActual; i < routing.length; i++) {
+      const paso = routing[i];
+      if (paso.tipo !== "interno" || !paso.centroTrabajoId) continue;
+      if (asignadas.has(`${fila.otPieza.id}::${paso.id}`)) continue;
+      resultado.push({
+        otPiezaId: fila.otPieza.id,
+        otPiezaCodigo: fila.otPieza.codigo,
+        piezaNombre: fila.piezaNombre,
+        otMaquinaId: fila.otMaquinaId,
+        otMaquinaCodigo: fila.otMaquinaCodigo,
+        operacionId: paso.id,
+        operacionNombre: paso.nombre,
+        centroTrabajoId: paso.centroTrabajoId,
+        cantidad: fila.otPieza.cantidadAFabricar,
+        despuesDe: i === posActual ? null : routing[i - 1].nombre,
+      });
+    }
+  }
+  return resultado;
 }

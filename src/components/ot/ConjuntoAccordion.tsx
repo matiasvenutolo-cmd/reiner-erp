@@ -8,7 +8,7 @@ import type { ControlArmadoConDetalle } from "@/lib/data/armado";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import { ProgresoOperaciones } from "@/components/ProgresoOperaciones";
 import { CantidadAFabricarForm } from "@/components/CantidadAFabricarForm";
-import { agregarPiezaSueltaAction } from "@/app/actions/ot";
+import { agregarPiezaSueltaAction, enviarAProduccionAction } from "@/app/actions/ot";
 import { registrarControlArmadoAction } from "@/app/actions/armado";
 
 export type FilaPieza = {
@@ -60,6 +60,7 @@ export function ConjuntoAccordion({
   }, [otConjuntoId]);
 
   const terminadas = filas.filter((f) => f.estado === "terminada").length;
+  const sinEnviar = filas.filter((f) => !f.otPieza.enviadaProduccionAt).length;
   const filasVisibles = ocultarTerminadas ? filas.filter((f) => f.estado !== "terminada") : filas;
 
   return (
@@ -75,6 +76,7 @@ export function ConjuntoAccordion({
           <span className="font-medium text-sm truncate">{conjuntoNombre}</span>
         </div>
         <div className="flex items-center gap-3 shrink-0">
+          {sinEnviar > 0 && <span className="badge-estado badge-pendiente">{sinEnviar} sin enviar a producción</span>}
           <div className="hidden sm:flex items-center gap-2 w-28">
             <div className="h-1.5 flex-1 rounded-full bg-border overflow-hidden">
               <div
@@ -101,6 +103,7 @@ export function ConjuntoAccordion({
                 <th className="text-right px-4 py-2 font-medium">Stock al generar</th>
                 <th className="text-right px-4 py-2 font-medium">A fabricar</th>
                 <th className="text-left px-4 py-2 font-medium">Progreso</th>
+                <th className="text-left px-4 py-2 font-medium">Producción</th>
               </tr>
             </thead>
             <tbody>
@@ -127,17 +130,41 @@ export function ConjuntoAccordion({
                       )}
                     </div>
                   </td>
+                  <td className="px-4 py-2.5">
+                    {otPieza.enviadaProduccionAt ? (
+                      <span className="text-xs text-foreground-muted">Enviada</span>
+                    ) : (
+                      <form action={enviarAProduccionAction}>
+                        <input type="hidden" name="otPiezaId" value={otPieza.id} />
+                        <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
+                          Enviar a producción
+                        </button>
+                      </form>
+                    )}
+                  </td>
                 </tr>
               ))}
               {filasVisibles.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-4 text-center text-foreground-muted text-xs">
+                  <td colSpan={7} className="px-4 py-4 text-center text-foreground-muted text-xs">
                     Todas las piezas de esta sección están terminadas.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+
+          {sinEnviar > 0 && (
+            <form action={enviarAProduccionAction} className="px-4 py-2.5 border-t border-border flex items-center justify-between gap-2">
+              <input type="hidden" name="otConjuntoId" value={otConjuntoId} />
+              <span className="text-xs text-foreground-muted">
+                {sinEnviar} pieza{sinEnviar === 1 ? "" : "s"} de {conjuntoNombre} todavía en ingeniería — no aparecen en Planificación ni en taller.
+              </span>
+              <button type="submit" className="text-xs bg-accent text-accent-foreground px-2.5 py-1.5 rounded-md hover:opacity-90 whitespace-nowrap">
+                Enviar {conjuntoNombre} a producción
+              </button>
+            </form>
+          )}
 
           <form
             action={agregarPiezaSueltaAction}

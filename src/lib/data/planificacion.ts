@@ -1,15 +1,14 @@
 /**
  * Planificación semanal (Release 3, docs/06-backlog-release-3.md §4):
  * "asignar un trabajo específico a una persona, para un día determinado,
- * con anticipación (ej. planificar toda la semana siguiente)". Asigna una
- * OT de pieza completa a un operario para un día — no se borra sola si la
- * pieza avanza de etapa antes de esa fecha, queda como referencia de que
- * alguien se comprometió a mirarla ese día.
+ * con anticipación (ej. planificar toda la semana siguiente)". Desde la
+ * revisión del 2026-10-02 se asigna una operación puntual de la OT de pieza
+ * (de ahí sale el centro de trabajo y la carga por centro × día).
  */
 import { hoyISO } from "@/lib/fecha";
-import { eq, and, gte, lte, inArray, asc } from "drizzle-orm";
+import { eq, and, gte, lte, inArray, asc, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { asignacionTrabajo, otPieza, pieza, otConjunto, otMaquina, usuario } from "@/lib/db/schema";
+import { asignacionTrabajo, otPieza, pieza, otConjunto, otMaquina, usuario, operacion, proceso, centroTrabajo } from "@/lib/db/schema";
 
 export type AsignacionConDetalle = {
   id: string;
@@ -20,6 +19,10 @@ export type AsignacionConDetalle = {
   otMaquinaCodigo: string;
   operarioId: string;
   operarioNombre: string;
+  operacionId: string | null;
+  operacionNombre: string | null;
+  centroTrabajoId: string | null;
+  centroNombre: string | null;
 };
 
 export async function getAsignacionesRango(desde: string, hasta: string): Promise<AsignacionConDetalle[]> {
@@ -33,6 +36,10 @@ export async function getAsignacionesRango(desde: string, hasta: string): Promis
       otMaquinaCodigo: otMaquina.codigo,
       operarioId: usuario.id,
       operarioNombre: usuario.nombre,
+      operacionId: asignacionTrabajo.operacionId,
+      operacionNombre: sql<string | null>`coalesce(nullif(trim(${operacion.descripcion}), ''), ${proceso.nombre})`,
+      centroTrabajoId: centroTrabajo.id,
+      centroNombre: centroTrabajo.nombre,
     })
     .from(asignacionTrabajo)
     .innerJoin(otPieza, eq(otPieza.id, asignacionTrabajo.otPiezaId))
@@ -40,7 +47,20 @@ export async function getAsignacionesRango(desde: string, hasta: string): Promis
     .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
     .innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId))
     .innerJoin(usuario, eq(usuario.id, asignacionTrabajo.operarioId))
-    .where(and(gte(asignacionTrabajo.fecha, desde), lte(asignacionTrabajo.fecha, hasta)));
+    .leftJoin(operacion, eq(operacion.id, asignacionTrabajo.operacionId))
+    .leftJoin(proceso, eq(proceso.id, operacion.procesoId))
+    .leftJoin(centroTrabajo, eq(centroTrabajo.id, proceso.centroTrabajoId))
+    .where(and(gte(asignacionTrabajo.fecha, desde), lte(asignacionTrabajo.fecha, hasta)))
+    .orderBy(asc(asignacionTrabajo.createdAt));
+}
+
+/** "otPiezaId::operacionId" de lo asignado de hoy en adelante — lo que ya no está pendiente de planificar. */
+export async function getClavesAsignadasDesdeHoy(): Promise<Set<string>> {
+  const filas = await db
+    .select({ otPiezaId: asignacionTrabajo.otPiezaId, operacionId: asignacionTrabajo.operacionId })
+    .from(asignacionTrabajo)
+    .where(gte(asignacionTrabajo.fecha, hoyISO()));
+  return new Set(filas.filter((f) => f.operacionId).map((f) => `${f.otPiezaId}::${f.operacionId}`));
 }
 
 export async function getAsignacionesDeHoy(operarioId: string): Promise<AsignacionConDetalle[]> {
@@ -51,6 +71,7 @@ export async function getAsignacionesDeHoy(operarioId: string): Promise<Asignaci
 
 export async function asignarTrabajo(input: {
   otPiezaId: string;
+  operacionId: string;
   operarioId: string;
   fecha: string;
   asignadoPorId: string;

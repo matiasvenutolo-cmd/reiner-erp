@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { hoyISO } from "@/lib/fecha";
-import { getAsignacionesRango } from "@/lib/data/planificacion";
+import { getAsignacionesRango, getClavesAsignadasDesdeHoy, type AsignacionConDetalle } from "@/lib/data/planificacion";
 import { getUsuariosPorRol } from "@/lib/data/usuarios";
-import { getColaPorCentroTrabajo } from "@/lib/data/produccion";
+import { getCentrosTrabajo, getPendientesDePlanificar, type PendienteDePlanificar } from "@/lib/data/produccion";
 import { asignarTrabajoAction, eliminarAsignacionAction } from "@/app/actions/planificacion";
+import type { Usuario } from "@/lib/db/schema";
 
 // Datos en vivo (asignaciones/producción cambian todo el tiempo) — nunca prerenderizar en build.
 export const dynamic = "force-dynamic";
@@ -28,12 +29,20 @@ function formatoCorto(iso: string): string {
   return `${d}/${m}`;
 }
 
+/**
+ * Planificación (revisión del 2026-10-02): lo que ingeniería envió a
+ * producción llega acá como pendiente de asignar, con sus operaciones por
+ * centro de trabajo — la actual y las que vienen después. Se asigna una
+ * operación a un operario para un día, y se ve la carga de cada centro por
+ * día (vista "Por centro") o de cada operario (vista "Por operario", desde
+ * donde se imprimen sus hojas del día).
+ */
 export default async function PlanificacionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ desde?: string }>;
+  searchParams: Promise<{ desde?: string; vista?: string }>;
 }) {
-  const { desde } = await searchParams;
+  const { desde, vista = "centro" } = await searchParams;
   const hoy = hoyISO();
   const lunes = lunesDe(new Date(`${desde ?? hoy}T00:00:00`));
   const dias = Array.from({ length: 6 }, (_, i) => {
@@ -45,140 +54,263 @@ export default async function PlanificacionPage({
   semanaAnterior.setDate(semanaAnterior.getDate() - 7);
   const semanaSiguiente = new Date(lunes);
   semanaSiguiente.setDate(semanaSiguiente.getDate() + 7);
+  const fechaPorDefecto = dias.includes(hoy) ? hoy : dias[0];
 
-  const [operarios, asignaciones, colas] = await Promise.all([
+  const [operarios, asignaciones, centros, claves] = await Promise.all([
     getUsuariosPorRol("operario"),
     getAsignacionesRango(dias[0], dias[dias.length - 1]),
-    getColaPorCentroTrabajo(),
+    getCentrosTrabajo(),
+    getClavesAsignadasDesdeHoy(),
   ]);
+  const pendientes = await getPendientesDePlanificar(claves);
 
-  const disponibles = colas.flatMap((c) => c.disponibleAhora.map((item) => ({ ...item, centroNombre: c.centro.nombre })));
-  const asignadas = new Set(asignaciones.map((a) => a.otPiezaId));
+  const pendientesPorCentro = new Map<string, PendienteDePlanificar[]>();
+  for (const p of pendientes) pendientesPorCentro.set(p.centroTrabajoId, [...(pendientesPorCentro.get(p.centroTrabajoId) ?? []), p]);
+  const centrosConAlgo = centros.filter((c) => pendientesPorCentro.has(c.id) || asignaciones.some((a) => a.centroTrabajoId === c.id));
+  const operariosActivos = operarios.filter((o) => o.activo);
+
+  const linkVista = (v: string) => `/planificacion?desde=${dias[0]}&vista=${v}`;
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-semibold">Planificación semanal</h1>
+        <h1 className="text-xl font-semibold">Planificación</h1>
         <p className="text-sm text-foreground-muted mt-1">
-          Asignar un trabajo puntual a un operario para un día — pensado para planificar toda la
-          semana con anticipación.
+          Lo que ingeniería envió a producción, para asignarle día, operación y operario. Abajo, lo que todavía falta asignar.
         </p>
       </div>
 
-      <div className="flex items-center justify-between">
-        <Link href={`/planificacion?desde=${aISO(semanaAnterior)}`} className="text-sm text-accent hover:underline">
-          ← Semana anterior
-        </Link>
-        <span className="text-sm text-foreground-muted">
-          {formatoCorto(dias[0])} – {formatoCorto(dias[dias.length - 1])}
-        </span>
-        <Link href={`/planificacion?desde=${aISO(semanaSiguiente)}`} className="text-sm text-accent hover:underline">
-          Semana siguiente →
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex rounded-md border border-border overflow-hidden text-sm">
+          {[
+            ["centro", "Por centro de trabajo"],
+            ["operario", "Por operario"],
+          ].map(([v, label]) => (
+            <Link
+              key={v}
+              href={linkVista(v)}
+              className={`px-3 py-1.5 ${vista === v ? "bg-accent text-accent-foreground" : "hover:bg-surface-muted"}`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+        <div className="flex items-center gap-4 text-sm">
+          <Link href={`/planificacion?desde=${aISO(semanaAnterior)}&vista=${vista}`} className="text-accent hover:underline">
+            ← Semana anterior
+          </Link>
+          <span className="text-foreground-muted">
+            {formatoCorto(dias[0])} – {formatoCorto(dias[dias.length - 1])}
+          </span>
+          <Link href={`/planificacion?desde=${aISO(semanaSiguiente)}&vista=${vista}`} className="text-accent hover:underline">
+            Semana siguiente →
+          </Link>
+        </div>
       </div>
 
-      <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
-            <tr>
-              <th className="text-left px-3 py-2 font-medium w-28">Operario</th>
-              {dias.map((dia, i) => (
-                <th key={dia} className="text-left px-3 py-2 font-medium">
-                  {DIA_LABEL[i]}
-                  <div className="font-normal normal-case text-foreground-muted/70">{formatoCorto(dia)}</div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {operarios.map((op) => (
-              <tr key={op.id} className="border-t border-border align-top">
-                <td className="px-3 py-2.5 font-medium">{op.nombre}</td>
-                {dias.map((dia) => (
-                  <td key={dia} className="px-3 py-2.5">
-                    <div className="space-y-1">
-                      {asignaciones
-                        .filter((a) => a.operarioId === op.id && a.fecha === dia)
-                        .map((a) => (
-                          <div key={a.id} className="flex items-center gap-1 bg-accent-soft text-accent rounded px-1.5 py-1 text-xs">
-                            <span className="truncate flex-1" title={`${a.otPiezaCodigo} — ${a.piezaNombre}`}>
-                              {a.piezaNombre}
-                            </span>
-                            <form action={eliminarAsignacionAction}>
-                              <input type="hidden" name="id" value={a.id} />
-                              <button type="submit" className="hover:opacity-70" aria-label="Quitar asignación">
-                                ×
-                              </button>
-                            </form>
-                          </div>
-                        ))}
-                    </div>
-                  </td>
-                ))}
-              </tr>
-            ))}
-            {operarios.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-foreground-muted">
-                  No hay operarios cargados.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {vista === "operario" ? (
+        <Grilla
+          dias={dias}
+          hoy={hoy}
+          titulo="Operario"
+          filas={operariosActivos.map((op) => ({
+            id: op.id,
+            nombre: op.nombre,
+            asignaciones: asignaciones.filter((a) => a.operarioId === op.id),
+            detalle: (a: AsignacionConDetalle) =>
+              `${a.operacionNombre ?? "—"}${a.centroNombre && a.centroNombre !== a.operacionNombre ? ` · ${a.centroNombre}` : ""}`,
+            pie: (dia: string, n: number) =>
+              n > 0 ? (
+                <Link href={`/planificacion/hojas?operario=${op.id}&fecha=${dia}`} className="text-xs text-accent hover:underline">
+                  Imprimir hojas
+                </Link>
+              ) : null,
+          }))}
+          vacio="No hay operarios activos."
+        />
+      ) : (
+        <Grilla
+          dias={dias}
+          hoy={hoy}
+          titulo="Centro de trabajo"
+          filas={centrosConAlgo.map((c) => ({
+            id: c.id,
+            nombre: c.nombre,
+            sub: `${pendientesPorCentro.get(c.id)?.length ?? 0} sin asignar`,
+            asignaciones: asignaciones.filter((a) => a.centroTrabajoId === c.id),
+            detalle: (a: AsignacionConDetalle) => `${a.operacionNombre ?? "—"} · ${a.operarioNombre}`,
+          }))}
+          vacio="Nada enviado a producción ni asignado esta semana."
+        />
+      )}
 
       <div>
-        <h2 className="text-sm font-semibold mb-2">Trabajo disponible para asignar</h2>
-        {disponibles.length === 0 ? (
-          <p className="text-sm text-foreground-muted">No hay piezas disponibles para arrancar en ningún centro.</p>
+        <h2 className="text-sm font-semibold mb-1">Pendiente de asignar ({pendientes.length})</h2>
+        <p className="text-xs text-foreground-muted mb-2">
+          Por centro de trabajo. &ldquo;Se puede hacer ya&rdquo; = es el paso actual de la pieza; el resto llega cuando termine el paso anterior,
+          y se puede ir asignando para los próximos días.
+        </p>
+        {pendientes.length === 0 ? (
+          <p className="text-sm text-foreground-muted">No hay nada pendiente de asignar.</p>
         ) : (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
-                <tr>
-                  <th className="text-left px-4 py-2 font-medium">Pieza</th>
-                  <th className="text-left px-4 py-2 font-medium">Centro</th>
-                  <th className="text-left px-4 py-2 font-medium">Asignar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {disponibles.map((item) => (
-                  <tr key={item.otPieza.id} className="border-t border-border">
-                    <td className="px-4 py-2.5">
-                      <span className="font-mono text-xs text-foreground-muted mr-1">{item.otMaquinaCodigo}</span>
-                      {item.piezaNombre}
-                      {asignadas.has(item.otPieza.id) && (
-                        <span className="badge-estado bg-accent-soft text-accent ml-2">ya asignada esta semana</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-foreground-muted">{item.centroNombre}</td>
-                    <td className="px-4 py-2.5">
-                      <form action={asignarTrabajoAction} className="flex flex-wrap items-center gap-1.5">
-                        <input type="hidden" name="otPiezaId" value={item.otPieza.id} />
-                        <select name="operarioId" required className="input text-xs py-1" defaultValue="">
-                          <option value="" disabled>
-                            Operario…
-                          </option>
-                          {operarios.map((op) => (
-                            <option key={op.id} value={op.id}>
-                              {op.nombre}
-                            </option>
+          <div className="space-y-2">
+            {centros
+              .filter((c) => pendientesPorCentro.has(c.id))
+              .map((c) => {
+                const items = [...(pendientesPorCentro.get(c.id) ?? [])].sort((a, b) => Number(a.despuesDe !== null) - Number(b.despuesDe !== null));
+                const ya = items.filter((i) => i.despuesDe === null).length;
+                return (
+                  <details key={c.id} className="bg-surface border border-border rounded-lg">
+                    <summary className="cursor-pointer px-4 py-2.5 text-sm flex items-center gap-2">
+                      <span className="font-medium">{c.nombre}</span>
+                      <span className="text-foreground-muted">
+                        · {ya} se pueden hacer ya · {items.length - ya} después
+                      </span>
+                    </summary>
+                    <div className="overflow-x-auto border-t border-border">
+                      <table className="w-full text-sm">
+                        <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+                          <tr>
+                            <th className="text-left px-4 py-2 font-medium">Pieza</th>
+                            <th className="text-left px-4 py-2 font-medium">Operación</th>
+                            <th className="text-left px-4 py-2 font-medium">Cuándo</th>
+                            <th className="text-right px-4 py-2 font-medium">Cant.</th>
+                            <th className="text-left px-4 py-2 font-medium">Asignar</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {items.map((p) => (
+                            <tr key={`${p.otPiezaId}-${p.operacionId}`} className="border-t border-border">
+                              <td className="px-4 py-2">
+                                <Link href={`/ot/${p.otMaquinaId}/pieza/${p.otPiezaId}`} className="font-mono text-xs text-accent hover:underline mr-1">
+                                  {p.otPiezaCodigo}
+                                </Link>
+                                {p.piezaNombre}
+                              </td>
+                              <td className="px-4 py-2">{p.operacionNombre}</td>
+                              <td className="px-4 py-2 text-foreground-muted text-xs">
+                                {p.despuesDe === null ? <span className="badge-estado badge-terminada">Se puede hacer ya</span> : `Después de ${p.despuesDe}`}
+                              </td>
+                              <td className="px-4 py-2 text-right tabular-nums">{p.cantidad}</td>
+                              <td className="px-4 py-2">
+                                <FormAsignar p={p} operarios={operariosActivos} fecha={fechaPorDefecto} min={hoy > dias[0] ? hoy : dias[0]} />
+                              </td>
+                            </tr>
                           ))}
-                        </select>
-                        <input type="date" name="fecha" required defaultValue={dias.includes(hoy) ? hoy : dias[0]} min={dias[0]} max={dias[dias.length - 1]} className="input text-xs py-1" />
-                        <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
-                          Asignar
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                );
+              })}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function Grilla({
+  dias,
+  hoy,
+  titulo,
+  filas,
+  vacio,
+}: {
+  dias: string[];
+  hoy: string;
+  titulo: string;
+  filas: {
+    id: string;
+    nombre: string;
+    sub?: string;
+    asignaciones: AsignacionConDetalle[];
+    detalle: (a: AsignacionConDetalle) => string;
+    pie?: (dia: string, n: number) => React.ReactNode;
+  }[];
+  vacio: string;
+}) {
+  return (
+    <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+          <tr>
+            <th className="text-left px-3 py-2 font-medium w-40">{titulo}</th>
+            {dias.map((dia, i) => (
+              <th key={dia} className={`text-left px-3 py-2 font-medium ${dia === hoy ? "text-accent" : ""}`}>
+                {DIA_LABEL[i]}
+                <div className="font-normal normal-case text-foreground-muted/70">{dia === hoy ? "hoy" : formatoCorto(dia)}</div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((f) => (
+            <tr key={f.id} className="border-t border-border align-top">
+              <td className="px-3 py-2.5">
+                <div className="font-medium">{f.nombre}</div>
+                {f.sub && <div className="text-xs text-foreground-muted">{f.sub}</div>}
+              </td>
+              {dias.map((dia) => {
+                const delDia = f.asignaciones.filter((a) => a.fecha === dia);
+                const unidades = delDia.length;
+                return (
+                  <td key={dia} className={`px-2 py-2 ${dia === hoy ? "bg-accent-soft/40" : ""}`}>
+                    {unidades > 0 && <div className="text-xs text-foreground-muted mb-1">{unidades} trabajo{unidades === 1 ? "" : "s"}</div>}
+                    <div className="space-y-1">
+                      {delDia.map((a) => (
+                        <div key={a.id} className="flex items-start gap-1 bg-accent-soft text-accent rounded px-1.5 py-1 text-xs">
+                          <span className="flex-1 min-w-0" title={`${a.otPiezaCodigo} — ${a.piezaNombre}`}>
+                            <span className="block truncate font-medium">{a.piezaNombre}</span>
+                            <span className="block truncate opacity-80">{f.detalle(a)}</span>
+                          </span>
+                          <form action={eliminarAsignacionAction}>
+                            <input type="hidden" name="id" value={a.id} />
+                            <button type="submit" className="hover:opacity-70" aria-label="Quitar asignación">
+                              ×
+                            </button>
+                          </form>
+                        </div>
+                      ))}
+                    </div>
+                    {f.pie && <div className="mt-1">{f.pie(dia, delDia.length)}</div>}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+          {filas.length === 0 && (
+            <tr>
+              <td colSpan={7} className="px-3 py-6 text-center text-foreground-muted">
+                {vacio}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function FormAsignar({ p, operarios, fecha, min }: { p: PendienteDePlanificar; operarios: Usuario[]; fecha: string; min: string }) {
+  return (
+    <form action={asignarTrabajoAction} className="flex flex-wrap items-center gap-1.5">
+      <input type="hidden" name="otPiezaId" value={p.otPiezaId} />
+      <input type="hidden" name="operacionId" value={p.operacionId} />
+      <select name="operarioId" required className="input text-xs py-1 w-auto" defaultValue="">
+        <option value="" disabled>
+          Operario…
+        </option>
+        {operarios.map((op) => (
+          <option key={op.id} value={op.id}>
+            {op.nombre}
+          </option>
+        ))}
+      </select>
+      <input type="date" name="fecha" required defaultValue={fecha} min={min} className="input text-xs py-1 w-auto" />
+      <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
+        Asignar
+      </button>
+    </form>
   );
 }

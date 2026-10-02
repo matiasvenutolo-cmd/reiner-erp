@@ -5,7 +5,6 @@ import { getOtPieza, getEstadoYOperacionActual } from "@/lib/data/ot";
 import { getPieza, getConjunto, nombreOperacion } from "@/lib/data/maestros";
 import { getOperacionAbierta, getParadaAbierta, getTiposParada, esUltimaOperacion } from "@/lib/data/ejecucion";
 import { EstadoBadge } from "@/components/EstadoBadge";
-import { VolverBoton } from "@/components/VolverBoton";
 import {
   iniciarOperacionAction,
   pausarOperacionAction,
@@ -35,13 +34,9 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
   if (abierta && abierta.otPiezaId !== otPieza.id) {
     return (
       <div className="max-w-md mx-auto space-y-4">
-        {usuario.rol === "operario" ? (
-          <Link href="/taller" className="text-sm text-accent hover:underline">
-            ← Mi trabajo
-          </Link>
-        ) : (
-          <VolverBoton className="text-sm text-accent hover:underline">← Volver</VolverBoton>
-        )}
+        <Link href="/taller" className="text-sm text-accent hover:underline">
+          ← Mi trabajo
+        </Link>
         <div className="badge-estado badge-alerta block text-center py-4 text-sm">
           Tenés una operación abierta en otra pieza. Cerrala antes de empezar acá.
         </div>
@@ -68,20 +63,20 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
   return (
     <div className="max-w-md mx-auto space-y-4">
       <div>
-        {usuario.rol === "operario" ? (
-          <Link href="/taller" className="text-sm text-accent hover:underline">
-            ← Mi trabajo
-          </Link>
-        ) : (
-          <VolverBoton className="text-sm text-accent hover:underline">← Volver</VolverBoton>
-        )}
+        <Link href="/taller" className="text-sm text-accent hover:underline">
+          ← Mi trabajo
+        </Link>
         <h1 className="text-lg font-semibold mt-1">{pieza?.nombre}</h1>
         <p className="text-sm text-foreground-muted font-mono">
           {otPieza.codigo} · {conjunto?.nombre}
         </p>
       </div>
 
-      {sinRouting ? (
+      {!otPieza.enviadaProduccionAt && !registroAbiertoAqui ? (
+        <div className="badge-estado badge-pendiente block text-center py-4 text-sm">
+          Esta pieza todavía no fue enviada a producción.
+        </div>
+      ) : sinRouting ? (
         <div className="badge-estado badge-alerta block text-center py-4">Sin hoja de ruta cargada</div>
       ) : estado === "terminada" ? (
         <div className="bg-surface border border-border rounded-xl p-5 text-center space-y-2">

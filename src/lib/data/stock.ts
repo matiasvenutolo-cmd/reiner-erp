@@ -239,7 +239,7 @@ export async function getWipEnCursoDePieza(piezaId: string): Promise<WipEtapa[]>
   const acumulado = new Map<string, WipEtapa>();
   for (const otp of otPiezas) {
     const completadas = completadasPorOtPieza.get(otp.id) ?? new Set<string>();
-    if (completadas.size >= rutaRows.length || otp.estadoManual === "terminada") continue; // terminada — ya pasó a stock "Finalizado"
+    if (completadas.size >= rutaRows.length) continue; // terminada — ya pasó a stock "Finalizado"
     const actual = rutaRows.find((op) => !completadas.has(op.id));
     if (!actual || actual.tipo === "compras") continue; // esperando compra: va en Compras, no en fabricación
     const acc = acumulado.get(actual.procesoId) ?? { procesoNombre: actual.procesoNombre, cantidad: 0 };
@@ -310,7 +310,7 @@ export async function getResumenWipEnCursoPorProceso(): Promise<WipEtapaResumen[
     const routing = rutaPorPieza.get(fila.piezaId) ?? [];
     if (routing.length === 0) continue;
     const completadas = completadasPorOtPieza.get(fila.otPieza.id) ?? new Set<string>();
-    if (completadas.size >= routing.length || fila.otPieza.estadoManual === "terminada") continue;
+    if (completadas.size >= routing.length) continue;
     const actual = routing.find((op) => !completadas.has(op.id));
     if (!actual || actual.tipo === "compras") continue; // esperando compra: va en Compras, no en fabricación
 
@@ -416,7 +416,7 @@ export async function getPiezasEnProceso(procesoId?: string, filtros: FiltrosSto
     const routing = rutaPorPieza.get(fila.piezaId) ?? [];
     if (routing.length === 0) continue;
     const completadas = completadasPorOtPieza.get(fila.otPieza.id) ?? new Set<string>();
-    if (completadas.size >= routing.length || fila.otPieza.estadoManual === "terminada") continue;
+    if (completadas.size >= routing.length) continue;
     const actual = routing.find((op) => !completadas.has(op.id));
     if (!actual || actual.tipo === "compras" || (procesoId && actual.procesoId !== procesoId)) continue;
     if (piezaIdsPermitidos && !piezaIdsPermitidos.has(fila.piezaId)) continue;

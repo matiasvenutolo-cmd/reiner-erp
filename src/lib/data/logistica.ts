@@ -126,7 +126,7 @@ export async function getPiezasFueraDeFabrica(): Promise<PiezaFueraDeFabrica[]> 
     const routing = rutaPorPieza.get(fila.piezaId) ?? [];
     if (routing.length === 0) continue;
     const completadas = completadasPorOtPieza.get(fila.otPieza.id) ?? new Set<string>();
-    if (completadas.size >= routing.length || fila.otPieza.estadoManual === "terminada") continue;
+    if (completadas.size >= routing.length) continue;
     const actual = routing.find((op) => !completadas.has(op.id));
     if (!actual || actual.tipo !== "tercerizado") continue;
 

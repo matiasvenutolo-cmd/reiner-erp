@@ -7,7 +7,7 @@
  * pieza cuando esa propuesta es mayor a cero — igual que la macro real,
  * que exige `Cant a Fab > 0`. La cantidad queda siempre editable.
  */
-import { eq, inArray, and, desc, asc } from "drizzle-orm";
+import { eq, inArray, and, desc, asc, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { otMaquina, otConjunto, otPieza, registroOperacion, cliente, operacion, proceso, configuracion, pieza } from "@/lib/db/schema";
 import type { OtMaquina, OtPieza } from "@/lib/db/schema";
@@ -39,8 +39,6 @@ export type EstadoYOperacion = {
   operacionActual: OperacionConDetalle | null;
   /** Hoja de ruta completa, ya cargada — evita que el caller la vuelva a pedir. */
   routing: OperacionConDetalle[];
-  /** true si el estado lo fijó alguien a mano desde /avance (pisa al derivado). */
-  manual: boolean;
 };
 
 /** Estado + operación actual de una OT de pieza, derivados siempre del
@@ -51,7 +49,7 @@ export type EstadoYOperacion = {
 export async function getEstadoYOperacionActual(pieza: OtPieza): Promise<EstadoYOperacion> {
   const routing = await getRoutingPieza(pieza.piezaId);
   if (routing.length === 0) {
-    return { estado: pieza.estadoManual ?? "pendiente", sinRouting: true, operacionActual: null, routing, manual: !!pieza.estadoManual };
+    return { estado: "pendiente", sinRouting: true, operacionActual: null, routing };
   }
 
   const registros = await db
@@ -63,11 +61,10 @@ export async function getEstadoYOperacionActual(pieza: OtPieza): Promise<EstadoY
   const hayAbierto = registros.some((r) => !r.fin);
   const operacionActual = routing.find((op) => !operacionesCompletadas.has(op.id)) ?? null;
 
-  const derivado: EstadoCalculado =
+  const estado: EstadoCalculado =
     operacionesCompletadas.size >= routing.length ? "terminada" : operacionesCompletadas.size > 0 || hayAbierto ? "en_curso" : "pendiente";
-  const estado = pieza.estadoManual ?? derivado;
 
-  return { estado, sinRouting: false, operacionActual: estado === "terminada" ? null : operacionActual, routing, manual: !!pieza.estadoManual };
+  return { estado, sinRouting: false, operacionActual, routing };
 }
 
 async function estadoDePieza(pieza: OtPieza): Promise<{ estado: EstadoCalculado; sinRouting: boolean }> {
@@ -88,21 +85,7 @@ async function estadoDePieza(pieza: OtPieza): Promise<{ estado: EstadoCalculado;
  * segmento de ProgresoOperaciones sin tener que clickear (pedido de
  * Matías, docs/06-backlog-release-3.md). */
 export type PasoOperacion = { id: string; nombre: string; completado: boolean };
-export type EstadoBatchItem = { estado: EstadoCalculado; sinRouting: boolean; pasos: PasoOperacion[]; manual: boolean };
-
-/** Pieza dentro de una sección de /avance, con lo mínimo para poder
- * iniciar/finalizar su operación actual sin navegar — ver `listarOtMaquinas`. */
-export type SeccionPieza = {
-  otPiezaId: string;
-  otPiezaCodigo: string;
-  piezaNombre: string;
-  estado: EstadoCalculado;
-  sinRouting: boolean;
-  operacionActualId: string | null;
-  operacionActualNombre: string | null;
-  esUltimaOperacion: boolean;
-  manual: boolean;
-};
+export type EstadoBatchItem = { estado: EstadoCalculado; sinRouting: boolean; pasos: PasoOperacion[] };
 
 async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBatchItem>> {
   const resultado = new Map<string, EstadoBatchItem>();
@@ -152,15 +135,15 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
   for (const p of piezas) {
     const ruta = rutaPorPieza.get(p.piezaId) ?? [];
     if (ruta.length === 0) {
-      resultado.set(p.id, { estado: p.estadoManual ?? "pendiente", sinRouting: true, pasos: [], manual: !!p.estadoManual });
+      resultado.set(p.id, { estado: "pendiente", sinRouting: true, pasos: [] });
       continue;
     }
     const completadasSet = completadasPorOtPieza.get(p.id) ?? new Set<string>();
     const pasos = ruta.map((r) => ({ id: r.id, nombre: r.nombre, completado: completadasSet.has(r.id) }));
     const completadas = pasos.filter((x) => x.completado).length;
     const abierta = abiertaPorOtPieza.has(p.id);
-    const derivado: EstadoCalculado = completadas >= ruta.length ? "terminada" : completadas > 0 || abierta ? "en_curso" : "pendiente";
-    resultado.set(p.id, { estado: p.estadoManual ?? derivado, sinRouting: false, pasos, manual: !!p.estadoManual });
+    const estado: EstadoCalculado = completadas >= ruta.length ? "terminada" : completadas > 0 || abierta ? "en_curso" : "pendiente";
+    resultado.set(p.id, { estado, sinRouting: false, pasos });
   }
   return resultado;
 }
@@ -316,6 +299,7 @@ export async function generarOrdenSuelta(input: NuevaOrdenSueltaInput): Promise<
     .values({
       codigo: codigoOrden,
       tipo: "suelta",
+      alcance: input.tipo,
       numeroSerie: input.referencia,
       configuracionId: configuracionData.id,
       clienteId: input.clienteId,
@@ -472,15 +456,7 @@ export async function listarOtMaquinas() {
   }
 
   const conjuntoIdsTodos = conjuntosTodos.map((c) => c.id);
-  const filasPiezas = conjuntoIdsTodos.length
-    ? await db
-        .select({ otPieza, piezaNombre: pieza.nombre })
-        .from(otPieza)
-        .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
-        .where(inArray(otPieza.otConjuntoId, conjuntoIdsTodos))
-    : [];
-  const piezasTodas = filasPiezas.map((f) => f.otPieza);
-  const piezaNombrePorOtPieza = new Map(filasPiezas.map((f) => [f.otPieza.id, f.piezaNombre]));
+  const piezasTodas = conjuntoIdsTodos.length ? await db.select().from(otPieza).where(inArray(otPieza.otConjuntoId, conjuntoIdsTodos)) : [];
   const piezasPorConjunto = new Map<string, OtPieza[]>();
   for (const p of piezasTodas) {
     const arr = piezasPorConjunto.get(p.otConjuntoId) ?? [];
@@ -505,6 +481,15 @@ export async function listarOtMaquinas() {
     conjuntosPorMaquina.set(c.otMaquinaId, arr);
   }
 
+  // Nombre de la pieza de cada orden de pieza suelta — para listarla como "OT Piezas" en /ot.
+  const idsPiezaUnica = maquinas
+    .filter((m) => m.otMaquina.alcance === "pieza")
+    .flatMap((m) => (conjuntoIdsPorMaquina.get(m.otMaquina.id) ?? []).flatMap((cid) => piezasPorConjunto.get(cid) ?? []))
+    .map((p) => p.piezaId);
+  const piezasUnicas = idsPiezaUnica.length
+    ? new Map((await db.select().from(pieza).where(inArray(pieza.id, idsPiezaUnica))).map((p) => [p.id, p]))
+    : new Map<string, typeof pieza.$inferSelect>();
+
   return maquinas.map(({ otMaquina: m, clienteNombre }) => {
     const conjuntoIds = conjuntoIdsPorMaquina.get(m.id) ?? [];
     const piezas = conjuntoIds.flatMap((cid) => piezasPorConjunto.get(cid) ?? []);
@@ -520,35 +505,12 @@ export async function listarOtMaquinas() {
       .map((oc) => {
         const piezasSeccion = piezasPorConjunto.get(oc.id) ?? [];
         const estadosSeccion = piezasSeccion.map((p) => estados.get(p.id)?.estado ?? "pendiente");
-        // Detalle por pieza para poder iniciar/finalizar la operación
-        // actual directo desde /avance (devolución del cliente: "que se
-        // puedan modificar los estados de la pieza desde el avance y no
-        // tener que entrar a cada pieza") — sin consultas nuevas, sale de
-        // `estados` (getEstadosBatch), ya calculado para toda la máquina.
-        const piezas: SeccionPieza[] = piezasSeccion.map((p) => {
-          const info = estados.get(p.id);
-          const pasos = info?.pasos ?? [];
-          const idxActual = pasos.findIndex((paso) => !paso.completado);
-          const operacionActual = idxActual >= 0 ? pasos[idxActual] : null;
-          return {
-            otPiezaId: p.id,
-            otPiezaCodigo: p.codigo,
-            piezaNombre: piezaNombrePorOtPieza.get(p.id) ?? p.codigo,
-            estado: info?.estado ?? "pendiente",
-            sinRouting: info?.sinRouting ?? true,
-            operacionActualId: operacionActual?.id ?? null,
-            operacionActualNombre: operacionActual?.nombre ?? null,
-            esUltimaOperacion: idxActual >= 0 && idxActual === pasos.length - 1,
-            manual: info?.manual ?? false,
-          };
-        });
         return {
           otConjuntoId: oc.id,
           nombre: conjuntosMaestro.get(oc.conjuntoId)?.nombre ?? oc.codigo,
           total: piezasSeccion.length,
           terminadas: estadosSeccion.filter((e) => e === "terminada").length,
           estado: piezasSeccion.length > 0 ? agregarEstados(estadosSeccion) : "pendiente",
-          piezas,
         };
       })
       .filter((s) => s.total > 0);
@@ -561,6 +523,17 @@ export async function listarOtMaquinas() {
       piezasTerminadas: estadosPieza.filter((e) => e === "terminada").length,
       estadoCalculado: estado,
       secciones,
+      piezaUnica:
+        m.alcance === "pieza" && piezas[0]
+          ? {
+              otPiezaId: piezas[0].id,
+              nombre: piezasUnicas.get(piezas[0].piezaId)?.nombre ?? piezas[0].piezaId,
+              codigo: piezas[0].piezaId,
+              cantidad: piezas[0].cantidadAFabricar,
+              enviada: !!piezas[0].enviadaProduccionAt,
+            }
+          : null,
+      piezasSinEnviar: piezas.filter((p) => !p.enviadaProduccionAt).length,
     };
   });
 }
@@ -628,14 +601,31 @@ export async function getContextoOtPieza(otPiezaId: string) {
   return { otConjunto: conjuntoRow, otMaquina: row.otMaquina, clienteNombre: row.clienteNombre };
 }
 
-/** Fija (o con `null` libera) el estado manual de una o varias OT de pieza — desde /avance. */
-export async function setEstadoManual(otPiezaIds: string[], estado: EstadoCalculado | null): Promise<void> {
-  if (otPiezaIds.length === 0) return;
-  await db.update(otPieza).set({ estadoManual: estado, updatedAt: new Date() }).where(inArray(otPieza.id, otPiezaIds));
+/**
+ * Pedido de fabricación: ingeniería envía a producción una o varias OT de
+ * pieza. Recién ahí aparecen en Planificación, en las colas de los centros de
+ * trabajo y en /taller. Las que ya estaban enviadas no se tocan.
+ */
+export async function enviarAProduccion(otPiezaIds: string[], usuarioId: string): Promise<number> {
+  if (otPiezaIds.length === 0) return 0;
+  const enviadas = await db
+    .update(otPieza)
+    .set({ enviadaProduccionAt: new Date(), enviadaProduccionPorId: usuarioId, updatedAt: new Date() })
+    .where(and(inArray(otPieza.id, otPiezaIds), isNull(otPieza.enviadaProduccionAt)))
+    .returning({ id: otPieza.id });
+  return enviadas.length;
 }
 
-export async function getOtPiezaIdsDeConjunto(otConjuntoId: string): Promise<string[]> {
-  const rows = await db.select({ id: otPieza.id }).from(otPieza).where(eq(otPieza.otConjuntoId, otConjuntoId));
+/** OT de pieza todavía no enviadas a producción de un conjunto o de toda una OT. */
+export async function getOtPiezaIdsSinEnviar(filtro: { otConjuntoId?: string; otMaquinaId?: string }): Promise<string[]> {
+  const conjuntoIds = filtro.otConjuntoId
+    ? [filtro.otConjuntoId]
+    : (await db.select({ id: otConjunto.id }).from(otConjunto).where(eq(otConjunto.otMaquinaId, filtro.otMaquinaId!))).map((c) => c.id);
+  if (conjuntoIds.length === 0) return [];
+  const rows = await db
+    .select({ id: otPieza.id })
+    .from(otPieza)
+    .where(and(inArray(otPieza.otConjuntoId, conjuntoIds), isNull(otPieza.enviadaProduccionAt)));
   return rows.map((r) => r.id);
 }
 
@@ -647,3 +637,50 @@ export async function actualizarCantidadAFabricar(otPiezaId: string, cantidad: n
 }
 
 export { estadoDePieza };
+
+export type OtPiezaListado = {
+  otPiezaId: string;
+  codigo: string;
+  piezaCodigo: string;
+  piezaNombre: string;
+  conjuntoNombre: string;
+  otMaquinaId: string;
+  otMaquinaCodigo: string;
+  tipoOrden: "maquina" | "suelta";
+  cantidadAFabricar: number;
+  estado: EstadoCalculado;
+  operacionActual: string | null;
+  enviada: boolean;
+};
+
+/** Todas las OT de pieza, de cualquier orden — /ot/piezas: verlas sin entrar a cada máquina. */
+export async function listarOtPiezas(): Promise<OtPiezaListado[]> {
+  const filas = await db
+    .select({ otPieza, piezaNombre: pieza.nombre, conjuntoId: otConjunto.conjuntoId, otMaquinaId: otMaquina.id, otMaquinaCodigo: otMaquina.codigo, tipoOrden: otMaquina.tipo })
+    .from(otPieza)
+    .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
+    .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
+    .innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId))
+    .orderBy(asc(otMaquina.codigo), asc(otPieza.codigo));
+  const [estados, conjuntos] = await Promise.all([
+    getEstadosBatch(filas.map((f) => f.otPieza)),
+    getConjuntos().then((todos) => new Map(todos.map((c) => [c.id, c.nombre]))),
+  ]);
+  return filas.map((f) => {
+    const info = estados.get(f.otPieza.id);
+    return {
+      otPiezaId: f.otPieza.id,
+      codigo: f.otPieza.codigo,
+      piezaCodigo: f.otPieza.piezaId,
+      piezaNombre: f.piezaNombre,
+      conjuntoNombre: conjuntos.get(f.conjuntoId) ?? "",
+      otMaquinaId: f.otMaquinaId,
+      otMaquinaCodigo: f.otMaquinaCodigo,
+      tipoOrden: f.tipoOrden,
+      cantidadAFabricar: f.otPieza.cantidadAFabricar,
+      estado: info?.estado ?? "pendiente",
+      operacionActual: info?.pasos.find((p) => !p.completado)?.nombre ?? null,
+      enviada: !!f.otPieza.enviadaProduccionAt,
+    };
+  });
+}

@@ -1099,3 +1099,87 @@ vuelta a la línea base de 215 / 290 u.).
   una pieza de PreCompresion "terminada" a mano, hoy 10:51 hs) — no se tocó.
 - Los dos errores de lint que quedan (`ColaDisponibleAhora.tsx`, `ConjuntoAccordion.tsx`)
   son de antes y no rompen nada.
+
+## 23 · Revisión del circuito de OT (2026-10-02)
+
+Pedido de Matías: reorganizar Órdenes de trabajo, el circuito ingeniería → producción →
+operario, Planificación y centros de trabajo, verificando antes que nada contradiga lo que
+ya definió el cliente. Se relevó cada punto contra el código y los documentos antes de tocar
+nada; las decisiones de fondo las tomó Matías.
+
+**Lo que se encontró al revisar (antes de cambiar)**
+- Generar una OT ya equivalía a liberarla: sus piezas aparecían al instante en las colas de
+  los centros, en Planificación y en /taller. No existía un "pedido de fabricación".
+- "Abrir en taller →" llevaba desde la ficha de la pieza a la pantalla del operario, donde
+  cualquiera de oficina podía "Iniciar fabricación" a su propio nombre (punto 8 del pedido).
+- Avance y OT se solapan: las dos muestran el progreso por conjunto; Avance además
+  modificaba estados (pedido del cliente en la 2ª ronda); su tabla "por etapa" repite la de
+  Stock. El objetivo original del cliente para Avance, "entender qué cambió respecto del día
+  anterior" (§9), nunca se implementó.
+- "Cambiar todo a…" ponía a mano el mismo estado en todas las piezas del conjunto,
+  pisando lo que carga taller.
+- La asignación era pieza + operario + día, sin operación ni centro: no había forma de ver
+  la carga de un centro por día.
+- No se identificó cuál es el paso "indicar que se quiere fabricar" del recorrido descripto.
+- Cruce con el cliente: respondió (pregunta 11) que un operario "puede alternar entre
+  varias" OT, pero el sistema no deja abrir una segunda operación con otra abierta (se puede
+  alternar pausando). Conviene confirmarlo.
+- `docs/01-analisis.md` ya definía asignación = rol taller, OT = ingeniería: encaja con
+  "ingeniería envía → taller planifica".
+
+**✅ Paquete extra 18 — Órdenes por tipo.** `/ot` en tres secciones, en este orden: OT
+Piezas, OT Conjuntos, Máquinas completas. Piezas y Conjuntos son las órdenes
+independientes (nueva columna `ot_maquina.alcance`; la orden existente "tapa polea de
+repuesto" quedó como de pieza). Las piezas de las máquinas se ven todas juntas en la nueva
+`/ot/piezas` (filtros por orden, estado, producción y texto), sin entrar a cada máquina.
+
+**✅ Paquete extra 19 — Enviar a producción.** Nueva marca `ot_pieza.enviada_produccion_at`
+(+ quién). Al generar una OT sus piezas quedan "en ingeniería": no aparecen en Planificación,
+en las colas de los centros ni en /taller hasta que se envían — por pieza (fila del
+acordeón o ficha), por conjunto o toda la OT de una vez. Las 540 OT de pieza que ya existían
+quedaron marcadas como enviadas (ya estaban en uso). "Abrir en taller" se reemplazó por
+"Enviar a producción" o, si ya se envió, "Planificar →"; la oficina ya no puede entrar a la
+pantalla del operario ni iniciar fabricación (se sacó la excepción de acceso de Release 2 y el
+servidor rechaza iniciar una pieza no enviada).
+
+**✅ Paquete extra 20 — Avance sólo de lectura.** Se sacó el cambio manual de estados
+("Cambiar todo a…" y el selector por pieza) y la columna `estado_manual` — el estado vuelve
+a salir sólo de lo que se carga en taller. Avance queda como tablero (métricas, tarjeta por
+orden con su avance y secciones que llevan a la OT); la gestión se hace en la OT.
+**Contradice el pedido del cliente de la 2ª ronda** ("que se puedan modificar los estados de
+la pieza desde el avance"): hay que explicárselo. Se perdieron los 32 estados manuales que
+alguien había cargado hoy en OTM999 (OT de prueba).
+
+**✅ Paquete extra 21 — Planificación por operación, centro y día.** La asignación ahora es
+operación + operario + día (`asignacion_trabajo.operacion_id`), de donde sale el centro.
+- Vista "Por centro de trabajo" (por defecto): carga de cada centro por día con lo asignado
+  y cuánto queda sin asignar.
+- Vista "Por operario": la grilla de siempre, con la operación de cada trabajo y "Imprimir
+  hojas" por día → `/planificacion/hojas`: lista del día + la OT de pieza de cada trabajo,
+  una por página (la hoja se extrajo a `HojaOtPieza`, la misma de la impresión individual).
+- "Pendiente de asignar", por centro: cada operación interna pendiente de lo enviado a
+  producción — la actual ("se puede hacer ya") y las siguientes ("después de …"), para
+  planificar los próximos días. Lo asignado de hoy en adelante sale de la lista; una
+  asignación de un día pasado que no se hizo vuelve a aparecer.
+
+Probado de punta a punta (orden de pieza de prueba, borrada después): generada → en
+ingeniería, no aparece en Planificación → enviada → aparece "se puede hacer ya" en Torno y
+"después de Torno" en Corte por hilo → Torno asignado a Nico hoy y Corte por hilo mañana →
+vista por centro y por operario, hojas del día impresas → Nico la ve con "Asignado hoy";
+la oficina rebota de /taller/[pieza]. Typecheck y build de producción OK.
+
+**Centros de trabajo (punto 1) — no se tocó, necesita al cliente.** Hay 20 centros; 13 tienen
+operaciones reales en hojas de ruta (Torno 106, Centro de mecanizado CNC 113, Corte por hilo
+49, Taller 44, Rectificado 14, Pintura 13, Roscado 12, Templado 8, Tallado 5, Arenado 5,
+Fresado 3, Soldadura 3, Grabado láser 2, Impresión 3D 2, Chavetero 1). Para dejar sólo los
+del cliente hace falta saber **en qué centro se hace cada uno de esos procesos** (Templado y
+Arenado podrían ser tercerizados) — borrarlos sin ese mapeo deja más de 80 operaciones sin
+centro. Y está la diferencia 5 vs 6: el cliente listó 6 (con "Torno CNC" y "Centro de
+mecanizado" por separado) y después escribió "Torno / Centro de mecanizado CNC", que se
+interpretó como una sola máquina (hoy hay 5). Preguntas para el cliente:
+1. ¿"Torno CNC" es un centro aparte o es el mismo "Centro de mecanizado CNC"?
+2. Para cada proceso de la lista de arriba que no es uno de sus centros: ¿en qué centro se
+   hace, o es tercerizado?
+
+**Sin cambios, a propósito:** Stock, Tercerizados y Remitos (punto 12); la tabla "por etapa"
+de Avance que repite la de Stock (se marca, no se sacó: no estaba pedido).

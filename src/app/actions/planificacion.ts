@@ -7,12 +7,16 @@ import { asignarTrabajo, eliminarAsignacion } from "@/lib/data/planificacion";
 export async function asignarTrabajoAction(formData: FormData) {
   const usuario = await getUsuarioActual();
   const otPiezaId = String(formData.get("otPiezaId") ?? "");
+  const operacionId = String(formData.get("operacionId") ?? "");
   const operarioId = String(formData.get("operarioId") ?? "");
   const fecha = String(formData.get("fecha") ?? "");
-  if (!otPiezaId || !operarioId || !fecha) throw new Error("Faltan datos: pieza, operario y fecha son obligatorios.");
+  if (!otPiezaId || !operacionId || !operarioId || !fecha) {
+    throw new Error("Faltan datos: pieza, operación, operario y fecha son obligatorios.");
+  }
 
-  await asignarTrabajo({ otPiezaId, operarioId, fecha, asignadoPorId: usuario.id });
-  revalidatePath("/planificacion");
+  await asignarTrabajo({ otPiezaId, operacionId, operarioId, fecha, asignadoPorId: usuario.id });
+  revalidatePath("/planificacion", "layout");
+  revalidatePath("/taller");
 }
 
 export async function eliminarAsignacionAction(formData: FormData) {
@@ -21,5 +25,6 @@ export async function eliminarAsignacionAction(formData: FormData) {
   if (!id) throw new Error("Falta la asignación.");
 
   await eliminarAsignacion(id);
-  revalidatePath("/planificacion");
+  revalidatePath("/planificacion", "layout");
+  revalidatePath("/taller");
 }

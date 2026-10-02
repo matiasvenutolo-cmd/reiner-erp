@@ -83,6 +83,10 @@ export async function iniciarOperacion(
   if (abierta) {
     return { ok: false, error: "Ya tenés una operación abierta. Cerrala antes de iniciar otra." };
   }
+  const [op] = await db.select({ enviada: otPieza.enviadaProduccionAt }).from(otPieza).where(eq(otPieza.id, input.otPiezaId));
+  if (!op?.enviada) {
+    return { ok: false, error: "Esta pieza todavía no fue enviada a producción." };
+  }
   const [registro] = await db
     .insert(registroOperacion)
     .values({

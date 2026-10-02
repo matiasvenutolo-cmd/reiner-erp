@@ -3,7 +3,6 @@ import { listarOtMaquinas } from "@/lib/data/ot";
 import { getResumenWipEnCursoPorProceso } from "@/lib/data/stock";
 import { getParadasActivas } from "@/lib/data/ejecucion";
 import { getPiezasFueraDeFabrica } from "@/lib/data/logistica";
-import { getTareasRevision } from "@/lib/data/revision";
 import { MaquinaCard } from "@/components/avance/MaquinaCard";
 import { MetricCard } from "@/components/MetricCard";
 
@@ -11,14 +10,12 @@ import { MetricCard } from "@/components/MetricCard";
 export const dynamic = "force-dynamic";
 
 export default async function AvancePage() {
-  const [ordenes, wip, paradas, fueraDeFabrica, retrabajos] = await Promise.all([
+  const [ordenes, wip, paradas, fueraDeFabrica] = await Promise.all([
     listarOtMaquinas(),
     getResumenWipEnCursoPorProceso(),
     getParadasActivas(),
     getPiezasFueraDeFabrica(),
-    getTareasRevision("pendiente"),
   ]);
-  const otPiezaIdsConRetrabajo = [...new Set(retrabajos.map((t) => t.otPiezaId))];
 
   const enCurso = ordenes.filter((o) => o.estadoCalculado === "en_curso").length;
   const piezasTerminadas = ordenes.reduce((sum, o) => sum + o.piezasTerminadas, 0);
@@ -35,7 +32,7 @@ export default async function AvancePage() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <MetricCard label="OT de máquina en curso" value={enCurso} href="/ot" />
+        <MetricCard label="Órdenes en curso" value={enCurso} href="/ot" />
         <MetricCard label="Piezas terminadas / total" value={`${piezasTerminadas}/${piezasTotal}`} href="/ot" />
         <MetricCard label="Frenado ahora mismo" value={paradas.length} href="/centros-trabajo" />
         <MetricCard label="Piezas en proceso tercerizado" value={piezasFueraDeFabrica} href="/tercerizados" />
@@ -57,14 +54,17 @@ export default async function AvancePage() {
                 key={ot.id}
                 otId={ot.id}
                 codigo={ot.codigo}
-                configuracionNombre={ot.configuracion?.nombre}
+                subtitulo={
+                  ot.tipo === "suelta"
+                    ? `Orden de ${ot.alcance === "pieza" ? "pieza" : "conjunto"} · ${ot.configuracion?.nombre ?? ""}`
+                    : ot.configuracion?.nombre
+                }
                 estadoCalculado={ot.estadoCalculado}
                 pct={pct}
                 piezasTerminadas={ot.piezasTerminadas}
                 totalPiezasAFabricar={ot.totalPiezasAFabricar}
                 plazoEntrega={ot.plazoEntrega}
                 secciones={ot.secciones}
-                otPiezaIdsConRetrabajo={otPiezaIdsConRetrabajo}
               />
             );
           })}

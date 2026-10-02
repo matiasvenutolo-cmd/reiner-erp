@@ -8,9 +8,8 @@ import {
   completarOtConjunto,
   generarOtPiezaSuelta,
   generarOrdenSuelta,
-  setEstadoManual,
-  getOtPiezaIdsDeConjunto,
-  type EstadoCalculado,
+  enviarAProduccion,
+  getOtPiezaIdsSinEnviar,
 } from "@/lib/data/ot";
 import { getUsuarioActual } from "@/lib/session";
 
@@ -123,33 +122,20 @@ export async function crearOrdenSueltaAction(formData: FormData) {
   redirect(`/ot/${id}`);
 }
 
-const ESTADOS_MANUALES: EstadoCalculado[] = ["pendiente", "en_curso", "terminada"];
-
-function revalidarEstado() {
-  for (const ruta of ["/avance", "/ot", "/stock", "/centros-trabajo", "/tercerizados", "/inicio"]) {
-    revalidatePath(ruta, "layout");
-  }
-}
-
-/** Estado manual desde /avance: "auto" vuelve al estado derivado de taller. */
-export async function cambiarEstadoPiezaAction(formData: FormData) {
+/**
+ * Pedido de fabricación (ingeniería → producción): una pieza, un conjunto o
+ * toda la OT. Después de esto la pieza aparece en Planificación para que
+ * taller le asigne día, operación y operario.
+ */
+export async function enviarAProduccionAction(formData: FormData) {
   const usuario = await getUsuarioActual();
   if (usuario.rol === "operario") throw new Error("No autorizado.");
   const otPiezaId = String(formData.get("otPiezaId") ?? "");
-  const estado = String(formData.get("estado") ?? "");
-  if (!otPiezaId) throw new Error("Falta la pieza.");
-  if (estado !== "auto" && !ESTADOS_MANUALES.includes(estado as EstadoCalculado)) throw new Error("Estado inválido.");
-  await setEstadoManual([otPiezaId], estado === "auto" ? null : (estado as EstadoCalculado));
-  revalidarEstado();
-}
-
-export async function cambiarEstadoConjuntoAction(formData: FormData) {
-  const usuario = await getUsuarioActual();
-  if (usuario.rol === "operario") throw new Error("No autorizado.");
   const otConjuntoId = String(formData.get("otConjuntoId") ?? "");
-  const estado = String(formData.get("estado") ?? "");
-  if (!otConjuntoId) throw new Error("Falta el conjunto.");
-  if (estado !== "auto" && !ESTADOS_MANUALES.includes(estado as EstadoCalculado)) throw new Error("Estado inválido.");
-  await setEstadoManual(await getOtPiezaIdsDeConjunto(otConjuntoId), estado === "auto" ? null : (estado as EstadoCalculado));
-  revalidarEstado();
+  const otMaquinaId = String(formData.get("otMaquinaId") ?? "");
+  const ids = otPiezaId
+    ? [otPiezaId]
+    : await getOtPiezaIdsSinEnviar(otConjuntoId ? { otConjuntoId } : { otMaquinaId });
+  await enviarAProduccion(ids, usuario.id);
+  for (const ruta of ["/ot", "/planificacion", "/centros-trabajo", "/taller", "/avance"]) revalidatePath(ruta, "layout");
 }
