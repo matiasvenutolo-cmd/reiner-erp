@@ -1,6 +1,8 @@
 import { getCentrosConUso, getTiposOperacion } from "@/lib/data/operaciones";
 import { crearCentroAction, renombrarCentroAction, eliminarCentroAction } from "@/app/actions/operaciones";
 import { DestinoOperacionSelect } from "@/components/DestinoOperacionSelect";
+import { getUsuarioActual } from "@/lib/session";
+import { puedeEditarMaestros } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +15,9 @@ export const dynamic = "force-dynamic";
  */
 export default async function OperacionesPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
-  const [centros, tipos] = await Promise.all([getCentrosConUso(), getTiposOperacion()]);
+  const [centros, tipos, usuario] = await Promise.all([getCentrosConUso(), getTiposOperacion(), getUsuarioActual()]);
+  // Taller lo consulta pero no lo modifica — ver src/lib/permisos.ts.
+  const editable = puedeEditarMaestros(usuario.rol);
   const sinAsignar = tipos.filter((t) => t.tipo === "interno" && !t.centroTrabajoId && t.operacionesEnHojasDeRuta > 0);
 
   return (
@@ -24,6 +28,7 @@ export default async function OperacionesPage({ searchParams }: { searchParams: 
           Las operaciones son lo que cada pieza tiene que hacer; los centros de trabajo, dónde se hace. Acá se define dónde se hace
           cada operación por defecto. Para una pieza puntual se puede elegir otro centro desde su hoja de ruta en Maestros.
         </p>
+        {!editable && <p className="text-xs text-foreground-muted mt-1">Sólo lectura: esta configuración la modifica ingeniería.</p>}
       </div>
 
       {error && <div className="badge-estado badge-alerta text-sm px-3 py-2 block">{error}</div>}
@@ -47,42 +52,50 @@ export default async function OperacionesPage({ searchParams }: { searchParams: 
                 return (
                   <tr key={c.id} className="border-t border-border">
                     <td className="px-4 py-2">
-                      <form action={renombrarCentroAction} className="flex items-center gap-1.5">
-                        <input type="hidden" name="id" value={c.id} />
-                        <input name="nombre" defaultValue={c.nombre} className="input text-sm py-1 w-48" />
-                        <button type="submit" className="text-xs text-accent hover:underline">
-                          Guardar
-                        </button>
-                      </form>
+                      {editable ? (
+                        <form action={renombrarCentroAction} className="flex items-center gap-1.5">
+                          <input type="hidden" name="id" value={c.id} />
+                          <input name="nombre" defaultValue={c.nombre} className="input text-sm py-1 w-48" />
+                          <button type="submit" className="text-xs text-accent hover:underline">
+                            Guardar
+                          </button>
+                        </form>
+                      ) : (
+                        c.nombre
+                      )}
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums">{c.tiposPorDefecto}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{c.operacionesDePiezas}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{c.operarios}</td>
                     <td className="px-4 py-2 text-right">
-                      <form action={eliminarCentroAction}>
-                        <input type="hidden" name="id" value={c.id} />
-                        <button
-                          type="submit"
-                          disabled={enUso}
-                          title={enUso ? "Se usa: primero reasigná sus operaciones y operarios" : undefined}
-                          className="text-xs text-red-700 hover:underline disabled:text-foreground-muted disabled:no-underline"
-                        >
-                          Eliminar
-                        </button>
-                      </form>
+                      {editable && (
+                        <form action={eliminarCentroAction}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <button
+                            type="submit"
+                            disabled={enUso}
+                            title={enUso ? "Se usa: primero reasigná sus operaciones y operarios" : undefined}
+                            className="text-xs text-red-700 hover:underline disabled:text-foreground-muted disabled:no-underline"
+                          >
+                            Eliminar
+                          </button>
+                        </form>
+                      )}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          <form action={crearCentroAction} className="flex items-center gap-2 px-4 py-2.5 border-t border-border bg-surface-muted/50">
-            <span className="text-xs text-foreground-muted">Nuevo centro (ej. una máquina nueva)</span>
-            <input name="nombre" required placeholder="Nombre" className="input text-sm py-1 w-48" />
-            <button type="submit" className="text-xs text-accent hover:underline">
-              Agregar
-            </button>
-          </form>
+          {editable && (
+            <form action={crearCentroAction} className="flex items-center gap-2 px-4 py-2.5 border-t border-border bg-surface-muted/50">
+              <span className="text-xs text-foreground-muted">Nuevo centro (ej. una máquina nueva)</span>
+              <input name="nombre" required placeholder="Nombre" className="input text-sm py-1 w-48" />
+              <button type="submit" className="text-xs text-accent hover:underline">
+                Agregar
+              </button>
+            </form>
+          )}
         </div>
       </section>
 
@@ -117,6 +130,12 @@ export default async function OperacionesPage({ searchParams }: { searchParams: 
                   <td className="px-4 py-2">
                     {t.tipo === "compras" ? (
                       <span className="text-xs text-foreground-muted">Compra — se resuelve con stock</span>
+                    ) : !editable ? (
+                      t.tipo === "tercerizado" ? (
+                        "Tercerizado"
+                      ) : (
+                        (centros.find((c) => c.id === t.centroTrabajoId)?.nombre ?? <span className="text-amber-800">Sin centro asignado</span>)
+                      )
                     ) : (
                       <DestinoOperacionSelect
                         procesoId={t.id}

@@ -6,7 +6,7 @@
  * propio archivo porque el foco acá es el movimiento en sí (quién, cuándo,
  * de qué proveedor), no el saldo resultante.
  */
-import { eq, desc, and, inArray, isNotNull, asc } from "drizzle-orm";
+import { eq, desc, and, inArray, isNotNull, asc, ilike } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { movimientoStock, stockPieza, pieza, usuario, proveedor, proceso, otPieza, operacion, registroOperacion } from "@/lib/db/schema";
 import type { Proveedor, MovimientoStock } from "@/lib/db/schema";
@@ -15,7 +15,38 @@ import { getStockDisponible } from "./stock";
 type TipoMovimientoStock = MovimientoStock["tipo"];
 
 export async function getProveedores(): Promise<Proveedor[]> {
-  return db.select().from(proveedor);
+  return db.select().from(proveedor).orderBy(asc(proveedor.razonSocial));
+}
+
+/**
+ * Alta y edición de proveedores (observación del cliente en Fase 3). La tabla
+ * existe desde el modelo de datos inicial (razón social, rubro, condición) y
+ * hasta ahora sólo tenía los 3 de demo sembrados: se usan los mismos campos,
+ * sin agregar obligatorios que el cliente no definió.
+ */
+export type DatosProveedor = { razonSocial: string; rubro: string; condicion: string };
+
+function limpiarProveedor(datos: DatosProveedor) {
+  const razonSocial = datos.razonSocial.trim();
+  if (!razonSocial) throw new Error("Falta la razón social.");
+  return { razonSocial, rubro: datos.rubro.trim() || null, condicion: datos.condicion.trim() || null };
+}
+
+async function exigirNombreLibre(razonSocial: string, excluirId?: string) {
+  const mismos = await db.select({ id: proveedor.id }).from(proveedor).where(ilike(proveedor.razonSocial, razonSocial));
+  if (mismos.some((p) => p.id !== excluirId)) throw new Error(`Ya hay un proveedor "${razonSocial}".`);
+}
+
+export async function crearProveedor(datos: DatosProveedor): Promise<void> {
+  const limpio = limpiarProveedor(datos);
+  await exigirNombreLibre(limpio.razonSocial);
+  await db.insert(proveedor).values(limpio);
+}
+
+export async function actualizarProveedor(id: string, datos: DatosProveedor): Promise<void> {
+  const limpio = limpiarProveedor(datos);
+  await exigirNombreLibre(limpio.razonSocial, id);
+  await db.update(proveedor).set({ ...limpio, updatedAt: new Date() }).where(eq(proveedor.id, id));
 }
 
 export type MovimientoConDetalle = {

@@ -10,7 +10,7 @@
  * máquina, así que no entra en el tiempo estándar. Una pieza comprada
  * entera, en cambio, suma al almacén y queda reservada para su OT.
  */
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, like, max, sum } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   pedidoCompra,
@@ -23,9 +23,75 @@ import {
   stockPieza,
   reservaStock,
   registroOperacion,
+  remito,
+  remitoItem,
 } from "@/lib/db/schema";
 import { getStockDisponible } from "./stock";
-import { esUltimaOperacion } from "./ejecucion";
+import { esUltimaOperacion, getCantidadesOperacion } from "./ejecucion";
+import { getEstadoYOperacionActual } from "./ot";
+
+/** Prefijo con el que se asienta la vuelta de un tercerizado — distingue esos
+ * ingresos de la llegada de una compra de la misma OT de pieza. */
+export const OBS_VUELTA_TERCERIZADO = "Vuelta de tercerizado";
+
+export type MovimientoTercerizado = {
+  operacionId: string;
+  /** Piezas que llegaron a este paso tercerizado (las OK del anterior). */
+  cantidadPaso: number;
+  /** Mandadas con remito desde que la pieza llegó a este paso. */
+  enviadas: number;
+  /** Vueltas registradas (OK o NO OK) desde que llegó a este paso. */
+  recibidas: number;
+  /** En planta y todavía sin mandar: las que llegaron, menos las que están afuera. */
+  enPlanta: number;
+  /** En manos del proveedor: mandadas y todavía no vueltas. */
+  afuera: number;
+};
+
+/**
+ * Cuánto se mandó y cuánto volvió en el paso tercerizado ACTUAL de una OT de
+ * pieza (observación del cliente en Fase 3: se podía registrar el ingreso de
+ * más piezas de las que se enviaron). Mismo criterio que
+ * `getPiezasAfueraTercerizado`: cuenta lo posterior a que la pieza llegó al
+ * paso (último cierre registrado). Una vuelta NO OK cuenta como recibida — la
+ * pieza volvió a planta y, si se la manda de nuevo, sale con otro remito.
+ */
+export async function getMovimientoTercerizado(otPiezaId: string): Promise<MovimientoTercerizado | null> {
+  const [op] = await db.select().from(otPieza).where(eq(otPieza.id, otPiezaId));
+  if (!op) return null;
+  const { operacionActual } = await getEstadoYOperacionActual(op);
+  if (!operacionActual || operacionActual.proceso.tipo !== "tercerizado") return null;
+
+  const [ultimoCierre] = await db
+    .select({ fin: max(registroOperacion.fin) })
+    .from(registroOperacion)
+    .where(and(eq(registroOperacion.otPiezaId, otPiezaId), isNotNull(registroOperacion.fin)));
+  const desde = ultimoCierre?.fin ?? new Date(0);
+
+  const [[env], [rec], { entra }] = await Promise.all([
+    db
+      .select({ total: sum(remitoItem.cantidad).mapWith(Number) })
+      .from(remitoItem)
+      .innerJoin(remito, eq(remito.id, remitoItem.remitoId))
+      .where(and(eq(remitoItem.otPiezaId, otPiezaId), gte(remito.fecha, desde))),
+    db
+      .select({ total: sum(movimientoStock.cantidad).mapWith(Number) })
+      .from(movimientoStock)
+      .where(
+        and(
+          eq(movimientoStock.otPiezaId, otPiezaId),
+          eq(movimientoStock.tipo, "ingreso"),
+          like(movimientoStock.observacion, `${OBS_VUELTA_TERCERIZADO}%`),
+          gte(movimientoStock.fecha, desde),
+        ),
+      ),
+    getCantidadesOperacion(otPiezaId, operacionActual.id),
+  ]);
+  const enviadas = env?.total ?? 0;
+  const recibidas = rec?.total ?? 0;
+  const afuera = Math.max(0, enviadas - recibidas);
+  return { operacionId: operacionActual.id, cantidadPaso: entra, enviadas, recibidas, enPlanta: Math.max(0, entra - afuera), afuera };
+}
 
 export async function marcarPedido(input: {
   otPiezaId: string;
@@ -184,6 +250,14 @@ export async function registrarVueltaTercerizado(input: {
 }): Promise<void> {
   const [op] = await db.select().from(otPieza).where(eq(otPieza.id, input.otPiezaId));
   if (!op) throw new Error("OT de pieza inexistente.");
+  const mov = await getMovimientoTercerizado(op.id);
+  if (!mov || mov.operacionId !== input.operacionId) throw new Error("Esa pieza no está en este paso tercerizado.");
+  if (mov.enviadas === 0) throw new Error("Esa pieza todavía no salió con remito en este paso: no hay vuelta para registrar.");
+  if (input.cantidad > mov.afuera) {
+    throw new Error(
+      `${op.codigo}: se enviaron ${mov.enviadas} y ya volvieron ${mov.recibidas} — como mucho pueden volver ${mov.afuera}.`,
+    );
+  }
   const ahora = new Date();
   const cierraLaPieza = await esUltimaOperacion(op.id, input.operacionId);
   await db.transaction(async (tx) => {
@@ -195,7 +269,7 @@ export async function registrarVueltaTercerizado(input: {
       proveedorId: input.proveedorId || null,
       controlResultado: input.controlResultado,
       usuarioId: input.usuarioId,
-      observacion: ["Vuelta de tercerizado", op.codigo, input.observacion?.trim()].filter(Boolean).join(" — "),
+      observacion: [OBS_VUELTA_TERCERIZADO, op.codigo, input.observacion?.trim()].filter(Boolean).join(" — "),
     });
     if (input.controlResultado !== "ok") return;
     await tx.insert(registroOperacion).values({

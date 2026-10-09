@@ -1247,3 +1247,208 @@ no) y vuelta. Todo revertido a la línea base.
 **Para preguntarle al cliente:** dónde se hace cada operación sin asignar — en particular
 **CNC (113 pasos): ¿Torno CNC o Centro de mecanizado?**, y cuáles de Roscado, Rectificado,
 Templado, Arenado, Pintura, etc. son tercerizadas. Se carga directo en el panel, sin código.
+
+## 25 · Observaciones del cliente sobre Fase 3 (2026-10-09)
+
+Fuente: la lista de observaciones de REINER después de probar Fase 3 con órdenes propias
+(las 2 OT que cargaron el 2026-10-05 sobre la base limpia). Criterio pedido: corregir lo que
+está claramente definido, y para el control de calidad entre operaciones y Compras
+**documentar las decisiones pendientes sin resolverlas por suposición**.
+
+**Chequeo previo contra lo definido por el cliente:**
+- *Permisos de maestros* — §19 paquete 7: "ingeniería debe poder editar los maestros"; en
+  Release 2 se le abrió `/maestros` a taller para que los links desde Stock no rebotaran y
+  para la bitácora. Restringir la edición a Horacio no contradice nada: sigue viendo la ficha.
+- *Cambio de actividad* — §03 (Fase 1) dejaba como asunción "un operario no puede tener dos
+  operaciones abiertas a la vez", a confirmar con Horacio. La observación la responde: puede
+  alternar. Se mantiene "una sola **en curso**".
+- *Tareas por centro* — pedido de Horacio en Release 2: el operario ve las piezas de sus
+  centros, o lo que se le asignó. Era la regla de la lista; la ficha no la aplicaba (abajo).
+- *Control entre operaciones* — en la respuesta sobre la hoja de ruta de B-24 (Release 2, §0)
+  el cliente ya había dicho: "hay control entre procesos internos (OK / NO OK / a
+  retrabajar)". Es el antecedente directo del punto 3.2.
+- *Proveedores* — la tabla existía desde el modelo de datos inicial (razón social, rubro,
+  condición) sin pantalla; sólo los 3 de demo.
+
+### Implementado
+
+**1.1 · Horacio no modifica maestros.** `src/lib/permisos.ts`: editan maestros
+`ingenieria` y `direccion`. Se aplica en el servidor — todas las acciones de
+`actions/maestros.ts` (material, revisión, plano, tipo, stock mínimo, hoja de ruta, adjuntos)
+y de `actions/operaciones.ts` (destino de cada operación, centros) rechazan a otro rol aunque
+se las llame sin pasar por la pantalla. Taller ve la ficha de pieza y "Operaciones y centros"
+en **sólo lectura**. Queda abierta para todos la **bitácora** (es un registro de
+observaciones, también de producción, no un dato maestro). Sin otros cambios de permisos.
+
+**1.2 · Edición de operaciones sin romper OT ni historial.** Relevamiento:
+- Dónde se editan: los *tipos* de operación (dónde se hacen) en Administración →
+  Operaciones y centros; los *pasos* de cada pieza en Maestros → pieza → hoja de ruta
+  (agregar, quitar, mover, cambiar tipo, centro y detalle).
+- Pasos repetidos: 53 casos de la misma operación dos o tres veces seguidas (Torno-Torno,
+  CNC-CNC). En 51 la columna OPS los numera (1, 2, 3): son "operación 1 / operación 2" del
+  Excel, **no son duplicados**. Sólo 2 tienen el mismo OPS: PS12CDD100s001 (CNC, paso 3) y
+  RD003100I021 (Compras, paso 2) — a confirmar.
+- Tipos sin uso en ninguna hoja de ruta: Fundición, Fierro, Pulido, Electrónica (esta última
+  es también un centro). Posibles solapamientos de nombre: "Cromado/anodizado" (1 paso) con
+  Cromado y Anodizado; "Mecanizado" (5) con CNC (112); "Taller (armado)".
+- No se borró ni fusionó nada. Se agregaron protecciones: un paso con trabajo registrado
+  (taller, compra o tercerizado) **no se puede borrar ni cambiar de tipo** — su historial
+  quedaría a nombre de otra operación —, uno planificado o con controles tampoco se borra.
+  Antes el borrado fallaba con un error crudo de la base; ahora se explica en la ficha.
+
+**2 · Remito con vista previa.** "Vista previa →" muestra la misma hoja que se imprime
+(componente nuevo `HojaRemito`, compartido con `/remitos/[id]`), sin número y con el aviso
+"todavía no se guardó". Nada se guarda hasta "Confirmar e imprimir": recién ahí se registra
+(número, piezas, egresos) y se abre la impresión (`AutoImprimir`, una sola vez; recargar no
+vuelve a imprimir). "← Volver a editar" no guarda nada. El botón queda deshabilitado mientras
+guarda para no duplicar. La acción ahora devuelve el motivo de un rechazo en vez de lanzarlo
+(en producción Next oculta el mensaje de un error lanzado desde el cliente).
+
+**3.1 · Cuántas piezas procesa cada operario y tope de lo declarado.** Regla
+(`cantidadQueEntraAlPaso` en produccion.ts): al primer paso entra la cantidad a fabricar; a
+cada siguiente, las **OK del anterior** (las rechazadas no siguen). Un paso cerrado sin
+declarar nada (0 OK y 0 rechazadas, cierres previos a este control) no corta la cadena.
+- El operario ve "N piezas a procesar" en la lista y en la ficha; "Piezas OK" viene
+  precargado con ese número.
+- En el servidor: OK + rechazadas ≤ las que llegaron al paso (menos lo ya declarado si otro
+  registro del mismo paso cerró antes). En el cierre de la pieza, No OK, defectuosas y
+  retrabajadas — cada una por separado — no pueden superar las que no salieron OK (la regla
+  mínima segura mientras 3.2 no defina si se solapan).
+- Las cantidades de Planificación y de Tercerizados usan la misma cuenta.
+
+**4 · Cambiar de actividad con una tarea pausada.** Se mantiene **una sola operación en
+curso** por operario; las pausadas pueden ser varias. Una pausada conserva su registro
+abierto y su parada con el motivo: aparece arriba en "Mi trabajo" ("En pausa · tocá para
+retomarla") y su ficha ofrece "▶ Reanudar" o "Cambiar de tarea — queda en pausa". El servidor
+no deja iniciar ni reanudar otra mientras haya una en curso, ni iniciar de nuevo una pieza
+que se tiene en pausa. Tiempos: la duración de un registro es de inicio a fin e incluye sus
+paradas (como siempre); mientras está pausada, la parada registra ese lapso, así que el tiempo
+neto (duración − paradas) nunca se superpone con la otra tarea. La finalización no cambió.
+
+**5 · Tareas que no le corresponden al operario (caso Fede).** Causa: la lista de "Mi
+trabajo" filtraba por centro/asignación, pero la ficha de la pieza no. Al terminar el CNC la
+acción recargaba la misma ficha, que ofrecía el paso siguiente (Roscado, de Taller) con sus
+botones de iniciar; al cerrar sesión y volver a entrar se caía en la lista, que sí filtraba —
+por eso "desaparecía". Los datos estaban bien guardados: era la pantalla, no un estado
+temporal. Corrección: una sola regla (`pasoHabilitadoParaOperario`) para la lista, la ficha
+y el **inicio en el servidor** — asignado hoy por Planificación (esa operación), o paso
+interno de uno de sus centros (sin centros, ve todo, como desde Release 2). Si el paso que
+sigue no es suyo, la ficha lo dice ("Se hace en Taller: no es uno de tus centros…") y vuelve
+a Mi trabajo. El servidor además exige que sea el paso que sigue en la hoja de ruta.
+
+**6 · Tercerizados: no vuelve más de lo que se mandó.** `getMovimientoTercerizado`
+(compras.ts) cuenta, en el paso tercerizado actual, lo enviado con remito y las vueltas ya
+registradas (OK o NO OK). La vuelta exige que la pieza haya salido y no puede superar lo que
+está afuera (enviadas − vueltas); el remito no puede mandar más de lo que hay en planta en ese
+paso. Tercerizados muestra "Enviadas N · volvieron M" y precarga lo que falta volver. Sin
+cambios en stock: la pieza en fabricación sigue sin tocar el almacén; las vueltas se
+identifican por su leyenda para no confundirlas con la llegada de una compra de la misma OT.
+
+**7 · Proveedores.** Administración → Proveedores (`/proveedores`, nueva): alta y edición con
+los campos que ya tenía la tabla — razón social (obligatoria, sin duplicados), rubro y
+condición (opcionales). No se agregaron campos ni baja.
+
+### Errores corregidos de paso
+- Terminar el **setup** de la última operación cerraba la OT de pieza (y podía generar la
+  tarea de revisión): ahora el setup no pide cantidades ni cierra nada.
+- Un registro ya finalizado se podía volver a finalizar, y un operario podía pausar o
+  finalizar el registro de otro mandando su id: el servidor ahora lo impide.
+- Los rechazos en taller, maestros y proveedores vuelven a la pantalla con el motivo, y un
+  intento posterior que sale bien limpia el mensaje (antes quedaba colgado en la URL).
+
+### Pruebas
+Script contra la base compartida (OT de prueba creada y borrada al terminar; no quedó nada):
+55 comprobaciones OK — permisos por rol; borrar o cambiar un paso trabajado (rechazado);
+Fede no puede iniciar Torno ni Roscado y no le aparecen, Nico (Taller) sí, y con asignación
+de Planificación para hoy a Fede sí; pausa A → inicia B → no puede reanudar A con B en curso →
+pausa B → reanuda A, con la parada registrada; 6 OK con 5 recibidas y 4 + 2 rechazadas
+(rechazados), 4 + 1 (OK), 4 al paso siguiente; setup sin cantidades; vuelta sin remito,
+remito por 5 con 4 en planta y vuelta por más de lo enviado (rechazados), vuelta parcial NO OK
+y cierre con las restantes; alta, duplicado y edición de proveedor. Cierre de pieza en un paso
+interno: No OK/defectuosas/retrabajadas por encima de las no OK, rechazado; dentro, OK.
+En el navegador: Horacio ve la ficha y Operaciones en sólo lectura y el servidor le rechaza
+las acciones llamadas directo; vista previa del remito sin guardar (siguen 7 remitos) e
+impresión automática una sola vez; Nico ve la tarea en pausa arriba, inicia otra, el tope de
+cantidades se muestra como error y desaparece al finalizar bien.
+
+### Pendiente de definición del cliente
+
+**3.2 · Control OK / NO OK / revisión / retrabajo.** Cómo funciona hoy:
+- En **cada operación** el operario declara OK y rechazadas. Las OK pasan a la siguiente; las
+  rechazadas salen del circuito sin ningún seguimiento (no generan retrabajo).
+- En la **última**, además, el bloque de cierre del papel ("Conteo": OK · NO OK · defectuosas ·
+  retrabajadas). Si hay defectuosas o retrabajadas se crea sola una tarea de revisión
+  (panel de retrabajos de Inicio: "N defectuosas · N a retrabajar"). Por eso el mecanismo
+  "cambia" al final: es el cierre de la OT de pieza en papel, trasladado a la última
+  operación. "Rechazadas" y "No OK" conviven en esa pantalla y no está definido si
+  defectuosas y retrabajadas son parte de las No OK o aparte.
+
+Alternativas:
+- **A · Control igual en todas las operaciones** (OK / No OK / a retrabajar en cada paso):
+  las OK siguen, las No OK se descartan, las de retrabajo generan su tarea de revisión en ese
+  paso. Desaparece el bloque extra del final; el cierre de la pieza sale de sumar los pasos.
+  Es lo que el cliente ya describió en Release 2 y encaja con el modelo actual (cada registro
+  ya tiene OK y rechazadas; se agrega "a retrabajar" y la tarea de revisión pasa a colgar de
+  la operación).
+- **B · Control final específico**: cada operación sigue con OK / rechazadas y se agrega un
+  paso de control al final, hecho por quien revisa (el "Revisó" del papel), que clasifica OK /
+  defectuosas / a retrabajar. Más cercano al papel, separa al operario del control, pero las
+  rechazadas intermedias siguen sin seguimiento y suma un paso más a cada pieza.
+
+Recomendación: **A**, por coincidir con lo que el cliente ya dijo y con el modelo actual.
+Decisiones que faltan antes de construirla: (1) ¿"defectuosa" y "No OK" son lo mismo?;
+(2) una pieza retrabajada, ¿vuelve a la misma operación o sigue a la siguiente?; (3) ¿controla
+el operario o otra persona?; (4) una pieza No OK, ¿se repone fabricando otra o se acepta el
+faltante?
+
+**3.1 · Declarar menos de lo recibido.** Hoy se puede finalizar declarando menos (ej. 8 de 10)
+y el resto queda sin destino, porque el paso se da por terminado. Falta definir si se exige
+declarar todas (OK + rechazadas = recibidas) o si una operación puede quedar abierta con
+piezas pendientes (cierres parciales).
+
+**4 · Tiempo estándar con pausas largas.** El tiempo estándar promedia la duración total del
+registro, que incluye las paradas (ya era así). Con el cambio de actividad una pausa puede
+durar horas; conviene que el estándar use el tiempo neto (duración − paradas). No se cambió
+sin confirmarlo. Tampoco se agregó un motivo de parada "Cambio de tarea": hoy se elige entre
+los existentes ("Otra").
+
+**6 · Vuelta parcial OK de un tercerizado.** La primera vuelta con control OK cierra el paso
+(como antes): si vuelven 2 de 4 OK, las otras 2 quedan sin seguimiento. Falta definir si el
+paso debe quedar abierto hasta que vuelvan todas.
+
+**1.1 · Alcance de "maestros".** Se incluyó como maestro, sólo para ingeniería y dirección:
+el stock mínimo de la pieza y Operaciones y centros. Quedaron abiertos a taller la bitácora y
+Proveedores. Confirmar.
+
+**1.2 · Cuáles son las operaciones redundantes** (lista de candidatas arriba) y qué hacer con
+ellas: dejarlas sin uso, renombrarlas o reemplazarlas en las hojas de ruta. Además: la hoja de
+ruta es una sola para la pieza, así que editarla cambia también las OT en curso de esa pieza
+(agregar un paso al final reabre una OT de pieza ya terminada). Definir si la OT debe
+"congelar" su hoja de ruta al enviarse a producción o si se bloquea editar mientras haya OT
+abiertas.
+
+**7 · Datos del proveedor.** ¿Hacen falta CUIT, contacto o condición de pago como campos
+propios? "Condición" hoy es texto libre.
+
+**8 · Compras — relevamiento y propuesta.** Lo que existe:
+- Proveedores (ahora con alta y edición).
+- `pedido_compra`: colgado de una OT de pieza, con proveedor (opcional), cantidad,
+  observación, fecha de pedido y fecha de recepción.
+- Stock → Compras: "pendientes de pedir" sale solo de las OT (piezas de compra que faltan y
+  materia prima de piezas cuyo paso actual es Compras) → "Marcar como pedida" → "Registrar
+  llegada" con control de calidad (cierra el paso o suma al almacén y lo reserva).
+
+Lo que no existe: cotizaciones, importes, fecha programada de compra y cualquier vista de
+gastos. Propuesta (sin construir):
+1. **Cotizaciones**: para cada necesidad de compra, una o varias cotizaciones (proveedor,
+   fecha, importe, moneda, validez, observación y opcionalmente el PDF). Quien compra elige
+   una y se convierte en el pedido. El sistema no elige solo.
+2. **Programación**: el pedido suma una fecha programada (cuándo se compra) y pasa a tener
+   estados programada → pedida → recibida. Se puede programar desde "pendientes de pedir".
+3. **Gastos futuros**: vista por semana o mes con el importe de lo programado y lo pedido
+   todavía no recibido (comprometido), separado de lo ya recibido (efectuado). Una cotización
+   no aceptada no cuenta como gasto.
+
+Decisiones que faltan: ¿sólo compras ligadas a OT o también compras generales (insumos,
+herramientas)?; moneda y tipo de cambio; si el gasto "efectuado" es la recepción, la factura
+o el pago; si una compra necesita aprobación y de quién; qué datos del proveedor hacen falta.

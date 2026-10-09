@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getUsuarioActual } from "@/lib/session";
 import {
@@ -20,9 +21,31 @@ import {
   eliminarAdjuntoPieza,
 } from "@/lib/data/maestros";
 import { subirAdjunto, eliminarAdjunto } from "@/lib/blob";
+import { puedeEditarMaestros } from "@/lib/permisos";
+
+/** Un rechazo esperable (ej. borrar un paso ya trabajado) vuelve a la ficha con el motivo, no a una pantalla de error. */
+async function conErrorEnPieza(piezaId: string, fn: () => Promise<void>) {
+  let error: string | null = null;
+  try {
+    await fn();
+  } catch (e) {
+    error = e instanceof Error ? e.message : "No se pudo guardar.";
+  }
+  if (error) redirect(`/maestros/pieza/${piezaId}?error=${encodeURIComponent(error)}`);
+  revalidatePath(`/maestros/pieza/${piezaId}`);
+  redirect(`/maestros/pieza/${piezaId}`); // limpia el mensaje de un intento anterior
+}
+
+/** Chequeo del lado del servidor: una server action se puede invocar aunque
+ * la pantalla no muestre el formulario, así que ocultarlo no alcanza. */
+async function exigirEditorMaestros() {
+  const usuario = await getUsuarioActual();
+  if (!puedeEditarMaestros(usuario.rol)) throw new Error("No tenés permiso para modificar maestros.");
+  return usuario;
+}
 
 export async function actualizarMaterialAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await exigirEditorMaestros();
   const piezaId = String(formData.get("piezaId") ?? "");
   const material = String(formData.get("material") ?? "").trim();
   if (!piezaId) throw new Error("Falta la pieza.");
@@ -32,7 +55,7 @@ export async function actualizarMaterialAction(formData: FormData) {
 }
 
 export async function actualizarRevisionAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await exigirEditorMaestros();
   const piezaId = String(formData.get("piezaId") ?? "");
   const revision = String(formData.get("revision") ?? "").trim();
   if (!piezaId) throw new Error("Falta la pieza.");
@@ -42,7 +65,7 @@ export async function actualizarRevisionAction(formData: FormData) {
 }
 
 export async function actualizarNumeroPlanoAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await exigirEditorMaestros();
   const piezaId = String(formData.get("piezaId") ?? "");
   const numeroPlano = String(formData.get("numeroPlano") ?? "").trim();
   if (!piezaId) throw new Error("Falta la pieza.");
@@ -52,7 +75,7 @@ export async function actualizarNumeroPlanoAction(formData: FormData) {
 }
 
 export async function actualizarTipoPiezaAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await exigirEditorMaestros();
   const piezaId = String(formData.get("piezaId") ?? "");
   const tipo = String(formData.get("tipo") ?? "");
   if (!piezaId || (tipo !== "fabricada" && tipo !== "comprada")) throw new Error("Datos inválidos.");
@@ -66,7 +89,7 @@ export async function actualizarTipoPiezaAction(formData: FormData) {
 }
 
 export async function actualizarStockMinimoAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await exigirEditorMaestros();
   const piezaId = String(formData.get("piezaId") ?? "");
   const stockMinimo = Number(formData.get("stockMinimo"));
   if (!piezaId || !Number.isFinite(stockMinimo) || stockMinimo < 0) throw new Error("Datos inválidos.");
@@ -77,7 +100,7 @@ export async function actualizarStockMinimoAction(formData: FormData) {
 }
 
 export async function actualizarDescripcionOperacionAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await exigirEditorMaestros();
   const operacionId = String(formData.get("operacionId") ?? "");
   const piezaId = String(formData.get("piezaId") ?? "");
   const descripcion = String(formData.get("descripcion") ?? "").trim();
@@ -88,18 +111,17 @@ export async function actualizarDescripcionOperacionAction(formData: FormData) {
 }
 
 export async function actualizarProcesoOperacionAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await exigirEditorMaestros();
   const operacionId = String(formData.get("operacionId") ?? "");
   const piezaId = String(formData.get("piezaId") ?? "");
   const procesoId = String(formData.get("procesoId") ?? "");
   if (!operacionId || !piezaId || !procesoId) throw new Error("Falta la operación o el proceso.");
 
-  await actualizarProcesoOperacion(operacionId, procesoId);
-  revalidatePath(`/maestros/pieza/${piezaId}`);
+  await conErrorEnPieza(piezaId, () => actualizarProcesoOperacion(operacionId, procesoId));
 }
 
 export async function actualizarCentroOperacionAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await exigirEditorMaestros();
   const operacionId = String(formData.get("operacionId") ?? "");
   const piezaId = String(formData.get("piezaId") ?? "");
   const centroTrabajoId = String(formData.get("centroTrabajoId") ?? "") || null;
@@ -112,7 +134,7 @@ export async function actualizarCentroOperacionAction(formData: FormData) {
 }
 
 export async function agregarOperacionAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await exigirEditorMaestros();
   const piezaId = String(formData.get("piezaId") ?? "");
   const procesoId = String(formData.get("procesoId") ?? "");
   if (!piezaId || !procesoId) throw new Error("Elegí un proceso.");
@@ -122,21 +144,16 @@ export async function agregarOperacionAction(formData: FormData) {
 }
 
 export async function eliminarOperacionAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await exigirEditorMaestros();
   const operacionId = String(formData.get("operacionId") ?? "");
   const piezaId = String(formData.get("piezaId") ?? "");
   if (!operacionId || !piezaId) throw new Error("Falta la operación.");
 
-  try {
-    await eliminarOperacion(operacionId);
-  } catch {
-    throw new Error("No se puede borrar: esta operación ya tiene ejecuciones registradas en taller.");
-  }
-  revalidatePath(`/maestros/pieza/${piezaId}`);
+  await conErrorEnPieza(piezaId, () => eliminarOperacion(operacionId));
 }
 
 export async function moverOperacionAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await exigirEditorMaestros();
   const operacionId = String(formData.get("operacionId") ?? "");
   const piezaId = String(formData.get("piezaId") ?? "");
   const direccion = String(formData.get("direccion") ?? "");
@@ -163,7 +180,7 @@ export async function crearNotaPiezaAction(formData: FormData) {
 const TAMANO_MAXIMO_ADJUNTO = 15 * 1024 * 1024; // 15 MB — de sobra para un plano o una foto de celular
 
 export async function subirAdjuntoPiezaAction(formData: FormData) {
-  const usuario = await getUsuarioActual();
+  const usuario = await exigirEditorMaestros();
   const piezaId = String(formData.get("piezaId") ?? "");
   const tipo = String(formData.get("tipo") ?? "");
   const archivo = formData.get("archivo");
@@ -178,7 +195,7 @@ export async function subirAdjuntoPiezaAction(formData: FormData) {
 }
 
 export async function eliminarAdjuntoPiezaAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await exigirEditorMaestros();
   const id = String(formData.get("id") ?? "");
   const piezaId = String(formData.get("piezaId") ?? "");
   if (!id || !piezaId) throw new Error("Falta el adjunto.");

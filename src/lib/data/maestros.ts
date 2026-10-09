@@ -7,7 +7,7 @@
  * un array en memoria cargado de fixtures JSON — la firma de cada función
  * no cambió, así que ninguna pantalla tuvo que tocarse (ver docs/01 §6).
  */
-import { eq, inArray, asc, desc, or, ilike } from "drizzle-orm";
+import { eq, inArray, asc, desc, or, ilike, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   modelo,
@@ -183,7 +183,25 @@ export async function actualizarCentroOperacion(operacionId: string, centroTraba
   await db.update(operacion).set({ centroTrabajoId }).where(eq(operacion.id, operacionId));
 }
 
+/** Qué cuelga de un paso de la hoja de ruta: trabajo registrado en taller (o
+ * compras/tercerizados cerrados), días planificados y controles de calidad. */
+export async function getUsoDeOperacion(operacionId: string): Promise<{ registros: number; asignaciones: number; controles: number }> {
+  const filas = await db.execute<{ registros: number; asignaciones: number; controles: number }>(sql`
+    select
+      (select count(*) from registro_operacion where operacion_id = ${operacionId})::int as registros,
+      (select count(*) from asignacion_trabajo where operacion_id = ${operacionId})::int as asignaciones,
+      (select count(*) from control_calidad where operacion_id = ${operacionId})::int as controles`);
+  return filas[0];
+}
+
+/** No se cambia el tipo de un paso que ya se trabajó: su historial (tiempos,
+ * paradas, piezas) quedaría a nombre de otra operación. Para corregirlo se
+ * agrega el paso correcto y éste queda como estaba. */
 export async function actualizarProcesoOperacion(operacionId: string, procesoId: string): Promise<void> {
+  const uso = await getUsoDeOperacion(operacionId);
+  if (uso.registros > 0) {
+    throw new Error("Ese paso ya tiene trabajo registrado: cambiarle la operación reescribiría su historial. Agregá el paso correcto en su lugar.");
+  }
   await db.update(operacion).set({ procesoId }).where(eq(operacion.id, operacionId));
 }
 
@@ -195,14 +213,16 @@ export async function agregarOperacion(input: { piezaId: string; procesoId: stri
   return id;
 }
 
-/** Bloqueada por la propia base si la operación ya tiene ejecuciones
- * registradas (`registro_operacion.operacion_id` referencia esta fila sin
- * `onDelete: cascade`) — el error de FK sube tal cual, no se traga en
- * silencio: si taller ya trabajó esa operación, no se puede borrar sin
- * perder ese historial. */
+/** Sólo un paso que nada usa: si taller ya lo trabajó, está planificado o
+ * tiene controles, borrarlo perdería ese historial (antes lo frenaba la FK
+ * con un error crudo; ahora se explica antes de intentar). */
 export async function eliminarOperacion(operacionId: string): Promise<void> {
   const [op] = await db.select({ piezaId: operacion.piezaId }).from(operacion).where(eq(operacion.id, operacionId));
   if (!op) return;
+  const uso = await getUsoDeOperacion(operacionId);
+  if (uso.registros > 0) throw new Error("No se puede borrar: ese paso ya tiene trabajo registrado en taller, compras o tercerizados.");
+  if (uso.asignaciones > 0) throw new Error("No se puede borrar: ese paso está planificado. Sacá primero la asignación en Planificación.");
+  if (uso.controles > 0) throw new Error("No se puede borrar: ese paso tiene controles de calidad registrados.");
   await db.transaction(async (tx) => {
     await tx.delete(operacion).where(eq(operacion.id, operacionId));
     // Renumera para que no queden huecos ("Operación 5" en una ruta de 4 pasos).

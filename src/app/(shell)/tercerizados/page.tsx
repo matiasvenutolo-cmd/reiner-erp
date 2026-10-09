@@ -8,6 +8,7 @@ import { TipoMovimientoSelect } from "@/components/TipoMovimientoSelect";
 import { MovimientosTabla } from "@/components/MovimientosTabla";
 import { ArmadoRemito } from "@/components/logistica/ArmadoRemito";
 import type { MovimientoStock, Proveedor } from "@/lib/db/schema";
+import { getUsuarioActual } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -27,11 +28,12 @@ export default async function TercerizadosPage({
   const query = (q ?? "").trim();
   const tipoFiltro = (tipo ?? "") as MovimientoStock["tipo"] | "";
 
-  const [piezasEncontradas, proveedores, enPasoTercerizado, movimientos] = await Promise.all([
+  const [piezasEncontradas, proveedores, enPasoTercerizado, movimientos, usuario] = await Promise.all([
     query ? buscarPiezas(query) : Promise.resolve([]),
     getProveedores(),
     getPiezasAfueraTercerizado(),
     listarMovimientos(tipoFiltro || undefined),
+    getUsuarioActual(),
   ]);
   const afuera = enPasoTercerizado.filter((a) => a.remito);
   const paraMandar = enPasoTercerizado.filter((a) => !a.remito);
@@ -100,6 +102,10 @@ export default async function TercerizadosPage({
                             Remito Nº {a.remito.numero}
                           </Link>
                           <div className="text-xs">{a.remito.destino}</div>
+                          <div className="text-xs">
+                            Enviadas {a.cantidadEnviada}
+                            {a.cantidadRecibida > 0 && ` · volvieron ${a.cantidadRecibida}`}
+                          </div>
                         </>
                       )}
                     </td>
@@ -107,7 +113,14 @@ export default async function TercerizadosPage({
                       <form action={registrarVueltaAction} className="flex flex-wrap items-center gap-1.5">
                         <input type="hidden" name="otPiezaId" value={a.otPiezaId} />
                         <input type="hidden" name="operacionId" value={a.operacionId} />
-                        <input name="cantidad" type="number" min={1} defaultValue={a.cantidad} className="input w-16 text-xs py-1" />
+                        <input
+                          name="cantidad"
+                          type="number"
+                          min={1}
+                          max={a.cantidadEnviada - a.cantidadRecibida}
+                          defaultValue={a.cantidadEnviada - a.cantidadRecibida}
+                          className="input w-16 text-xs py-1"
+                        />
                         <ProveedorSelect proveedores={proveedores} />
                         <ControlSelect />
                         <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
@@ -125,8 +138,11 @@ export default async function TercerizadosPage({
 
       <div>
         <h2 className="text-sm font-semibold mb-1">Mandar piezas afuera — armar remito</h2>
-        <p className="text-xs text-foreground-muted mb-2">El remito registra solo el egreso de cada pieza.</p>
+        <p className="text-xs text-foreground-muted mb-2">
+          Primero se ve la vista previa; al confirmar la impresión el remito se guarda y registra solo el egreso de cada pieza.
+        </p>
         <ArmadoRemito
+          usuarioNombre={usuario.nombre}
           paraMandar={paraMandar.map((a) => ({
             otPiezaId: a.otPiezaId,
             otPiezaCodigo: a.otPiezaCodigo,

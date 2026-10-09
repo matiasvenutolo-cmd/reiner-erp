@@ -3,7 +3,15 @@ import { notFound } from "next/navigation";
 import { getUsuarioActual } from "@/lib/session";
 import { getOtPieza, getEstadoYOperacionActual } from "@/lib/data/ot";
 import { getPieza, getConjunto, nombreOperacion } from "@/lib/data/maestros";
-import { getOperacionAbierta, getParadaAbierta, getTiposParada, esUltimaOperacion } from "@/lib/data/ejecucion";
+import {
+  getOperacionesAbiertas,
+  getParadaAbierta,
+  getTiposParada,
+  esUltimaOperacion,
+  getHabilitacionOperario,
+  getCantidadesOperacion,
+} from "@/lib/data/ejecucion";
+import { getCentrosTrabajo, pasoHabilitadoParaOperario } from "@/lib/data/produccion";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import {
   iniciarOperacionAction,
@@ -16,32 +24,43 @@ function minutosDesde(fecha: Date): number {
   return Math.max(0, Math.round((Date.now() - fecha.getTime()) / 60000));
 }
 
-export default async function TallerOperarPage({ params }: { params: Promise<{ otPiezaId: string }> }) {
+export default async function TallerOperarPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ otPiezaId: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
   const { otPiezaId } = await params;
+  const { error } = await searchParams;
   const otPieza = await getOtPieza(otPiezaId);
   if (!otPieza) notFound();
 
   const usuario = await getUsuarioActual();
-  const [pieza, { estado, sinRouting, operacionActual, routing }, abierta, tiposParada] = await Promise.all([
+  const [pieza, { estado, sinRouting, operacionActual, routing }, abiertas, tiposParada, habilitacion, centros] = await Promise.all([
     getPieza(otPieza.piezaId),
     getEstadoYOperacionActual(otPieza),
-    getOperacionAbierta(usuario.id),
+    getOperacionesAbiertas(usuario.id),
     getTiposParada(),
+    getHabilitacionOperario(usuario.id),
+    getCentrosTrabajo(),
   ]);
   const conjunto = pieza ? await getConjunto(pieza.conjuntoId) : null;
+  const enCurso = abiertas.find((a) => !a.pausada) ?? null;
 
-  // ¿Tiene una operación abierta EN OTRA pieza? Bloquea todo acá.
-  if (abierta && abierta.otPiezaId !== otPieza.id) {
+  // ¿Tiene una operación EN CURSO en otra pieza? Bloquea todo acá (una pausada no:
+  // puede dejarla en pausa y cambiar de actividad).
+  if (enCurso && enCurso.otPiezaId !== otPieza.id) {
     return (
       <div className="max-w-md mx-auto space-y-4">
         <Link href="/taller" className="text-sm text-accent hover:underline">
           ← Mi trabajo
         </Link>
         <div className="badge-estado badge-alerta block text-center py-4 text-sm">
-          Tenés una operación abierta en otra pieza. Cerrala antes de empezar acá.
+          Tenés una operación en curso en otra pieza. Pausala o finalizala antes de empezar acá.
         </div>
         <Link
-          href={`/taller/${abierta.otPiezaId}`}
+          href={`/taller/${enCurso.otPiezaId}`}
           className="block text-center bg-accent text-accent-foreground font-medium py-3 rounded-xl"
         >
           Ir a esa operación →
@@ -53,12 +72,25 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
   // Todo lo que va antes de la operación actual en la hoja de ruta ya está
   // completado — las operaciones se hacen en orden, sin saltos.
   const posActual = operacionActual ? routing.findIndex((op) => op.id === operacionActual.id) : routing.length;
-  const registroAbiertoAqui = abierta && abierta.otPiezaId === otPieza.id ? abierta : null;
+  const registroAbiertoAqui = abiertas.find((a) => a.otPiezaId === otPieza.id) ?? null;
   const paradaAbierta = registroAbiertoAqui ? await getParadaAbierta(registroAbiertoAqui.id) : null;
   const operacionDelRegistroAbierto = registroAbiertoAqui
     ? routing.find((op) => op.id === registroAbiertoAqui.operacionId)
     : null;
   const esUltima = registroAbiertoAqui ? await esUltimaOperacion(otPieza.id, registroAbiertoAqui.operacionId) : false;
+  const operacionDeLaCantidad = operacionDelRegistroAbierto ?? operacionActual;
+  const cantidades = operacionDeLaCantidad
+    ? await getCantidadesOperacion(otPieza.id, operacionDeLaCantidad.id, registroAbiertoAqui?.id)
+    : null;
+  const centroDe = (op: NonNullable<typeof operacionActual>) => op.centroTrabajoId ?? op.proceso.centroTrabajoId;
+  const habilitada =
+    operacionActual !== null &&
+    pasoHabilitadoParaOperario(
+      { id: operacionActual.id, tipo: operacionActual.proceso.tipo, centroTrabajoId: centroDe(operacionActual) },
+      otPieza.id,
+      habilitacion.centroIds,
+      habilitacion.asignadasHoy,
+    );
 
   return (
     <div className="max-w-md mx-auto space-y-4">
@@ -71,6 +103,8 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
           {otPieza.codigo} · {conjunto?.nombre}
         </p>
       </div>
+
+      {error && <div className="badge-estado badge-alerta block text-center py-3 text-sm">{error}</div>}
 
       {!otPieza.enviadaProduccionAt && !registroAbiertoAqui ? (
         <div className="badge-estado badge-pendiente block text-center py-4 text-sm">
@@ -96,19 +130,29 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
             <div className="text-sm text-foreground-muted">
               {paradaAbierta ? "En pausa" : "En curso"} · iniciado hace {minutosDesde(registroAbiertoAqui.inicio)} min
             </div>
+            {cantidades && <CantidadAProcesar cantidades={cantidades} />}
           </div>
 
           {paradaAbierta ? (
-            <form action={reanudarOperacionAction}>
-              <input type="hidden" name="registroOperacionId" value={registroAbiertoAqui.id} />
-              <button type="submit" className="btn-lg w-full bg-accent text-accent-foreground">
-                ▶ Reanudar
-              </button>
-            </form>
+            <div className="space-y-2">
+              <form action={reanudarOperacionAction}>
+                <input type="hidden" name="registroOperacionId" value={registroAbiertoAqui.id} />
+                <input type="hidden" name="otPiezaId" value={otPieza.id} />
+                <button type="submit" className="btn-lg w-full bg-accent text-accent-foreground">
+                  ▶ Reanudar
+                </button>
+              </form>
+              {/* Cambio de actividad (observación del cliente en Fase 3): la operación queda en
+                  pausa, con su motivo, y se retoma desde Mi trabajo. */}
+              <Link href="/taller" className="btn-lg w-full block text-center bg-surface-muted text-foreground">
+                Cambiar de tarea — queda en pausa
+              </Link>
+            </div>
           ) : (
             <>
               <form action={pausarOperacionAction} className="flex gap-2">
                 <input type="hidden" name="registroOperacionId" value={registroAbiertoAqui.id} />
+                <input type="hidden" name="otPiezaId" value={otPieza.id} />
                 <select name="tipoParadaId" required className="input flex-1">
                   {tiposParada.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -125,17 +169,33 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
                 <input type="hidden" name="registroOperacionId" value={registroAbiertoAqui.id} />
                 <input type="hidden" name="otPiezaId" value={otPieza.id} />
                 <input type="hidden" name="operacionId" value={operacionDelRegistroAbierto.id} />
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="text-xs text-foreground-muted">
-                    Piezas OK
-                    <input type="number" name="piezasOk" min={0} defaultValue={0} className="input mt-0.5" />
-                  </label>
-                  <label className="text-xs text-foreground-muted">
-                    Rechazadas
-                    <input type="number" name="piezasRechazadas" min={0} defaultValue={0} className="input mt-0.5" />
-                  </label>
-                </div>
-                {esUltima && (
+                {registroAbiertoAqui.tipo === "ejecucion" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-xs text-foreground-muted">
+                      Piezas OK
+                      <input
+                        type="number"
+                        name="piezasOk"
+                        min={0}
+                        max={cantidades?.disponibles}
+                        defaultValue={cantidades?.disponibles ?? 0}
+                        className="input mt-0.5"
+                      />
+                    </label>
+                    <label className="text-xs text-foreground-muted">
+                      Rechazadas
+                      <input
+                        type="number"
+                        name="piezasRechazadas"
+                        min={0}
+                        max={cantidades?.disponibles}
+                        defaultValue={0}
+                        className="input mt-0.5"
+                      />
+                    </label>
+                  </div>
+                )}
+                {esUltima && registroAbiertoAqui.tipo === "ejecucion" && (
                   <div className="grid grid-cols-3 gap-2">
                     <label className="text-xs text-foreground-muted">
                       No OK
@@ -156,7 +216,7 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
                   <textarea name="observacion" rows={2} className="input mt-0.5 resize-none" placeholder="Algo a anotar sobre esta operación…" />
                 </label>
                 <button type="submit" className="btn-lg w-full bg-brand-teal text-white">
-                  ✔ Finalizar {esUltima ? "pieza" : "operación"}
+                  ✔ {registroAbiertoAqui.tipo === "setup" ? "Terminar setup" : `Finalizar ${esUltima ? "pieza" : "operación"}`}
                 </button>
               </form>
             </>
@@ -172,6 +232,18 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
               : "Es un proceso tercerizado: sale con remito y su vuelta se registra en Tercerizados."}
           </p>
         </div>
+      ) : operacionActual && !habilitada ? (
+        <div className="bg-surface border border-border rounded-xl p-5 space-y-2">
+          <div className="text-xs text-foreground-muted uppercase tracking-wide">Siguiente · operación {posActual + 1}</div>
+          <div className="text-lg font-semibold">{nombreOperacion(operacionActual)}</div>
+          <p className="text-sm text-foreground-muted">
+            Se hace en {centros.find((c) => c.id === centroDe(operacionActual))?.nombre ?? "un centro sin asignar"}: no es uno de tus
+            centros de trabajo y no la tenés asignada para hoy.
+          </p>
+          <Link href="/taller" className="btn-lg w-full block text-center bg-accent text-accent-foreground">
+            ← Volver a Mi trabajo
+          </Link>
+        </div>
       ) : operacionActual ? (
         <div className="bg-surface border border-border rounded-xl p-5 space-y-3">
           <div>
@@ -182,6 +254,7 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
             {operacionActual.dispositivoNombre && (
               <div className="text-sm text-foreground-muted">Dispositivo: {operacionActual.dispositivoNombre}</div>
             )}
+            {cantidades && <CantidadAProcesar cantidades={cantidades} />}
           </div>
           <form action={iniciarOperacionAction}>
             <input type="hidden" name="otPiezaId" value={otPieza.id} />
@@ -219,6 +292,20 @@ export default async function TallerOperarPage({ params }: { params: Promise<{ o
           ))}
         </ol>
       </details>
+    </div>
+  );
+}
+
+/** Cuántas piezas procesa el operario en esta operación — observación del cliente en Fase 3. */
+function CantidadAProcesar({ cantidades }: { cantidades: { entra: number; disponibles: number } }) {
+  return (
+    <div className="mt-2 rounded-lg bg-surface-muted px-3 py-2 text-sm">
+      <span className="font-semibold">
+        {cantidades.disponibles} pieza{cantidades.disponibles === 1 ? "" : "s"} a procesar
+      </span>
+      {cantidades.disponibles !== cantidades.entra && (
+        <span className="text-foreground-muted"> · llegaron {cantidades.entra}, el resto ya se declaró</span>
+      )}
     </div>
   );
 }

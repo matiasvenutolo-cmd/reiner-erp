@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
   iniciarOperacion,
@@ -10,37 +11,55 @@ import {
 } from "@/lib/data/ejecucion";
 import { getUsuarioActual } from "@/lib/session";
 
+/** Vuelve a la ficha de la pieza: con el motivo si se rechazó (más piezas de las
+ * que llegaron, otra operación en curso…), o limpia si salió bien — así no
+ * queda colgado el mensaje de un intento anterior. */
+async function enLaFicha(otPiezaId: string, fn: () => Promise<void>) {
+  let error: string | null = null;
+  try {
+    await fn();
+  } catch (e) {
+    error = e instanceof Error ? e.message : "No se pudo guardar.";
+  }
+  if (error) redirect(`/taller/${otPiezaId}?error=${encodeURIComponent(error)}`);
+  revalidatePath("/taller", "layout");
+  revalidatePath("/avance");
+  revalidatePath("/inicio");
+  revalidatePath("/ot", "layout");
+  redirect(`/taller/${otPiezaId}`);
+}
+
 export async function iniciarOperacionAction(formData: FormData): Promise<void> {
   const usuario = await getUsuarioActual();
   const otPiezaId = String(formData.get("otPiezaId") ?? "");
   const operacionId = String(formData.get("operacionId") ?? "");
   const tipo = String(formData.get("tipo") ?? "ejecucion") as "setup" | "ejecucion";
 
-  // El guard de "una sola operación abierta por operario" ya se aplica en el
-  // render de /taller/[otPiezaId] (no se muestran los botones de iniciar si
-  // hay una abierta en otra pieza); acá sólo se usa como defensa adicional.
-  const resultado = await iniciarOperacion({ otPiezaId, operacionId, usuarioId: usuario.id, tipo });
-  if (!resultado.ok) {
-    throw new Error(resultado.error);
-  }
-  revalidatePath("/taller");
-  revalidatePath("/avance");
+  // Las reglas (una sola en curso, paso que sigue, centro o asignación del
+  // operario) se validan en el servidor, no sólo ocultando botones.
+  await enLaFicha(otPiezaId, async () => {
+    const resultado = await iniciarOperacion({ otPiezaId, operacionId, usuarioId: usuario.id, tipo });
+    if (!resultado.ok) throw new Error(resultado.error);
+  });
 }
 
 export async function pausarOperacionAction(formData: FormData) {
+  const usuario = await getUsuarioActual();
+  const otPiezaId = String(formData.get("otPiezaId") ?? "");
   const registroOperacionId = String(formData.get("registroOperacionId") ?? "");
   const tipoParadaId = String(formData.get("tipoParadaId") ?? "");
-  await pausarOperacion(registroOperacionId, tipoParadaId);
-  revalidatePath("/taller");
+  await enLaFicha(otPiezaId, () => pausarOperacion(registroOperacionId, tipoParadaId, usuario.id));
 }
 
 export async function reanudarOperacionAction(formData: FormData) {
+  const usuario = await getUsuarioActual();
+  const otPiezaId = String(formData.get("otPiezaId") ?? "");
   const registroOperacionId = String(formData.get("registroOperacionId") ?? "");
-  await reanudarOperacion(registroOperacionId);
-  revalidatePath("/taller");
+  await enLaFicha(otPiezaId, () => reanudarOperacion(registroOperacionId, usuario.id));
 }
 
 export async function finalizarOperacionAction(formData: FormData) {
+  const usuario = await getUsuarioActual();
   const registroOperacionId = String(formData.get("registroOperacionId") ?? "");
   const otPiezaId = String(formData.get("otPiezaId") ?? "");
   const operacionId = String(formData.get("operacionId") ?? "");
@@ -58,8 +77,7 @@ export async function finalizarOperacionAction(formData: FormData) {
     };
   }
 
-  await finalizarOperacion({ registroOperacionId, piezasOk, piezasRechazadas, observacion, cierrePieza });
-  revalidatePath("/taller");
-  revalidatePath("/avance");
-  revalidatePath("/ot");
+  await enLaFicha(otPiezaId, () =>
+    finalizarOperacion({ registroOperacionId, usuarioId: usuario.id, piezasOk, piezasRechazadas, observacion, cierrePieza }),
+  );
 }

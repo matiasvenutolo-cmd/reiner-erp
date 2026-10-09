@@ -11,7 +11,7 @@
  * de cualquier operación posterior en la misma hoja de ruta la tiene "a
  * futuro" (todavía depende de que termine lo que viene antes).
  */
-import { asc, eq, and, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { asc, eq, and, inArray, isNotNull, isNull, like, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   centroTrabajo,
@@ -27,6 +27,7 @@ import {
   stockPieza,
   remito,
   remitoItem,
+  movimientoStock,
 } from "@/lib/db/schema";
 import type { CentroTrabajo, OtPieza } from "@/lib/db/schema";
 
@@ -110,6 +111,48 @@ type PasoRuta = {
   tipo: "interno" | "tercerizado" | "compras";
 };
 
+/** Cierre de un paso con lo que se declaró al terminarlo. */
+export type CierrePaso = { operacionId: string; piezasOk: number | null; piezasRechazadas: number | null };
+
+/**
+ * Cuántas piezas entran a un paso de la hoja de ruta: al primero, la cantidad
+ * a fabricar; a cada uno de los siguientes, las OK que dejó el anterior (las
+ * rechazadas ya no siguen). Un paso cerrado sin declarar ninguna pieza (0 OK y
+ * 0 rechazadas — cierres anteriores a este control) no corta la cadena: pasa
+ * la misma cantidad que había entrado. Observación del cliente en Fase 3: el
+ * operario tiene que saber cuántas piezas procesa y no poder declarar más.
+ */
+export function cantidadQueEntraAlPaso(rutaIds: string[], idx: number, cantidadAFabricar: number, cierres: CierrePaso[]): number {
+  let cantidad = cantidadAFabricar;
+  for (let j = 0; j < idx; j++) {
+    const delPaso = cierres.filter((c) => c.operacionId === rutaIds[j]);
+    const declaradas = delPaso.reduce((s, c) => s + (c.piezasOk ?? 0) + (c.piezasRechazadas ?? 0), 0);
+    if (declaradas > 0) cantidad = delPaso.reduce((s, c) => s + (c.piezasOk ?? 0), 0);
+  }
+  return cantidad;
+}
+
+/**
+ * ¿Puede un operario trabajar este paso? Misma regla para la lista de /taller,
+ * la ficha de la pieza y el inicio en el servidor (antes sólo la lista
+ * filtraba: al terminar un paso, la ficha ofrecía el siguiente aunque fuera de
+ * otro centro — caso de Fede con el Roscado de Taller después del CNC).
+ * Manda la asignación de Planificación para hoy; si no, el paso tiene que ser
+ * interno y de alguno de sus centros (sin centros asignados ve todo, como
+ * desde Release 2).
+ */
+export function pasoHabilitadoParaOperario(
+  paso: { id: string; tipo: "interno" | "tercerizado" | "compras"; centroTrabajoId: string | null },
+  otPiezaId: string,
+  centrosDelOperario: Set<string>,
+  asignadasHoy: { otPiezaId: string; operacionId: string | null }[],
+): boolean {
+  if (asignadasHoy.some((a) => a.otPiezaId === otPiezaId && (a.operacionId === null || a.operacionId === paso.id))) return true;
+  if (paso.tipo !== "interno") return false;
+  if (centrosDelOperario.size === 0) return true;
+  return paso.centroTrabajoId !== null && centrosDelOperario.has(paso.centroTrabajoId);
+}
+
 type FilaOtPieza = {
   otPieza: OtPieza;
   piezaNombre: string;
@@ -130,7 +173,7 @@ type FilaOtPieza = {
  * para que las pantallas que la usan (`getColaPorCentroTrabajo` y
  * `getPiezasCompraPendientes`) carguen rápido en producción.
  */
-async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing: PasoRuta[]; posActual: number }[]> {
+async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing: PasoRuta[]; posActual: number; cantidadActual: number }[]> {
   const filas = await db
     .select({
       otPieza,
@@ -169,7 +212,12 @@ async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing
       .where(inArray(operacion.piezaId, piezaIds))
       .orderBy(asc(operacion.piezaId), asc(operacion.secuencia)),
     db
-      .select({ otPiezaId: registroOperacion.otPiezaId, operacionId: registroOperacion.operacionId })
+      .select({
+        otPiezaId: registroOperacion.otPiezaId,
+        operacionId: registroOperacion.operacionId,
+        piezasOk: registroOperacion.piezasOk,
+        piezasRechazadas: registroOperacion.piezasRechazadas,
+      })
       .from(registroOperacion)
       .where(
         and(
@@ -195,13 +243,15 @@ async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing
   }
 
   const completadasPorOtPieza = new Map<string, Set<string>>();
+  const cierresPorOtPieza = new Map<string, CierrePaso[]>();
   for (const c of completadasRows) {
     const set = completadasPorOtPieza.get(c.otPiezaId) ?? new Set<string>();
     set.add(c.operacionId);
     completadasPorOtPieza.set(c.otPiezaId, set);
+    cierresPorOtPieza.set(c.otPiezaId, [...(cierresPorOtPieza.get(c.otPiezaId) ?? []), c]);
   }
 
-  const resultado: { fila: FilaOtPieza; routing: PasoRuta[]; posActual: number }[] = [];
+  const resultado: { fila: FilaOtPieza; routing: PasoRuta[]; posActual: number; cantidadActual: number }[] = [];
   for (const fila of filas) {
     const routing = rutaPorPieza.get(fila.otPieza.piezaId) ?? [];
     if (routing.length === 0) continue; // sin hoja de ruta — no aparece en ninguna cola
@@ -212,7 +262,13 @@ async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing
     const posActual = routing.findIndex((op) => !completadas.has(op.id));
     if (posActual === -1) continue;
 
-    resultado.push({ fila, routing, posActual });
+    const cantidadActual = cantidadQueEntraAlPaso(
+      routing.map((op) => op.id),
+      posActual,
+      fila.otPieza.cantidadAFabricar,
+      cierresPorOtPieza.get(fila.otPieza.id) ?? [],
+    );
+    resultado.push({ fila, routing, posActual, cantidadActual });
   }
   return resultado;
 }
@@ -362,7 +418,11 @@ export type ItemAfueraTercerizado = {
   otMaquinaCodigo: string;
   procesoNombre: string;
   operacionId: string;
+  /** Piezas que llegaron a este paso (las OK del paso anterior). */
   cantidad: number;
+  /** Mandadas con remito en este paso y vueltas ya registradas (OK o NO OK). */
+  cantidadEnviada: number;
+  cantidadRecibida: number;
   /** Remito con el que salió a este paso tercerizado — null si todavía está en planta, lista para mandar. */
   remito: { id: string; numero: number; fecha: Date; destino: string } | null;
 };
@@ -375,9 +435,16 @@ export async function getPiezasAfueraTercerizado(): Promise<ItemAfueraTercerizad
   const filas = (await getFilasConPosicionActual()).filter(({ routing, posActual }) => routing[posActual].tipo === "tercerizado");
   if (filas.length === 0) return [];
   const ids = filas.map((f) => f.fila.otPieza.id);
-  const [remitos, cierres] = await Promise.all([
+  const [remitos, cierres, vueltas] = await Promise.all([
     db
-      .select({ otPiezaId: remitoItem.otPiezaId, id: remito.id, numero: remito.numero, fecha: remito.fecha, destino: remito.destino })
+      .select({
+        otPiezaId: remitoItem.otPiezaId,
+        cantidad: remitoItem.cantidad,
+        id: remito.id,
+        numero: remito.numero,
+        fecha: remito.fecha,
+        destino: remito.destino,
+      })
       .from(remitoItem)
       .innerJoin(remito, eq(remito.id, remitoItem.remitoId))
       .where(inArray(remitoItem.otPiezaId, ids)),
@@ -385,12 +452,25 @@ export async function getPiezasAfueraTercerizado(): Promise<ItemAfueraTercerizad
       .select({ otPiezaId: registroOperacion.otPiezaId, fin: registroOperacion.fin })
       .from(registroOperacion)
       .where(and(inArray(registroOperacion.otPiezaId, ids), isNotNull(registroOperacion.fin))),
+    db
+      .select({ otPiezaId: movimientoStock.otPiezaId, cantidad: movimientoStock.cantidad, fecha: movimientoStock.fecha })
+      .from(movimientoStock)
+      .where(
+        and(
+          inArray(movimientoStock.otPiezaId, ids),
+          eq(movimientoStock.tipo, "ingreso"),
+          // Sólo vueltas de tercerizado, no la llegada de una compra de la misma OT de pieza.
+          like(movimientoStock.observacion, "Vuelta de tercerizado%"),
+        ),
+      ),
   ]);
   const llegoAlPaso = new Map<string, number>();
   for (const c of cierres) llegoAlPaso.set(c.otPiezaId, Math.max(llegoAlPaso.get(c.otPiezaId) ?? 0, c.fin!.getTime()));
 
-  return filas
-    .map(({ fila, routing, posActual }) => ({
+  return filas.map(({ fila, routing, posActual, cantidadActual }) => {
+    const desde = llegoAlPaso.get(fila.otPieza.id) ?? 0;
+    const remitosDelPaso = remitos.filter((r) => r.otPiezaId === fila.otPieza.id && r.fecha.getTime() >= desde);
+    return {
       otPiezaId: fila.otPieza.id,
       otPiezaCodigo: fila.otPieza.codigo,
       piezaId: fila.otPieza.piezaId,
@@ -400,21 +480,26 @@ export async function getPiezasAfueraTercerizado(): Promise<ItemAfueraTercerizad
       otMaquinaCodigo: fila.otMaquinaCodigo,
       procesoNombre: routing[posActual].procesoNombre,
       operacionId: routing[posActual].id,
-      cantidad: fila.otPieza.cantidadAFabricar,
+      cantidad: cantidadActual,
+      cantidadEnviada: remitosDelPaso.reduce((s, r) => s + r.cantidad, 0),
+      cantidadRecibida: vueltas
+        .filter((v) => v.otPiezaId === fila.otPieza.id && v.fecha.getTime() >= desde)
+        .reduce((s, v) => s + v.cantidad, 0),
       remito:
-        remitos
-          .filter((r) => r.otPiezaId === fila.otPieza.id && r.fecha.getTime() >= (llegoAlPaso.get(fila.otPieza.id) ?? 0))
+        remitosDelPaso
           .sort((a, b) => b.fecha.getTime() - a.fecha.getTime())
           .map(({ id, numero, fecha, destino }) => ({ id, numero, fecha, destino }))[0] ?? null,
-    }));
+    };
+  });
 }
 
 export type CandidataTaller = {
   otPieza: OtPieza;
   piezaNombre: string;
   conjuntoNombre: string;
-  centroActualId: string | null;
-  tipoPasoActual: "interno" | "tercerizado" | "compras";
+  pasoActual: { id: string; nombre: string; tipo: "interno" | "tercerizado" | "compras"; centroTrabajoId: string | null };
+  /** Piezas que llegan al paso actual — lo que el operario tiene que procesar. */
+  cantidadActual: number;
   estado: "pendiente" | "en_curso";
   pasos: number;
 };
@@ -434,14 +519,15 @@ export async function getCandidatasTaller(): Promise<CandidataTaller[]> {
     .from(registroOperacion)
     .where(and(inArray(registroOperacion.otPiezaId, filas.map((f) => f.fila.otPieza.id)), isNull(registroOperacion.fin)));
   const conAbierta = new Set(abiertas.map((a) => a.otPiezaId));
-  return filas.map(({ fila, routing, posActual }) => {
+  return filas.map(({ fila, routing, posActual, cantidadActual }) => {
     const derivado = posActual > 0 || conAbierta.has(fila.otPieza.id) ? "en_curso" : "pendiente";
+    const paso = routing[posActual];
     return {
       otPieza: fila.otPieza,
       piezaNombre: fila.piezaNombre,
       conjuntoNombre: fila.conjuntoNombre,
-      centroActualId: routing[posActual].centroTrabajoId,
-      tipoPasoActual: routing[posActual].tipo,
+      pasoActual: { id: paso.id, nombre: paso.nombre, tipo: paso.tipo, centroTrabajoId: paso.centroTrabajoId },
+      cantidadActual,
       estado: derivado,
       pasos: routing.length,
     };
@@ -473,7 +559,7 @@ export type PendienteDePlanificar = {
 export async function getPendientesDePlanificar(asignadas: Set<string>): Promise<PendienteDePlanificar[]> {
   const filas = (await getFilasConPosicionActual()).filter(({ fila }) => fila.otPieza.enviadaProduccionAt);
   const resultado: PendienteDePlanificar[] = [];
-  for (const { fila, routing, posActual } of filas) {
+  for (const { fila, routing, posActual, cantidadActual } of filas) {
     for (let i = posActual; i < routing.length; i++) {
       const paso = routing[i];
       if (paso.tipo !== "interno") continue;
@@ -487,7 +573,7 @@ export async function getPendientesDePlanificar(asignadas: Set<string>): Promise
         operacionId: paso.id,
         operacionNombre: paso.nombre,
         centroTrabajoId: paso.centroTrabajoId,
-        cantidad: fila.otPieza.cantidadAFabricar,
+        cantidad: cantidadActual,
         despuesDe: i === posActual ? null : routing[i - 1].nombre,
       });
     }

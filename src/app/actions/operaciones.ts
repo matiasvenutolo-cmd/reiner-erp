@@ -3,11 +3,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getUsuarioActual } from "@/lib/session";
+import { puedeEditarMaestros } from "@/lib/permisos";
 import { asignarTipoOperacion, crearCentro, renombrarCentro, eliminarCentro } from "@/lib/data/operaciones";
 
-async function exigirStaff() {
+// Tipos de operación y centros son maestros: sólo ingeniería y dirección (ver src/lib/permisos.ts).
+async function exigirEditorMaestros() {
   const usuario = await getUsuarioActual();
-  if (usuario.rol === "operario") throw new Error("No autorizado.");
+  if (!puedeEditarMaestros(usuario.rol)) throw new Error("No tenés permiso para modificar maestros.");
 }
 
 function revalidar() {
@@ -17,7 +19,7 @@ function revalidar() {
 }
 
 async function correr(fn: () => Promise<void>) {
-  await exigirStaff();
+  await exigirEditorMaestros();
   try {
     await fn();
   } catch (e) {

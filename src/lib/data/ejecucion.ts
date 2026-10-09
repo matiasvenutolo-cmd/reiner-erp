@@ -6,26 +6,95 @@
  * §2): éste es el módulo que existe para hacer posible que el operario
  * cargue desde el celular en 2-3 toques.
  *
- * Asunción pendiente de confirmar con Horacio (ver docs/03-plan-fase-1.md):
- * un operario no puede tener dos operaciones abiertas a la vez. Si el
- * taller trabaja distinto, esta regla se relaja acá sin tocar la UI.
+ * Un operario tiene a lo sumo UNA operación en curso (abierta y sin pausa).
+ * Desde la observación del cliente en Fase 3 ("una vez que inicia una tarea
+ * no puede salir de ella, aunque la pause") puede dejar otras en pausa y
+ * cambiar de actividad: la pausada conserva su registro abierto y su parada
+ * con el motivo, y se retoma desde "Mi trabajo". El tiempo no se pisa: una
+ * operación pausada está parada (la parada registra ese lapso) mientras el
+ * operario trabaja en otra.
  */
-import { eq, and, isNull, sql, desc } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, sql, desc, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { registroOperacion, parada, tipoParada, otPieza, tareaRevision, usuario, pieza } from "@/lib/db/schema";
-import { getRoutingPieza } from "./maestros";
+import { getRoutingPieza, nombreOperacion } from "./maestros";
+import { cantidadQueEntraAlPaso, pasoHabilitadoParaOperario, getCentrosDeUsuario } from "./produccion";
+import { getAsignacionesDeHoy } from "./planificacion";
+import { getEstadoYOperacionActual } from "./ot";
 import type { RegistroOperacion, Parada, TipoParada } from "@/lib/db/schema";
 
 export async function getTiposParada(): Promise<TipoParada[]> {
   return db.select().from(tipoParada);
 }
 
-export async function getOperacionAbierta(usuarioId: string): Promise<RegistroOperacion | null> {
-  const [row] = await db
-    .select()
+export type OperacionAbierta = RegistroOperacion & { pausada: boolean; piezaNombre: string; otPiezaCodigo: string };
+
+/** Operaciones abiertas del operario: como mucho una en curso y las que dejó en pausa. */
+export async function getOperacionesAbiertas(usuarioId: string): Promise<OperacionAbierta[]> {
+  const rows = await db
+    .select({ registro: registroOperacion, piezaNombre: pieza.nombre, otPiezaCodigo: otPieza.codigo })
     .from(registroOperacion)
-    .where(and(eq(registroOperacion.usuarioId, usuarioId), isNull(registroOperacion.fin)));
-  return row ?? null;
+    .innerJoin(otPieza, eq(otPieza.id, registroOperacion.otPiezaId))
+    .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
+    .where(and(eq(registroOperacion.usuarioId, usuarioId), isNull(registroOperacion.fin)))
+    .orderBy(desc(registroOperacion.inicio));
+  if (rows.length === 0) return [];
+  const pausadas = await db
+    .select({ registroOperacionId: parada.registroOperacionId })
+    .from(parada)
+    .where(and(inArray(parada.registroOperacionId, rows.map((r) => r.registro.id)), isNull(parada.fin)));
+  const idsPausados = new Set(pausadas.map((p) => p.registroOperacionId));
+  return rows.map((r) => ({ ...r.registro, pausada: idsPausados.has(r.registro.id), piezaNombre: r.piezaNombre, otPiezaCodigo: r.otPiezaCodigo }));
+}
+
+/** La operación en curso (abierta y sin pausa) del operario, si tiene una. */
+export async function getOperacionEnCurso(usuarioId: string): Promise<OperacionAbierta | null> {
+  return (await getOperacionesAbiertas(usuarioId)).find((o) => !o.pausada) ?? null;
+}
+
+/** Registro abierto del propio operario — los formularios mandan el id, el servidor no confía en él. */
+async function getRegistroAbiertoPropio(registroOperacionId: string, usuarioId: string): Promise<RegistroOperacion> {
+  const [registro] = await db.select().from(registroOperacion).where(eq(registroOperacion.id, registroOperacionId));
+  if (!registro || registro.usuarioId !== usuarioId) throw new Error("Esa operación no es tuya.");
+  if (registro.fin) throw new Error("Esa operación ya está finalizada.");
+  return registro;
+}
+
+/** Centros del operario y lo que Planificación le asignó para hoy — para `pasoHabilitadoParaOperario`. */
+export async function getHabilitacionOperario(usuarioId: string) {
+  const [centros, asignadasHoy] = await Promise.all([getCentrosDeUsuario(usuarioId), getAsignacionesDeHoy(usuarioId)]);
+  return { centros, centroIds: new Set(centros.map((c) => c.id)), asignadasHoy };
+}
+
+export type CantidadesOperacion = {
+  /** Piezas que llegan a este paso (las OK del anterior, o la cantidad a fabricar en el primero). */
+  entra: number;
+  /** Lo que todavía se puede declarar (OK + rechazadas) en este paso. */
+  disponibles: number;
+};
+
+export async function getCantidadesOperacion(otPiezaId: string, operacionId: string, excluirRegistroId?: string): Promise<CantidadesOperacion> {
+  const [op] = await db.select().from(otPieza).where(eq(otPieza.id, otPiezaId));
+  if (!op) return { entra: 0, disponibles: 0 };
+  const [routing, cierres] = await Promise.all([
+    getRoutingPieza(op.piezaId),
+    db
+      .select({
+        id: registroOperacion.id,
+        operacionId: registroOperacion.operacionId,
+        piezasOk: registroOperacion.piezasOk,
+        piezasRechazadas: registroOperacion.piezasRechazadas,
+      })
+      .from(registroOperacion)
+      .where(and(eq(registroOperacion.otPiezaId, otPiezaId), eq(registroOperacion.tipo, "ejecucion"), isNotNull(registroOperacion.fin))),
+  ]);
+  const idx = routing.findIndex((r) => r.id === operacionId);
+  if (idx === -1) return { entra: 0, disponibles: 0 };
+  const entra = cantidadQueEntraAlPaso(routing.map((r) => r.id), idx, op.cantidadAFabricar, cierres);
+  const yaDeclaradas = cierres
+    .filter((c) => c.operacionId === operacionId && c.id !== excluirRegistroId)
+    .reduce((s, c) => s + (c.piezasOk ?? 0) + (c.piezasRechazadas ?? 0), 0);
+  return { entra, disponibles: Math.max(0, entra - yaDeclaradas) };
 }
 
 export async function getParadaAbierta(registroOperacionId: string): Promise<Parada | null> {
@@ -79,13 +148,33 @@ export type IniciarOperacionInput = {
 export async function iniciarOperacion(
   input: IniciarOperacionInput,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const abierta = await getOperacionAbierta(input.usuarioId);
-  if (abierta) {
-    return { ok: false, error: "Ya tenés una operación abierta. Cerrala antes de iniciar otra." };
+  const abiertas = await getOperacionesAbiertas(input.usuarioId);
+  if (abiertas.some((a) => !a.pausada)) {
+    return { ok: false, error: "Tenés una operación en curso. Pausala o finalizala antes de iniciar otra." };
   }
-  const [op] = await db.select({ enviada: otPieza.enviadaProduccionAt }).from(otPieza).where(eq(otPieza.id, input.otPiezaId));
-  if (!op?.enviada) {
+  if (abiertas.some((a) => a.otPiezaId === input.otPiezaId)) {
+    return { ok: false, error: "Esta pieza la tenés en pausa: reanudala en vez de iniciar de nuevo." };
+  }
+  const [op] = await db.select().from(otPieza).where(eq(otPieza.id, input.otPiezaId));
+  if (!op?.enviadaProduccionAt) {
     return { ok: false, error: "Esta pieza todavía no fue enviada a producción." };
+  }
+  // Sólo el paso que sigue en la hoja de ruta, y sólo si le corresponde a este operario.
+  const { operacionActual } = await getEstadoYOperacionActual(op);
+  if (!operacionActual || operacionActual.id !== input.operacionId) {
+    return { ok: false, error: "Esa no es la operación que sigue en la hoja de ruta de la pieza." };
+  }
+  const { centroIds, asignadasHoy } = await getHabilitacionOperario(input.usuarioId);
+  const paso = {
+    id: operacionActual.id,
+    tipo: operacionActual.proceso.tipo,
+    centroTrabajoId: operacionActual.centroTrabajoId ?? operacionActual.proceso.centroTrabajoId,
+  };
+  if (paso.tipo !== "interno") {
+    return { ok: false, error: "Ese paso no se hace en taller (es una compra o un tercerizado)." };
+  }
+  if (!pasoHabilitadoParaOperario(paso, op.id, centroIds, asignadasHoy)) {
+    return { ok: false, error: `${nombreOperacion(operacionActual)} es de otro centro de trabajo y no la tenés asignada.` };
   }
   const [registro] = await db
     .insert(registroOperacion)
@@ -107,13 +196,14 @@ export async function iniciarOperacion(
   return { ok: true, id: registro.id };
 }
 
-export async function pausarOperacion(registroOperacionId: string, tipoParadaId: string): Promise<void> {
+export async function pausarOperacion(registroOperacionId: string, tipoParadaId: string, usuarioId: string): Promise<void> {
+  await getRegistroAbiertoPropio(registroOperacionId, usuarioId);
   const existente = await getParadaAbierta(registroOperacionId);
   if (existente) return; // ya está pausada
   await db.insert(parada).values({ registroOperacionId, tipoParadaId, inicio: new Date() });
 }
 
-export async function reanudarOperacion(registroOperacionId: string): Promise<void> {
+async function cerrarParadaAbierta(registroOperacionId: string): Promise<void> {
   const abierta = await getParadaAbierta(registroOperacionId);
   if (!abierta) return;
   const fin = new Date();
@@ -121,8 +211,19 @@ export async function reanudarOperacion(registroOperacionId: string): Promise<vo
   await db.update(parada).set({ fin, duracionSeg }).where(eq(parada.id, abierta.id));
 }
 
+/** Retomar una operación pausada: sólo si no hay otra en curso (nunca dos a la vez). */
+export async function reanudarOperacion(registroOperacionId: string, usuarioId: string): Promise<void> {
+  await getRegistroAbiertoPropio(registroOperacionId, usuarioId);
+  const enCurso = await getOperacionEnCurso(usuarioId);
+  if (enCurso && enCurso.id !== registroOperacionId) {
+    throw new Error(`Tenés en curso ${enCurso.piezaNombre} (${enCurso.otPiezaCodigo}). Pausala o finalizala antes de retomar ésta.`);
+  }
+  await cerrarParadaAbierta(registroOperacionId);
+}
+
 export type FinalizarOperacionInput = {
   registroOperacionId: string;
+  usuarioId: string;
   piezasOk: number;
   piezasRechazadas: number;
   observacion?: string;
@@ -135,11 +236,18 @@ export type FinalizarOperacionInput = {
 };
 
 export async function finalizarOperacion(input: FinalizarOperacionInput): Promise<void> {
-  const [registro] = await db.select().from(registroOperacion).where(eq(registroOperacion.id, input.registroOperacionId));
-  if (!registro) throw new Error("Registro de operación no encontrado");
+  const registro = await getRegistroAbiertoPropio(input.registroOperacionId, input.usuarioId);
+
+  if (registro.tipo === "setup") {
+    // El setup no produce piezas ni cierra la pieza: antes, terminar el setup
+    // de la última operación disparaba el cierre de la OT de pieza.
+    input = { ...input, piezasOk: 0, piezasRechazadas: 0, cierrePieza: undefined };
+  } else {
+    validarCantidades(input, await getCantidadesOperacion(registro.otPiezaId, registro.operacionId, registro.id));
+  }
 
   // Si quedó una parada abierta, se cierra junto con la operación.
-  await reanudarOperacion(registro.id);
+  await cerrarParadaAbierta(registro.id);
 
   const fin = new Date();
   const duracionSeg = Math.round((fin.getTime() - registro.inicio.getTime()) / 1000);
@@ -172,6 +280,27 @@ export async function finalizarOperacion(input: FinalizarOperacionInput): Promis
         piezasRetrabajadas: input.cierrePieza.piezasRetrabajadas,
         estado: "pendiente",
       });
+    }
+  }
+}
+
+/** No se declaran más piezas de las que llegaron al paso. Los conteos del
+ * cierre de la pieza (no OK, defectuosas, retrabajadas) todavía no tienen
+ * una definición de si se solapan entre sí (ver docs/06 §25, punto 3.2): por
+ * ahora cada uno, por separado, no puede superar las piezas que no salieron OK. */
+function validarCantidades(input: FinalizarOperacionInput, { disponibles }: CantidadesOperacion) {
+  const valores = [input.piezasOk, input.piezasRechazadas, ...Object.values(input.cierrePieza ?? {})];
+  if (valores.some((v) => !Number.isInteger(v) || v < 0)) throw new Error("Las cantidades tienen que ser números enteros, 0 o más.");
+  if (input.piezasOk + input.piezasRechazadas > disponibles) {
+    throw new Error(
+      `Llegaron ${disponibles} pieza${disponibles === 1 ? "" : "s"} a esta operación: OK + rechazadas no puede pasar de ${disponibles}.`,
+    );
+  }
+  if (input.cierrePieza) {
+    const noSalieronOk = disponibles - input.piezasOk;
+    const { piezasNoOk, piezasDefectuosas, piezasRetrabajadas } = input.cierrePieza;
+    if (Math.max(piezasNoOk, piezasDefectuosas, piezasRetrabajadas) > noSalieronOk) {
+      throw new Error(`De ${disponibles} piezas salieron ${input.piezasOk} OK: no OK, defectuosas o retrabajadas no pueden pasar de ${noSalieronOk}.`);
     }
   }
 }

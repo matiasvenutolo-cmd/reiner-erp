@@ -9,6 +9,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { remito, remitoItem, pieza, usuario, movimientoStock, stockPieza } from "@/lib/db/schema";
 import { getStockDisponible } from "./stock";
+import { getMovimientoTercerizado } from "./compras";
 
 export type RemitoResumen = {
   id: string;
@@ -115,6 +116,19 @@ export type GenerarRemitoInput = {
  */
 export async function generarRemito(input: GenerarRemitoInput): Promise<string> {
   if (input.items.length === 0) throw new Error("Un remito necesita al menos una pieza.");
+  if (input.items.some((it) => !Number.isInteger(it.cantidad) || it.cantidad <= 0)) throw new Error("Las cantidades tienen que ser enteras y mayores a 0.");
+
+  // Una pieza en fabricación no sale en más cantidad de la que hay en planta en
+  // su paso tercerizado — así la vuelta se puede controlar contra lo enviado.
+  for (const item of input.items) {
+    if (!item.otPiezaId) continue;
+    const mov = await getMovimientoTercerizado(item.otPiezaId);
+    if (!mov) throw new Error("Una de las piezas en fabricación ya no está en un paso tercerizado.");
+    const mismaOt = input.items.filter((it) => it.otPiezaId === item.otPiezaId).reduce((s, it) => s + it.cantidad, 0);
+    if (mismaOt > mov.enPlanta) {
+      throw new Error(`Llegaron ${mov.cantidadPaso} piezas a este paso y hay ${mov.enPlanta} en planta para mandar: no pueden salir ${mismaOt}.`);
+    }
+  }
 
   return db.transaction(async (tx) => {
     // Numeración secuencial simple — no hay concurrencia real en este

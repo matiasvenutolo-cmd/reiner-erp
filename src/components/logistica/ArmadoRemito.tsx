@@ -3,9 +3,21 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { buscarPiezasParaRemitoAction, generarRemitoAction } from "@/app/actions/remitos";
+import { HojaRemito } from "./HojaRemito";
 
 type ResultadoPieza = { id: string; codigo: string; nombre: string };
-type ItemCarrito = { clave: string; piezaId: string; codigo: string; nombre: string; cantidad: number; tratamiento: string; otPiezaId?: string; otPiezaCodigo?: string };
+type ItemCarrito = {
+  clave: string;
+  piezaId: string;
+  codigo: string;
+  nombre: string;
+  cantidad: number;
+  tratamiento: string;
+  otPiezaId?: string;
+  otPiezaCodigo?: string;
+  /** Pieza en fabricación: no salen más de las que llegaron a su paso tercerizado. */
+  maxCantidad?: number;
+};
 
 export type PiezaParaMandar = {
   otPiezaId: string;
@@ -22,10 +34,12 @@ export type PiezaParaMandar = {
  * explícito del cliente (docs/06-backlog-release-3.md §12): "cargar varias
  * piezas al mismo movimiento antes de finalizarlo". Todo el flujo (buscar,
  * agregar, sacar, generar) vive en un solo componente cliente para no
- * perder lo ya cargado en cada búsqueda — nada de esto se guarda hasta
- * tocar "Generar remito".
+ * perder lo ya cargado en cada búsqueda. Observación del cliente en Fase 3:
+ * antes de guardarlo se ve la vista previa (la misma hoja que se imprime,
+ * sin número todavía); recién "Confirmar e imprimir" lo registra —con su
+ * número y los egresos— y abre la impresión.
  */
-export function ArmadoRemito({ paraMandar = [] }: { paraMandar?: PiezaParaMandar[] }) {
+export function ArmadoRemito({ paraMandar = [], usuarioNombre }: { paraMandar?: PiezaParaMandar[]; usuarioNombre: string }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
@@ -36,6 +50,8 @@ export function ArmadoRemito({ paraMandar = [] }: { paraMandar?: PiezaParaMandar
   const [tecnico, setTecnico] = useState("");
   const [observacion, setObservacion] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [vistaPrevia, setVistaPrevia] = useState(false);
+  const [confirmado, setConfirmado] = useState(false);
 
   async function buscar(q: string) {
     setQuery(q);
@@ -69,6 +85,7 @@ export function ArmadoRemito({ paraMandar = [] }: { paraMandar?: PiezaParaMandar
         tratamiento: p.procesoNombre,
         otPiezaId: p.otPiezaId,
         otPiezaCodigo: p.otPiezaCodigo,
+        maxCantidad: p.cantidad,
       })),
     ]);
   }
@@ -82,11 +99,15 @@ export function ArmadoRemito({ paraMandar = [] }: { paraMandar?: PiezaParaMandar
 
   function actualizar(clave: string, campo: "cantidad" | "tratamiento", valor: string) {
     setCarrito((prev) =>
-      prev.map((it) => (it.clave === clave ? { ...it, [campo]: campo === "cantidad" ? Math.max(1, Number(valor) || 1) : valor } : it)),
+      prev.map((it) =>
+        it.clave === clave
+          ? { ...it, [campo]: campo === "cantidad" ? Math.min(it.maxCantidad ?? Infinity, Math.max(1, Number(valor) || 1)) : valor }
+          : it,
+      ),
     );
   }
 
-  function generar() {
+  function verVistaPrevia() {
     setError(null);
     if (!destino.trim()) {
       setError("Falta el destino.");
@@ -96,9 +117,15 @@ export function ArmadoRemito({ paraMandar = [] }: { paraMandar?: PiezaParaMandar
       setError("Agregá al menos una pieza.");
       return;
     }
+    setVistaPrevia(true);
+  }
+
+  /** Recién acá se guarda: número, piezas y egresos, y se abre la impresión. */
+  function confirmarEImprimir() {
+    setError(null);
     startTransition(async () => {
       try {
-        const id = await generarRemitoAction({
+        const resultado = await generarRemitoAction({
           destino: destino.trim(),
           tecnico: tecnico.trim() || undefined,
           observacion: observacion.trim() || undefined,
@@ -109,11 +136,55 @@ export function ArmadoRemito({ paraMandar = [] }: { paraMandar?: PiezaParaMandar
             otPiezaId: it.otPiezaId,
           })),
         });
-        router.push(`/remitos/${id}`);
+        if (!resultado.ok) {
+          setError(resultado.error);
+          return;
+        }
+        setConfirmado(true);
+        router.push(`/remitos/${resultado.id}?imprimir=1`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "No se pudo generar el remito.");
       }
     });
+  }
+
+  if (vistaPrevia) {
+    return (
+      <div className="space-y-3">
+        <div className="badge-estado badge-pendiente text-sm px-3 py-2 block">
+          Vista previa — este remito todavía no se guardó. Se registra (con su número y el egreso de cada pieza) al confirmar la
+          impresión.
+        </div>
+        <HojaRemito
+          numero={null}
+          fecha={new Date()}
+          destino={destino.trim()}
+          usuarioNombre={usuarioNombre}
+          tecnico={tecnico.trim() || null}
+          observacion={observacion.trim() || null}
+          items={carrito.map((it) => ({ clave: it.clave, codigo: it.codigo, nombre: it.nombre, tratamiento: it.tratamiento, cantidad: it.cantidad }))}
+        />
+        {error && <p className="text-sm text-red-700">{error}</p>}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={confirmarEImprimir}
+            disabled={isPending || confirmado}
+            className="bg-accent text-accent-foreground font-medium text-sm px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-50"
+          >
+            {isPending || confirmado ? "Guardando…" : "Confirmar e imprimir"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setVistaPrevia(false)}
+            disabled={isPending || confirmado}
+            className="text-sm text-accent hover:underline disabled:opacity-50"
+          >
+            ← Volver a editar
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -228,6 +299,7 @@ export function ArmadoRemito({ paraMandar = [] }: { paraMandar?: PiezaParaMandar
                     <input
                       type="number"
                       min={1}
+                      max={it.maxCantidad}
                       value={it.cantidad}
                       onChange={(e) => actualizar(it.clave, "cantidad", e.target.value)}
                       className="input text-xs py-1 text-right"
@@ -260,11 +332,10 @@ export function ArmadoRemito({ paraMandar = [] }: { paraMandar?: PiezaParaMandar
 
       <button
         type="button"
-        onClick={generar}
-        disabled={isPending}
-        className="bg-accent text-accent-foreground font-medium text-sm px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-50"
+        onClick={verVistaPrevia}
+        className="bg-accent text-accent-foreground font-medium text-sm px-4 py-2 rounded-md hover:opacity-90"
       >
-        {isPending ? "Generando…" : "Generar remito →"}
+        Vista previa →
       </button>
     </div>
   );

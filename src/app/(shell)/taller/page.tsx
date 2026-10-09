@@ -1,39 +1,30 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUsuarioActual } from "@/lib/session";
-import { getOperacionAbierta } from "@/lib/data/ejecucion";
-import { getCentrosDeUsuario, getCandidatasTaller } from "@/lib/data/produccion";
-import { getAsignacionesDeHoy } from "@/lib/data/planificacion";
+import { getOperacionesAbiertas, getHabilitacionOperario } from "@/lib/data/ejecucion";
+import { getCandidatasTaller, pasoHabilitadoParaOperario } from "@/lib/data/produccion";
 
 export const dynamic = "force-dynamic";
 
 export default async function TallerPage() {
   const usuario = await getUsuarioActual();
-  const abierta = await getOperacionAbierta(usuario.id);
-  if (abierta) redirect(`/taller/${abierta.otPiezaId}`);
+  const abiertas = await getOperacionesAbiertas(usuario.id);
+  const enCurso = abiertas.find((a) => !a.pausada);
+  if (enCurso) redirect(`/taller/${enCurso.otPiezaId}`);
+  const pausadas = abiertas.filter((a) => a.pausada);
+  const otPiezaIdsPausadas = new Set(pausadas.map((p) => p.otPiezaId));
 
-  const [candidatas, asignadasHoy, centrosDelUsuario] = await Promise.all([
-    getCandidatasTaller(),
-    getAsignacionesDeHoy(usuario.id),
-    getCentrosDeUsuario(usuario.id),
-  ]);
-  const otPiezaIdsAsignadosHoy = new Set(asignadasHoy.map((a) => a.otPiezaId));
-  const centroIdsDelUsuario = new Set(centrosDelUsuario.map((c) => c.id));
+  const [candidatas, { centroIds, asignadasHoy }] = await Promise.all([getCandidatasTaller(), getHabilitacionOperario(usuario.id)]);
+  const asignadaHoy = (c: (typeof candidatas)[number]) =>
+    asignadasHoy.some((a) => a.otPiezaId === c.otPieza.id && (a.operacionId === null || a.operacionId === c.pasoActual.id));
 
-  // Filtro por centro de trabajo (Release 2, pedido de Horacio): sin centros
-  // asignados el operario ve todo; con uno o más (de varios a varios desde la
-  // 2ª ronda de Fase 2), sólo lo que está en alguno de sus centros ahora
-  // mismo. Lo que espera una compra o está afuera en un tercerizado no es
-  // trabajo de taller y no se lista. Excepción: si Planificación le asignó
-  // esta pieza para HOY, se ve igual — la asignación explícita manda.
+  // Misma regla que la ficha y el inicio en el servidor (pasoHabilitadoParaOperario):
+  // lo asignado para hoy, o un paso interno de alguno de sus centros. Lo que espera
+  // una compra o está afuera en un tercerizado no es trabajo de taller.
   const pendientes = candidatas
-    .filter((c) => {
-      if (otPiezaIdsAsignadosHoy.has(c.otPieza.id)) return true;
-      if (c.tipoPasoActual !== "interno") return false;
-      if (centroIdsDelUsuario.size === 0) return true;
-      return c.centroActualId !== null && centroIdsDelUsuario.has(c.centroActualId);
-    })
-    .sort((a, b) => Number(otPiezaIdsAsignadosHoy.has(b.otPieza.id)) - Number(otPiezaIdsAsignadosHoy.has(a.otPieza.id)));
+    .filter((c) => !otPiezaIdsPausadas.has(c.otPieza.id))
+    .filter((c) => pasoHabilitadoParaOperario(c.pasoActual, c.otPieza.id, centroIds, asignadasHoy))
+    .sort((a, b) => Number(asignadaHoy(b)) - Number(asignadaHoy(a)));
 
   return (
     <div className="max-w-lg mx-auto space-y-4">
@@ -42,31 +33,53 @@ export default async function TallerPage() {
         <p className="text-sm text-foreground-muted mt-1">Elegí en qué pieza vas a trabajar.</p>
       </div>
 
+      {pausadas.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold">En pausa ({pausadas.length})</h2>
+          {pausadas.map((p) => (
+            <Link
+              key={p.id}
+              href={`/taller/${p.otPiezaId}`}
+              className="block bg-surface border border-amber-300 rounded-xl p-4 hover:border-accent active:scale-[0.99] transition"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-xs text-foreground-muted">{p.otPiezaCodigo}</span>
+                <span className="badge-estado badge-pendiente">En pausa · {p.tipo === "setup" ? "setup" : "fabricación"}</span>
+              </div>
+              <div className="font-semibold mt-1">{p.piezaNombre}</div>
+              <div className="text-sm text-foreground-muted">Tocá para retomarla</div>
+            </Link>
+          ))}
+        </div>
+      )}
+
       {pendientes.length === 0 ? (
         <div className="bg-surface border border-border rounded-lg p-6 text-center text-foreground-muted text-sm">
           No hay piezas pendientes de fabricar en este momento.
         </div>
       ) : (
         <div className="space-y-2">
-          {pendientes.map(({ otPieza, piezaNombre, conjuntoNombre, estado, pasos }) => (
+          {pausadas.length > 0 && <h2 className="text-sm font-semibold pt-2">Para empezar</h2>}
+          {pendientes.map((c) => (
             <Link
-              key={otPieza.id}
-              href={`/taller/${otPieza.id}`}
+              key={c.otPieza.id}
+              href={`/taller/${c.otPieza.id}`}
               className="block bg-surface border border-border rounded-xl p-4 hover:border-accent active:scale-[0.99] transition"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-xs text-foreground-muted">{otPieza.codigo}</span>
+                <span className="font-mono text-xs text-foreground-muted">{c.otPieza.codigo}</span>
                 <div className="flex items-center gap-1.5">
-                  {otPiezaIdsAsignadosHoy.has(otPieza.id) && <span className="badge-estado badge-terminada">Asignado hoy</span>}
-                  <span className={`badge-estado ${estado === "en_curso" ? "badge-en_curso" : "badge-pendiente"}`}>
-                    {estado === "en_curso" ? "En curso" : `${pasos} operaciones`}
+                  {asignadaHoy(c) && <span className="badge-estado badge-terminada">Asignado hoy</span>}
+                  <span className={`badge-estado ${c.estado === "en_curso" ? "badge-en_curso" : "badge-pendiente"}`}>
+                    {c.estado === "en_curso" ? "En curso" : `${c.pasos} operaciones`}
                   </span>
                 </div>
               </div>
-              <div className="font-semibold mt-1">{piezaNombre}</div>
+              <div className="font-semibold mt-1">{c.piezaNombre}</div>
               <div className="text-sm text-foreground-muted">
-                {conjuntoNombre} · a fabricar: {otPieza.cantidadAFabricar}
+                {c.pasoActual.nombre} · {c.cantidadActual} pieza{c.cantidadActual === 1 ? "" : "s"} a procesar
               </div>
+              <div className="text-xs text-foreground-muted">{c.conjuntoNombre}</div>
             </Link>
           ))}
         </div>

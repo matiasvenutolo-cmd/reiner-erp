@@ -28,6 +28,8 @@ import { ProcesoOperacionSelect } from "@/components/ProcesoOperacionSelect";
 import { CentroOperacionSelect } from "@/components/CentroOperacionSelect";
 import { getCentrosTrabajo } from "@/lib/data/produccion";
 import { urlDeAdjunto } from "@/lib/blob";
+import { getUsuarioActual } from "@/lib/session";
+import { puedeEditarMaestros } from "@/lib/permisos";
 
 const TIPO_ADJUNTO_LABEL: Record<string, string> = {
   plano: "Plano",
@@ -39,10 +41,19 @@ const TIPO_NOTA_LABEL: Record<string, string> = {
   produccion: "Producción",
 };
 
-export default async function PiezaPage({ params }: { params: Promise<{ piezaId: string }> }) {
+export default async function PiezaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ piezaId: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
   const { piezaId } = await params;
+  const { error } = await searchParams;
   const pieza = await getPieza(piezaId);
   if (!pieza) notFound();
+  // Taller ve la ficha (llega desde Stock y OT) pero no la modifica — ver src/lib/permisos.ts.
+  const editable = puedeEditarMaestros((await getUsuarioActual()).rol);
 
   const [conjunto, routing, stock, wip, notas, adjuntos, procesos, centros] = await Promise.all([
     getConjunto(pieza.conjuntoId),
@@ -65,7 +76,12 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
         <p className="text-sm text-foreground-muted">
           <span className="font-mono">{pieza.codigo}</span> · {conjunto?.nombre ?? pieza.conjuntoId}
         </p>
+        {!editable && (
+          <p className="text-xs text-foreground-muted mt-1">Sólo lectura: los datos de la pieza y su hoja de ruta los modifica ingeniería.</p>
+        )}
       </div>
+
+      {error && <div className="badge-estado badge-alerta text-sm px-3 py-2 block">{error}</div>}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Metric label="Modelo" value={modeloDeCodigo(pieza.codigo)} />
@@ -74,52 +90,62 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
         <Metric label="Conjunto" value={conjunto?.nombre ?? pieza.conjuntoId} />
       </div>
 
-      <div className="bg-surface border border-border rounded-lg p-3 flex flex-wrap items-end gap-3">
-        <form action={actualizarMaterialAction} className="flex items-end gap-2">
-          <input type="hidden" name="piezaId" value={pieza.id} />
+      {editable ? (
+        <div className="bg-surface border border-border rounded-lg p-3 flex flex-wrap items-end gap-3">
+          <form action={actualizarMaterialAction} className="flex items-end gap-2">
+            <input type="hidden" name="piezaId" value={pieza.id} />
+            <label className="block">
+              <span className="block text-xs font-medium text-foreground-muted mb-1">Material</span>
+              <input name="material" defaultValue={pieza.material ?? ""} placeholder="ej. Acero SAE 1045" className="input" />
+            </label>
+            <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
+              Guardar
+            </button>
+          </form>
+          <form action={actualizarRevisionAction} className="flex items-end gap-2">
+            <input type="hidden" name="piezaId" value={pieza.id} />
+            <label className="block">
+              <span className="block text-xs font-medium text-foreground-muted mb-1">Revisión</span>
+              <input name="revision" defaultValue={pieza.revision ?? ""} placeholder="ej. Rev. 3" className="input w-28" />
+            </label>
+            <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
+              Guardar
+            </button>
+          </form>
+          <form action={actualizarNumeroPlanoAction} className="flex items-end gap-2">
+            <input type="hidden" name="piezaId" value={pieza.id} />
+            <label className="block">
+              <span className="block text-xs font-medium text-foreground-muted mb-1">Nº de plano</span>
+              <input name="numeroPlano" defaultValue={pieza.numeroPlano ?? ""} placeholder="ej. PL-0234" className="input w-32" />
+            </label>
+            <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
+              Guardar
+            </button>
+          </form>
           <label className="block">
-            <span className="block text-xs font-medium text-foreground-muted mb-1">Material</span>
-            <input name="material" defaultValue={pieza.material ?? ""} placeholder="ej. Acero SAE 1045" className="input" />
+            <span className="block text-xs font-medium text-foreground-muted mb-1">Tipo</span>
+            <TipoPiezaSelect piezaId={pieza.id} tipoActual={pieza.tipo} />
           </label>
-          <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
-            Guardar
-          </button>
-        </form>
-        <form action={actualizarRevisionAction} className="flex items-end gap-2">
-          <input type="hidden" name="piezaId" value={pieza.id} />
-          <label className="block">
-            <span className="block text-xs font-medium text-foreground-muted mb-1">Revisión</span>
-            <input name="revision" defaultValue={pieza.revision ?? ""} placeholder="ej. Rev. 3" className="input w-28" />
-          </label>
-          <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
-            Guardar
-          </button>
-        </form>
-        <form action={actualizarNumeroPlanoAction} className="flex items-end gap-2">
-          <input type="hidden" name="piezaId" value={pieza.id} />
-          <label className="block">
-            <span className="block text-xs font-medium text-foreground-muted mb-1">Nº de plano</span>
-            <input name="numeroPlano" defaultValue={pieza.numeroPlano ?? ""} placeholder="ej. PL-0234" className="input w-32" />
-          </label>
-          <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
-            Guardar
-          </button>
-        </form>
-        <label className="block">
-          <span className="block text-xs font-medium text-foreground-muted mb-1">Tipo</span>
-          <TipoPiezaSelect piezaId={pieza.id} tipoActual={pieza.tipo} />
-        </label>
-        <form action={actualizarStockMinimoAction} className="flex items-end gap-2">
-          <input type="hidden" name="piezaId" value={pieza.id} />
-          <label className="block">
-            <span className="block text-xs font-medium text-foreground-muted mb-1">Stock mínimo</span>
-            <input name="stockMinimo" type="number" min={0} defaultValue={pieza.stockMinimo} className="input w-20" />
-          </label>
-          <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
-            Guardar
-          </button>
-        </form>
-      </div>
+          <form action={actualizarStockMinimoAction} className="flex items-end gap-2">
+            <input type="hidden" name="piezaId" value={pieza.id} />
+            <label className="block">
+              <span className="block text-xs font-medium text-foreground-muted mb-1">Stock mínimo</span>
+              <input name="stockMinimo" type="number" min={0} defaultValue={pieza.stockMinimo} className="input w-20" />
+            </label>
+            <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
+              Guardar
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div className="bg-surface border border-border rounded-lg p-3 grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <Dato label="Material" value={pieza.material} />
+          <Dato label="Revisión" value={pieza.revision} />
+          <Dato label="Nº de plano" value={pieza.numeroPlano} />
+          <Dato label="Tipo" value={pieza.tipo === "comprada" ? "Sólo compra" : "Fabricada"} />
+          <Dato label="Stock mínimo" value={String(pieza.stockMinimo)} />
+        </div>
+      )}
 
       {wip.length > 0 && (
         <div>
@@ -137,7 +163,7 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
       <div>
         <h2 className="text-sm font-semibold mb-2">Hoja de ruta</h2>
         {routing.length === 0 && (
-          <div className="badge-estado badge-alerta mb-3">Sin operaciones definidas — agregá la primera abajo.</div>
+          <div className="badge-estado badge-alerta mb-3">Sin operaciones definidas{editable ? " — agregá la primera abajo." : "."}</div>
         )}
         {routing.length > 0 && (
           <div className="bg-surface border border-border rounded-lg overflow-hidden mb-3">
@@ -158,19 +184,27 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
                   <tr key={op.id} className="border-t border-border">
                     <td className="px-4 py-2.5 text-foreground-muted">{op.secuencia}</td>
                     <td className="px-4 py-2.5 min-w-[10rem]">
-                      <ProcesoOperacionSelect
-                        operacionId={op.id}
-                        piezaId={pieza.id}
-                        procesoIdActual={op.proceso.id}
-                        procesos={procesos.map((p) => ({ id: p.id, nombre: p.nombre }))}
-                      />
+                      {editable ? (
+                        <ProcesoOperacionSelect
+                          operacionId={op.id}
+                          piezaId={pieza.id}
+                          procesoIdActual={op.proceso.id}
+                          procesos={procesos.map((p) => ({ id: p.id, nombre: p.nombre }))}
+                        />
+                      ) : (
+                        op.proceso.nombre
+                      )}
                       {op.proceso.tipo === "tercerizado" && (
                         <span className="ml-1 text-xs text-foreground-muted">(tercerizado)</span>
                       )}
                       {op.proceso.tipo === "compras" && <span className="ml-1 text-xs text-foreground-muted">(compra)</span>}
                     </td>
                     <td className="px-4 py-2.5 min-w-[11rem]">
-                      {op.proceso.tipo === "interno" ? (
+                      {op.proceso.tipo === "interno" && !editable ? (
+                        centros.find((c) => c.id === (op.centroTrabajoId ?? op.proceso.centroTrabajoId))?.nombre ?? (
+                          <span className="text-foreground-muted">Sin centro asignado</span>
+                        )
+                      ) : op.proceso.tipo === "interno" ? (
                         <CentroOperacionSelect
                           operacionId={op.id}
                           piezaId={pieza.id}
@@ -183,53 +217,59 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
                       )}
                     </td>
                     <td className="px-4 py-2.5 min-w-[12rem]">
-                      <DescripcionOperacionInput
-                        operacionId={op.id}
-                        piezaId={pieza.id}
-                        procesoNombre={op.proceso.nombre}
-                        descripcionInicial={op.descripcion}
-                      />
+                      {editable ? (
+                        <DescripcionOperacionInput
+                          operacionId={op.id}
+                          piezaId={pieza.id}
+                          procesoNombre={op.proceso.nombre}
+                          descripcionInicial={op.descripcion}
+                        />
+                      ) : (
+                        <span className="text-foreground-muted">{op.descripcion?.trim() || "—"}</span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-foreground-muted">{op.dispositivoNombre ?? "—"}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">
                       {op.ops ?? <span title="Falta cargar este dato">falta cargar</span>}
                     </td>
                     <td className="px-4 py-2.5">
-                      <div className="flex items-center justify-end gap-1">
-                        <form action={moverOperacionAction}>
-                          <input type="hidden" name="operacionId" value={op.id} />
-                          <input type="hidden" name="piezaId" value={pieza.id} />
-                          <input type="hidden" name="direccion" value="arriba" />
-                          <button
-                            type="submit"
-                            disabled={idx === 0}
-                            className="text-foreground-muted hover:text-foreground disabled:opacity-30 px-1"
-                            title="Subir"
-                          >
-                            ↑
-                          </button>
-                        </form>
-                        <form action={moverOperacionAction}>
-                          <input type="hidden" name="operacionId" value={op.id} />
-                          <input type="hidden" name="piezaId" value={pieza.id} />
-                          <input type="hidden" name="direccion" value="abajo" />
-                          <button
-                            type="submit"
-                            disabled={idx === routing.length - 1}
-                            className="text-foreground-muted hover:text-foreground disabled:opacity-30 px-1"
-                            title="Bajar"
-                          >
-                            ↓
-                          </button>
-                        </form>
-                        <form action={eliminarOperacionAction}>
-                          <input type="hidden" name="operacionId" value={op.id} />
-                          <input type="hidden" name="piezaId" value={pieza.id} />
-                          <button type="submit" className="text-xs text-red-700 hover:underline px-1" title="Eliminar">
-                            Eliminar
-                          </button>
-                        </form>
-                      </div>
+                      {editable && (
+                        <div className="flex items-center justify-end gap-1">
+                          <form action={moverOperacionAction}>
+                            <input type="hidden" name="operacionId" value={op.id} />
+                            <input type="hidden" name="piezaId" value={pieza.id} />
+                            <input type="hidden" name="direccion" value="arriba" />
+                            <button
+                              type="submit"
+                              disabled={idx === 0}
+                              className="text-foreground-muted hover:text-foreground disabled:opacity-30 px-1"
+                              title="Subir"
+                            >
+                              ↑
+                            </button>
+                          </form>
+                          <form action={moverOperacionAction}>
+                            <input type="hidden" name="operacionId" value={op.id} />
+                            <input type="hidden" name="piezaId" value={pieza.id} />
+                            <input type="hidden" name="direccion" value="abajo" />
+                            <button
+                              type="submit"
+                              disabled={idx === routing.length - 1}
+                              className="text-foreground-muted hover:text-foreground disabled:opacity-30 px-1"
+                              title="Bajar"
+                            >
+                              ↓
+                            </button>
+                          </form>
+                          <form action={eliminarOperacionAction}>
+                            <input type="hidden" name="operacionId" value={op.id} />
+                            <input type="hidden" name="piezaId" value={pieza.id} />
+                            <button type="submit" className="text-xs text-red-700 hover:underline px-1" title="Eliminar">
+                              Eliminar
+                            </button>
+                          </form>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -238,50 +278,54 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
           </div>
         )}
 
-        <form action={agregarOperacionAction} className="flex items-end gap-2">
-          <input type="hidden" name="piezaId" value={pieza.id} />
-          <label className="block">
-            <span className="block text-xs font-medium text-foreground-muted mb-1">Agregar operación</span>
-            <select name="procesoId" required defaultValue="" className="input text-sm">
-              <option value="" disabled>
-                Elegir proceso…
-              </option>
-              {procesos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
+        {editable && (
+          <form action={agregarOperacionAction} className="flex items-end gap-2">
+            <input type="hidden" name="piezaId" value={pieza.id} />
+            <label className="block">
+              <span className="block text-xs font-medium text-foreground-muted mb-1">Agregar operación</span>
+              <select name="procesoId" required defaultValue="" className="input text-sm">
+                <option value="" disabled>
+                  Elegir proceso…
                 </option>
-              ))}
-            </select>
-          </label>
-          <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
-            Agregar al final
-          </button>
-        </form>
+                {procesos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="submit" className="text-sm text-accent hover:underline px-1 py-2">
+              Agregar al final
+            </button>
+          </form>
+        )}
       </div>
 
       <div>
         <h2 className="text-sm font-semibold mb-2">Adjuntos de ingeniería — planos y fotos</h2>
         <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
-          <form action={subirAdjuntoPiezaAction} className="flex flex-wrap items-center gap-2">
-            <input type="hidden" name="piezaId" value={pieza.id} />
-            <select name="tipo" required defaultValue="plano" className="input text-sm w-28">
-              <option value="plano">Plano</option>
-              <option value="foto">Foto</option>
-            </select>
-            <input
-              type="file"
-              name="archivo"
-              required
-              accept=".pdf,.png,.jpg,.jpeg,.webp,.dwg,.dxf"
-              className="text-sm flex-1 min-w-[12rem]"
-            />
-            <button
-              type="submit"
-              className="bg-accent text-accent-foreground font-medium text-sm px-3 py-1.5 rounded-md hover:opacity-90"
-            >
-              Subir
-            </button>
-          </form>
+          {editable && (
+            <form action={subirAdjuntoPiezaAction} className="flex flex-wrap items-center gap-2">
+              <input type="hidden" name="piezaId" value={pieza.id} />
+              <select name="tipo" required defaultValue="plano" className="input text-sm w-28">
+                <option value="plano">Plano</option>
+                <option value="foto">Foto</option>
+              </select>
+              <input
+                type="file"
+                name="archivo"
+                required
+                accept=".pdf,.png,.jpg,.jpeg,.webp,.dwg,.dxf"
+                className="text-sm flex-1 min-w-[12rem]"
+              />
+              <button
+                type="submit"
+                className="bg-accent text-accent-foreground font-medium text-sm px-3 py-1.5 rounded-md hover:opacity-90"
+              >
+                Subir
+              </button>
+            </form>
+          )}
 
           {adjuntos.length === 0 ? (
             <p className="text-sm text-foreground-muted">Todavía no hay planos ni fotos cargadas.</p>
@@ -306,13 +350,15 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
                   <span className="text-xs text-foreground-muted shrink-0">
                     {a.autorNombre} · {new Date(a.createdAt).toLocaleDateString("es-AR")}
                   </span>
-                  <form action={eliminarAdjuntoPiezaAction}>
-                    <input type="hidden" name="id" value={a.id} />
-                    <input type="hidden" name="piezaId" value={pieza.id} />
-                    <button type="submit" className="text-xs text-red-700 hover:underline shrink-0">
-                      Eliminar
-                    </button>
-                  </form>
+                  {editable && (
+                    <form action={eliminarAdjuntoPiezaAction}>
+                      <input type="hidden" name="id" value={a.id} />
+                      <input type="hidden" name="piezaId" value={pieza.id} />
+                      <button type="submit" className="text-xs text-red-700 hover:underline shrink-0">
+                        Eliminar
+                      </button>
+                    </form>
+                  )}
                 </li>
               ))}
             </ul>
@@ -336,7 +382,7 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
                 className="input flex-1 resize-none"
               />
               <div className="flex flex-col gap-2">
-                <select name="tipo" defaultValue="ingenieria" className="input">
+                <select name="tipo" defaultValue={editable ? "ingenieria" : "produccion"} className="input">
                   <option value="ingenieria">Ingeniería</option>
                   <option value="produccion">Producción</option>
                 </select>
@@ -373,6 +419,15 @@ export default async function PiezaPage({ params }: { params: Promise<{ piezaId:
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function Dato({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div>
+      <div className="text-xs font-medium text-foreground-muted mb-1">{label}</div>
+      <div className="text-sm">{value?.trim() || "—"}</div>
     </div>
   );
 }

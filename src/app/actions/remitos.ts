@@ -14,15 +14,25 @@ export async function buscarPiezasParaRemitoAction(query: string) {
   return piezas.slice(0, 15).map((p) => ({ id: p.id, codigo: p.codigo, nombre: p.nombre }));
 }
 
-export async function generarRemitoAction(input: Omit<GenerarRemitoInput, "usuarioId">): Promise<string> {
+/** Devuelve el motivo en vez de tirar el error: en producción Next oculta el
+ * mensaje de un error lanzado desde una server action llamada por el cliente. */
+export async function generarRemitoAction(
+  input: Omit<GenerarRemitoInput, "usuarioId">,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const usuario = await getUsuarioActual();
+  if (usuario.rol === "operario") return { ok: false, error: "No autorizado." };
 
   if (!input.destino.trim() || input.items.length === 0) {
-    throw new Error("Faltan datos: destino y al menos una pieza son obligatorios.");
+    return { ok: false, error: "Faltan datos: destino y al menos una pieza son obligatorios." };
   }
 
-  const id = await generarRemito({ ...input, usuarioId: usuario.id });
+  let id: string;
+  try {
+    id = await generarRemito({ ...input, usuarioId: usuario.id });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo generar el remito." };
+  }
   revalidatePath("/tercerizados");
   revalidatePath("/remitos");
-  return id;
+  return { ok: true, id };
 }
