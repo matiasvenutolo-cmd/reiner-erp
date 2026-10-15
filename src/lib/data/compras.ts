@@ -25,6 +25,7 @@ import {
   registroOperacion,
   remito,
   remitoItem,
+  solicitudCompra,
 } from "@/lib/db/schema";
 import { getStockDisponible } from "./stock";
 import { esUltimaOperacion, getCantidadesOperacion } from "./ejecucion";
@@ -116,6 +117,13 @@ export async function marcarPedido(input: {
 }
 
 export async function cancelarPedido(pedidoId: string): Promise<void> {
+  // Un pedido confirmado desde el módulo de Compras queda atado a esa compra (cotización, pagos):
+  // borrarlo acá la dejaría inconsistente. Los pedidos hechos desde Stock se cancelan como siempre.
+  const [deCompras] = await db
+    .select({ numero: solicitudCompra.numero })
+    .from(solicitudCompra)
+    .where(eq(solicitudCompra.pedidoCompraId, pedidoId));
+  if (deCompras) throw new Error(`Este pedido lo confirmó Compras (compra Nº ${deCompras.numero}): se gestiona desde ahí.`);
   await db.delete(pedidoCompra).where(and(eq(pedidoCompra.id, pedidoId), isNull(pedidoCompra.recibidoAt)));
 }
 

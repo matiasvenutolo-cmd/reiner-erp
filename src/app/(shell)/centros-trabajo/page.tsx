@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { PestanasPlanificacion } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { getColaPorCentroTrabajo, getPiezasCompraPendientes, contarPiezasSinCentro } from "@/lib/data/produccion";
 import { getAsignacionesVigentesBatch } from "@/lib/data/planificacion";
@@ -19,14 +21,12 @@ export default async function CentrosTrabajoPage() {
 
   return (
     <div className="space-y-8 max-w-4xl">
-      <div>
-        <h1 className="text-xl font-semibold">Centros de trabajo</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          Por cada centro: qué está disponible para arrancar ahora y qué va a llegar más adelante,
-          una vez que termine el paso anterior. Arrastrá el ⠿ para cambiar qué se hace primero, y
-          clickeá una pieza para ver su detalle completo — qué operación es, y si está asignada.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Planificación"
+        descripcion="Colas por centro: qué se puede hacer ahora en cada centro y qué va a llegar cuando termine el paso anterior. Arrastrá ⠿ para cambiar qué se hace primero; tocá una pieza para ver su detalle."
+      >
+        <PestanasPlanificacion actual="/centros-trabajo" />
+      </PageHeader>
 
       {sinCentro > 0 && (
         <div className="badge-estado badge-pendiente text-sm px-3 py-2 flex flex-wrap items-center justify-between gap-2">

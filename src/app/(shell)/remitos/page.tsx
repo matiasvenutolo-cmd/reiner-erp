@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { PestanasTercerizados } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { listarRemitos } from "@/lib/data/remitos";
 
@@ -6,13 +8,9 @@ export default async function RemitosPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/tercerizados" className="text-sm text-accent hover:underline">
-          ← Tercerizados
-        </Link>
-        <h1 className="text-xl font-semibold mt-1">Remitos</h1>
-        <p className="text-sm text-foreground-muted mt-1">Se arman desde Tercerizados.</p>
-      </div>
+      <PageHeader titulo="Tercerizados" descripcion="Remitos: todos los envíos registrados. Un remito nuevo se arma en Envíos y vueltas.">
+        <PestanasTercerizados actual="/remitos" />
+      </PageHeader>
 
       {remitos.length === 0 ? (
         <div className="bg-surface border border-border rounded-lg p-6 text-center text-foreground-muted text-sm">

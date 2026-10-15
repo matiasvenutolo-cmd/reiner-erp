@@ -30,7 +30,7 @@ export default async function LoginPage({
         )}
 
         <div className="bg-surface border border-border rounded-lg p-5 space-y-4">
-          <h2 className="text-sm font-semibold">Ingeniería, dirección y taller</h2>
+          <h2 className="text-sm font-semibold">Oficina — ingeniería, dirección, taller y compras</h2>
           <form action={iniciarSesionStaffAction} className="space-y-3">
             <input
               name="email"

@@ -47,3 +47,23 @@ export const getUsuarioActual = cache(async (): Promise<Usuario> => {
   if (!usuario || !usuario.activo) redirect("/login");
   return usuario;
 });
+
+/**
+ * Para las acciones de planta (OT, taller, planificación, stock, tercerizados,
+ * maestros, usuarios…): igual que `getUsuarioActual`, pero rechaza el perfil
+ * Compras (Fase 3.2). Una server action se puede invocar por POST directo,
+ * así que el límite del perfil nuevo no puede depender sólo del menú. Para
+ * los perfiles que ya existían el resultado es idéntico al de antes.
+ */
+export async function getUsuarioDePlanta(): Promise<Usuario> {
+  const usuario = await getUsuarioActual();
+  if (usuario.rol === "compras") throw new Error("No autorizado.");
+  return usuario;
+}
+
+/** Acciones del módulo de Compras: sólo el perfil Compras (ver docs/06 §26). */
+export async function getUsuarioDeCompras(): Promise<Usuario> {
+  const usuario = await getUsuarioActual();
+  if (usuario.rol !== "compras") throw new Error("No autorizado.");
+  return usuario;
+}

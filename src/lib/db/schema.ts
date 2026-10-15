@@ -20,6 +20,7 @@ import {
   boolean,
   timestamp,
   date,
+  numeric,
   primaryKey,
   pgEnum,
 } from "drizzle-orm/pg-core";
@@ -36,6 +37,8 @@ export const rolUsuarioEnum = pgEnum("rol_usuario", [
   "taller",
   "ingenieria",
   "direccion",
+  // Fase 3.2: perfil de Compras (Lucio) — sólo el módulo de Compras y Proveedores.
+  "compras",
 ]);
 
 export const tipoModeloEnum = pgEnum("tipo_modelo", ["RD", "PS"]);
@@ -136,6 +139,13 @@ export const proveedor = pgTable("proveedor", {
   razonSocial: text("razon_social").notNull(),
   rubro: text("rubro"),
   condicion: text("condicion"),
+  // Fase 3.2 — datos que pidió el cliente para el registro de proveedores. Todos opcionales.
+  cuit: text("cuit"),
+  contacto: text("contacto"),
+  condicionPago: text("condicion_pago"),
+  direccion: text("direccion"),
+  horario: text("horario"),
+  observaciones: text("observaciones"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -518,6 +528,105 @@ export const pedidoCompra = pgTable("pedido_compra", {
 });
 
 /**
+ * Gestión de Compras (Fase 3.2). Una solicitud es algo que hay que comprar:
+ * una necesidad de una orden de trabajo (origen "orden_trabajo", cuelga de la
+ * OT de pieza y no copia sus datos) o una compra general de la empresa
+ * (insumos, herramientas). Tiene sus cotizaciones alternativas; la elegida a
+ * mano por Compras es la única que cuenta como compra prevista. Las fechas
+ * son conceptos distintos y se guardan por separado: necesidad del material,
+ * compra prevista, confirmación al proveedor, recepción y pago.
+ */
+export const origenSolicitudEnum = pgEnum("origen_solicitud_compra", ["orden_trabajo", "general"]);
+export const monedaEnum = pgEnum("moneda", ["ARS", "USD", "EUR"]);
+
+export const solicitudCompra = pgTable("solicitud_compra", {
+  id: id(),
+  numero: integer("numero").notNull().unique(),
+  origen: origenSolicitudEnum("origen").notNull(),
+  otPiezaId: text("ot_pieza_id").references(() => otPieza.id),
+  descripcion: text("descripcion").notNull(),
+  cantidad: numeric("cantidad", { precision: 14, scale: 3, mode: "number" }).notNull(),
+  unidad: text("unidad"),
+  observacion: text("observacion"),
+  /** Cuándo se necesita el material — la carga Compras con lo que indique Producción (no se calcula). */
+  fechaNecesidad: date("fecha_necesidad"),
+  cotizacionElegidaId: text("cotizacion_elegida_id"),
+  /** Programación: cuándo se prevé hacer la compra y cuándo pagarla. */
+  fechaCompraPrevista: date("fecha_compra_prevista"),
+  fechaPagoPrevista: date("fecha_pago_prevista"),
+  /** Compra confirmada al proveedor. En una necesidad de OT crea el pedido de Stock → Compras. */
+  confirmadaAt: timestamp("confirmada_at"),
+  pedidoCompraId: text("pedido_compra_id").references(() => pedidoCompra.id),
+  anuladaAt: timestamp("anulada_at"),
+  creadoPorId: text("creado_por_id")
+    .notNull()
+    .references(() => usuario.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const cotizacionCompra = pgTable("cotizacion_compra", {
+  id: id(),
+  solicitudId: text("solicitud_id")
+    .notNull()
+    .references(() => solicitudCompra.id),
+  proveedorId: text("proveedor_id")
+    .notNull()
+    .references(() => proveedor.id),
+  cantidad: numeric("cantidad", { precision: 14, scale: 3, mode: "number" }).notNull(),
+  precioUnitario: numeric("precio_unitario", { precision: 16, scale: 2, mode: "number" }).notNull(),
+  moneda: monedaEnum("moneda").notNull(),
+  /** Pesos por unidad de moneda extranjera, tal como se usó al cargarla — no cambia sola. */
+  tipoCambio: numeric("tipo_cambio", { precision: 16, scale: 4, mode: "number" }),
+  tipoCambioMoneda: monedaEnum("tipo_cambio_moneda"),
+  tipoCambioFecha: date("tipo_cambio_fecha"),
+  tipoCambioFuente: text("tipo_cambio_fuente"),
+  tiempoEntregaDias: integer("tiempo_entrega_dias"),
+  condicionPago: text("condicion_pago"),
+  observaciones: text("observaciones"),
+  fechaConfirmacionPosible: date("fecha_confirmacion_posible"),
+  fecha: date("fecha").notNull(),
+  usuarioId: text("usuario_id")
+    .notNull()
+    .references(() => usuario.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
+ * Entrega de una compra general, con su control OK / NO OK (puede haber una NO
+ * OK y después otra OK). La de una necesidad de OT se sigue registrando como
+ * llegada de su pedido (movimiento de stock con control), como siempre.
+ */
+export const recepcionCompra = pgTable("recepcion_compra", {
+  id: id(),
+  solicitudId: text("solicitud_id")
+    .notNull()
+    .references(() => solicitudCompra.id),
+  fecha: date("fecha").notNull(),
+  resultado: resultadoControlEnum("resultado").notNull(),
+  observacion: text("observacion"),
+  usuarioId: text("usuario_id")
+    .notNull()
+    .references(() => usuario.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/** Pago de una compra: recién acá el gasto se considera efectuado (definición del cliente). */
+export const pagoCompra = pgTable("pago_compra", {
+  id: id(),
+  solicitudId: text("solicitud_id")
+    .notNull()
+    .references(() => solicitudCompra.id),
+  fecha: date("fecha").notNull(),
+  importe: numeric("importe", { precision: 16, scale: 2, mode: "number" }).notNull(),
+  moneda: monedaEnum("moneda").notNull(),
+  observacion: text("observacion"),
+  usuarioId: text("usuario_id")
+    .notNull()
+    .references(() => usuario.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
  * Planificación semanal (Release 3, docs/06-backlog-release-3.md §4):
  * "asignar un trabajo específico a una persona, para un día determinado,
  * con anticipación (ej. planificar toda la semana siguiente)". Asigna una
@@ -746,3 +855,7 @@ export type Cliente = typeof cliente.$inferSelect;
 export type Proveedor = typeof proveedor.$inferSelect;
 export type ReservaStock = typeof reservaStock.$inferSelect;
 export type PedidoCompra = typeof pedidoCompra.$inferSelect;
+export type SolicitudCompra = typeof solicitudCompra.$inferSelect;
+export type CotizacionCompra = typeof cotizacionCompra.$inferSelect;
+export type PagoCompra = typeof pagoCompra.$inferSelect;
+export type RecepcionCompra = typeof recepcionCompra.$inferSelect;

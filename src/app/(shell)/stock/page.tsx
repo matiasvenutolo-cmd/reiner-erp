@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { PestanasStock } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import {
   getResumenWipEnCursoPorProceso,
@@ -57,14 +59,18 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold">Stock</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          Cada unidad está en uno de estos lugares: en el <strong>almacén</strong> (libre o ya comprometida para una máquina
-          vendida), <strong>en fabricación</strong> (stock futuro: va a entrar cuando termine su hoja de ruta) o en{" "}
-          <strong>compras</strong> (pendiente de pedir, o pedida y esperando que llegue).
-        </p>
-      </div>
+      <PageHeader
+        titulo="Stock"
+        descripcion={
+          <>
+            Cada unidad está en uno de estos lugares: en el <strong>almacén</strong> (libre, o reservada para una máquina vendida),{" "}
+            <strong>en fabricación</strong> (entra al almacén cuando termina su hoja de ruta) o en <strong>compras</strong> (por pedir o
+            pedida, esperando que llegue).
+          </>
+        }
+      >
+        <PestanasStock actual="/stock" />
+      </PageHeader>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <MetricCard label="En almacén, libres para usar" value={libre} href="/stock/finalizado" />

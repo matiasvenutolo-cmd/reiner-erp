@@ -1452,3 +1452,124 @@ gastos. Propuesta (sin construir):
 Decisiones que faltan: ¿sólo compras ligadas a OT o también compras generales (insumos,
 herramientas)?; moneda y tipo de cambio; si el gasto "efectuado" es la recepción, la factura
 o el pago; si una compra necesita aprobación y de quién; qué datos del proveedor hacen falta.
+
+## 26 · Fase 3.2 — Rediseño de usabilidad, módulo de Compras y manual (2026-10-15)
+
+Pedido: el sistema es difícil de entender para quien no participó del desarrollo → cambio
+fuerte de la experiencia de uso; Compras es prioritario (Lucio); manual de 2 páginas.
+**Regla crítica del pedido: los permisos aprobados no se tocan**, salvo agregar el acceso de
+Compras para Lucio.
+
+### Permisos — verificación
+- Foto de la matriz de rutas por perfil antes de tocar nada (`rutaPermitida` × 42 rutas ×
+  operario/taller/ingeniería/dirección) y comparación al final: **0 diferencias** en los
+  perfiles existentes. Home de cada perfil y quién edita maestros, iguales.
+- Perfil nuevo `compras` (valor agregado al enum `rol_usuario`): entra con email y
+  contraseña, su inicio es `/compras` y sólo abre `/compras*` y `/proveedores*`
+  (Proveedores ya era de ingeniería, dirección y taller; se le suma Compras). Lucio se da de
+  alta desde Usuarios eligiendo el perfil Compras (no se creó su usuario: lo crea REINER con
+  su propia contraseña).
+- **Hallazgo:** casi todas las acciones de planta sólo rechazaban al rol `operario` (y varias
+  de OT ni eso): un perfil nuevo las habría pasado. Se agregó `getUsuarioDePlanta()`
+  (session.ts) en todas las acciones de planta — para los perfiles existentes devuelve lo
+  mismo que antes; sólo rechaza `compras`. Las acciones de Compras exigen el perfil
+  `compras` (`getUsuarioDeCompras`). Además, en esta versión de Next una acción no se
+  encuentra si se la llama desde una ruta que no la usa (probado: "Failed to find Server
+  Action"), y el proxy no deja a Compras entrar a rutas de planta.
+- Única restricción nueva sobre algo existente: un pedido de Stock → Compras **creado por el
+  módulo de Compras** no se puede cancelar desde Stock (dejaría la compra inconsistente); los
+  pedidos hechos desde Stock se cancelan como siempre.
+
+### Rediseño de usabilidad
+- **Menú por área de trabajo** (Producción, Materiales, Seguimiento, Administración) con
+  íconos y la sección actual siempre marcada. Las vistas que miraban lo mismo pasaron a ser
+  **pestañas de una sola sección**: Órdenes de trabajo (Órdenes · Todas las piezas · Avance
+  de máquinas), Planificación (Plan por día · Colas por centro), Stock (Resumen · Almacén · En
+  fabricación · Compras de producción), Tercerizados (Envíos y vueltas · Remitos). De 8
+  entradas de trabajo a 6, sin quitar ninguna pantalla (las rutas siguen iguales:
+  `enMenu: false` en nav.ts).
+- **Encabezado único** (`PageHeader`) en todas las pantallas: migas para saber dónde se está
+  y volver sin perder el contexto, título, para qué sirve la pantalla en una línea y la
+  acción principal a la derecha. "Maestros" se muestra como "Piezas y hojas de ruta".
+- **Inicio = "qué hay que hacer hoy"**: tarjetas con cantidad, explicación y botón directo
+  (piezas frenadas, sin enviar a producción, operaciones para planificar, sin centro, para
+  tercerizar, esperando vuelta, compras sin pedir, retrabajos, stock bajo). Sólo datos que
+  ya calculaban otras pantallas.
+- Botones, avisos y estados vacíos comunes (`.btn`, `Aviso`, `Vacio`), y **confirmación**
+  antes de operaciones importantes (enviar a producción, confirmar compra, anular, quitar
+  cotización, eliminar pago, cancelar pedido).
+- Planificación: lo que se puede asignar ya queda abierto (antes había que desplegarlo).
+- Corregido de paso: "· null" en órdenes sin cliente, "Enviar las 1 restantes".
+
+### Módulo de Compras (perfil Compras)
+- Tablas nuevas: `solicitud_compra` (origen orden de trabajo o general; cuelga de la OT de
+  pieza sin copiar sus datos), `cotizacion_compra`, `recepcion_compra` (entregas de compras
+  generales), `pago_compra`. Proveedor: CUIT, contacto, condición de pago, dirección,
+  horario y observaciones (todo opcional).
+- **Bandeja** (`/compras`) ordenada por el circuito: necesidades de producción → para
+  cotizar → para elegir → para confirmar → esperando entrega → recibidas falta pagar, con el
+  conteo de cada paso y la siguiente acción en cada fila. Las necesidades salen de la misma
+  lista que Stock → Compras (piezas de compra sin stock y material de piezas en su paso de
+  Compras), sin las que ya tienen compra abierta o pedido.
+- **Ficha de la compra**: qué se compra (y de qué orden viene), fechas separadas
+  (necesidad, compra prevista, pago previsto, confirmación, entrega prevista = confirmación
+  + plazo cotizado, recibida, pagada), **cotizaciones lado a lado** con todos los datos
+  pedidos, y los tres pasos: confirmar, entrega (OK / NO OK), pago (total o parcial).
+- **Decisión de compra**: la toma Compras eligiendo una cotización (se puede deshacer hasta
+  confirmar o pagar). El sistema no adjudica solo. Confirmar una necesidad de OT crea su
+  pedido en Stock → Compras y la entrega OK cierra el paso de Compras de la pieza (la misma
+  llegada de siempre).
+- **Monedas**: ARS, USD, EUR. La conversión usa la cotización oficial del BCRA (API de
+  Estadísticas Cambiarias, `src/lib/tipo-cambio.ts`) del día de la cotización —o el último
+  día hábil anterior—, y se guardan valor, fecha y fuente en la cotización: el importe
+  convertido no cambia solo. Si la API no responde, queda "sin conversión" con un botón para
+  completarlo después; nunca un valor inventado.
+- **Gastos futuros** (`/compras/gastos`): sólo la cotización elegida con saldo sin pagar,
+  agrupada por mes de pago previsto (sin fecha → grupo aparte), con total en pesos y por
+  moneda original. Las alternativas en cotización se listan aparte y **no se suman**.
+  **Pagos realizados** (`/compras/pagos`): el gasto efectuado = pagado (definición del
+  cliente); recibir, confirmar o elegir no lo marcan.
+- **Proveedores**: listado con búsqueda y ficha nueva con dos indicadores trazables, sin
+  puntaje inventado: entregas OK / NO OK (llegadas de compras, vueltas de tercerizados,
+  ingresos con control y entregas de compras generales) y cumplimiento de plazos (días
+  acordados en la cotización elegida contra días reales confirmación → entrega OK). Sin
+  datos, lo dice.
+- No hay aprobaciones ni topes por importe (pedido explícito).
+
+### Pruebas
+- Escenario temporal (OT TEST-F32 con una pieza esperando material, usuario de prueba con
+  perfil Compras) recorrido en el navegador: necesidad → compra → 2 cotizaciones (USD y ARS,
+  conversión verificada: US$ 482 × 1.513 = $ 729.266) → elegir → gastos futuros suma sólo la
+  elegida → confirmar (pedido creado en Stock → Compras, entrega prevista +10 días) → entrega
+  NO OK y luego OK (cierra el paso de Compras de la pieza: 4 OK) → pago parcial. Compra
+  general en EUR con tipo de cambio de su propia fecha (02/10: 1.710,76), proveedor nuevo con
+  todos los datos, entrega con +5 días de atraso reflejada en su ficha.
+- Script de reglas (23 comprobaciones OK): pagar o confirmar sin elegir, cotización sin
+  proveedor o en 0, pagar más que el saldo, cambiar de cotización con pagos, recibir antes de
+  confirmar o dos veces, cotizar/anular/cambiar cantidad después de confirmar (rechazados);
+  3 alternativas suman una sola vez; recibida con saldo sigue como gasto futuro; pagada del
+  todo pasa a pagos realizados; anular sin confirmar.
+- Recorrido de 22 pantallas en escritorio y celular como Dirección (44 vistas): sin errores
+  ni desborde horizontal; Dirección no entra a Compras. Enviar a producción con el control
+  nuevo funciona.
+- Todo el escenario de prueba se borró al terminar.
+
+### Pendiente de definición del cliente
+1. **Cotización oficial a usar**: hoy es la que publica el BCRA para cada moneda (la de
+   referencia para el dólar). ¿Es esa, o prefieren el billete vendedor del Banco Nación u
+   otra? Se cambia en un solo lugar.
+2. **Fecha de necesidad**: no hay una regla en el sistema para calcularla (la planificación
+   es manual y por operación). Hoy la carga Compras, y la ficha muestra como referencia la
+   primera operación que Producción planificó para esa pieza. Propuesta: que Producción la
+   cargue al enviar la pieza a producción — implica darle a ingeniería/taller una acción
+   nueva sobre Compras, y por la regla de permisos no se hizo.
+3. **¿Dirección (u otros perfiles) deben ver Compras y Gastos futuros?** Hoy sólo el perfil
+   Compras; agregarlo sería ampliar permisos aprobados.
+4. **¿Quién pide las compras de producción?** Producción todavía puede marcar pedidos en
+   Stock → Compras sin pasar por cotizaciones (se avisa si Compras ya la está cotizando).
+   Definir si queda así o todo pasa por Compras.
+5. **Precio de la cotización**: se carga por unidad y el total es cantidad × precio. Confirmar
+   que los proveedores cotizan así (si no, hace falta un campo de total).
+6. **Pagos en moneda extranjera**: se registran en la moneda de la cotización; el equivalente
+   en pesos usa el tipo de cambio de la cotización, no el del día del pago.
+7. Aprobaciones por monto: quedan para más adelante, como pidió el cliente.

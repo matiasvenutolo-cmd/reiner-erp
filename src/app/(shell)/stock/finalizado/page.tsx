@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { PestanasStock } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { getPiezasFinalizadas } from "@/lib/data/stock";
 import { getConjuntos, getConfiguraciones } from "@/lib/data/maestros";
@@ -23,16 +25,12 @@ export default async function StockFinalizadoPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/stock" className="text-sm text-accent hover:underline">
-          ← Stock
-        </Link>
-        <h1 className="text-xl font-semibold mt-1">En almacén</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          Existencias físicas reales: {piezas.length} pieza{piezas.length === 1 ? "" : "s"} distinta{piezas.length === 1 ? "" : "s"} ·{" "}
-          {totalUnidades} unidades, de las cuales {totalComprometido} ya están comprometidas para una máquina vendida.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Stock"
+        descripcion={`Almacén: existencias físicas reales. ${piezas.length} pieza${piezas.length === 1 ? "" : "s"} distinta${piezas.length === 1 ? "" : "s"} · ${totalUnidades} unidades, ${totalComprometido} ya reservadas para una máquina vendida.`}
+      >
+        <PestanasStock actual="/stock/finalizado" />
+      </PageHeader>
 
       <FiltrosStock
         conjuntos={conjuntos.map((c) => ({ id: c.id, nombre: c.nombre }))}

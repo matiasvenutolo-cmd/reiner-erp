@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { getUsuarioActual } from "@/lib/session";
+import { getUsuarioDePlanta } from "@/lib/session";
 import { registrarIngreso } from "@/lib/data/logistica";
 import { registrarVueltaTercerizado } from "@/lib/data/compras";
 
@@ -14,7 +14,7 @@ function revalidar() {
 }
 
 export async function registrarIngresoAction(formData: FormData) {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
 
   const piezaId = String(formData.get("piezaId") ?? "");
   const cantidad = Number(formData.get("cantidad"));
@@ -41,7 +41,7 @@ export async function registrarIngresoAction(formData: FormData) {
 }
 
 export async function registrarVueltaAction(formData: FormData) {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   if (usuario.rol === "operario") throw new Error("No autorizado.");
   try {
     const cantidad = Number(formData.get("cantidad"));

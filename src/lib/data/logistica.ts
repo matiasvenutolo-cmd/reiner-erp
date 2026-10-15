@@ -24,12 +24,21 @@ export async function getProveedores(): Promise<Proveedor[]> {
  * hasta ahora sólo tenía los 3 de demo sembrados: se usan los mismos campos,
  * sin agregar obligatorios que el cliente no definió.
  */
-export type DatosProveedor = { razonSocial: string; rubro: string; condicion: string };
+export const CAMPOS_PROVEEDOR = ["rubro", "condicion", "cuit", "contacto", "condicionPago", "direccion", "horario", "observaciones"] as const;
+export type DatosProveedor = { razonSocial: string } & Partial<Record<(typeof CAMPOS_PROVEEDOR)[number], string>>;
 
+/** Fase 3.2: además de razón social, rubro y condición, CUIT, contacto, condición de pago,
+ * dirección, horario de atención y observaciones — todos opcionales salvo la razón social. */
 function limpiarProveedor(datos: DatosProveedor) {
   const razonSocial = datos.razonSocial.trim();
   if (!razonSocial) throw new Error("Falta la razón social.");
-  return { razonSocial, rubro: datos.rubro.trim() || null, condicion: datos.condicion.trim() || null };
+  const resto = Object.fromEntries(CAMPOS_PROVEEDOR.map((c) => [c, datos[c]?.trim() || null])) as Record<(typeof CAMPOS_PROVEEDOR)[number], string | null>;
+  return { razonSocial, ...resto };
+}
+
+export async function getProveedor(id: string): Promise<Proveedor | undefined> {
+  const [p] = await db.select().from(proveedor).where(eq(proveedor.id, id));
+  return p;
 }
 
 async function exigirNombreLibre(razonSocial: string, excluirId?: string) {
@@ -37,16 +46,19 @@ async function exigirNombreLibre(razonSocial: string, excluirId?: string) {
   if (mismos.some((p) => p.id !== excluirId)) throw new Error(`Ya hay un proveedor "${razonSocial}".`);
 }
 
-export async function crearProveedor(datos: DatosProveedor): Promise<void> {
+export async function crearProveedor(datos: DatosProveedor): Promise<string> {
   const limpio = limpiarProveedor(datos);
   await exigirNombreLibre(limpio.razonSocial);
-  await db.insert(proveedor).values(limpio);
+  const [nuevo] = await db.insert(proveedor).values(limpio).returning({ id: proveedor.id });
+  return nuevo.id;
 }
 
+/** Sólo se actualizan los campos que vienen (la razón social siempre). */
 export async function actualizarProveedor(id: string, datos: DatosProveedor): Promise<void> {
   const limpio = limpiarProveedor(datos);
   await exigirNombreLibre(limpio.razonSocial, id);
-  await db.update(proveedor).set({ ...limpio, updatedAt: new Date() }).where(eq(proveedor.id, id));
+  const cambios = Object.fromEntries(Object.entries(limpio).filter(([k]) => k === "razonSocial" || k in datos));
+  await db.update(proveedor).set({ ...cambios, updatedAt: new Date() }).where(eq(proveedor.id, id));
 }
 
 export type MovimientoConDetalle = {

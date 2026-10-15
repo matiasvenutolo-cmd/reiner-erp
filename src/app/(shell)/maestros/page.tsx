@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/PageHeader";
 import Link from "next/link";
 import { getModelos, getConfiguraciones, contarPiezasPorConfiguracion } from "@/lib/data/maestros";
 
@@ -17,10 +18,10 @@ export default async function MaestrosPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Maestros</h1>
-        <p className="text-sm text-foreground-muted mt-1">Máquina → conjunto → pieza → operación.</p>
-      </div>
+      <PageHeader
+        titulo="Piezas y hojas de ruta"
+        descripcion="Los maestros: máquinas, sus conjuntos y piezas, y la hoja de ruta de cada pieza (qué operaciones lleva y dónde se hacen). Elegí una máquina para empezar."
+      />
 
       <div className="space-y-6">
         {modelos.map((m) => (

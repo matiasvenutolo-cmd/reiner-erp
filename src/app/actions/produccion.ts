@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getUsuarioActual } from "@/lib/session";
+import { getUsuarioDePlanta } from "@/lib/session";
 import { reordenarCola, asignarCentrosTrabajo } from "@/lib/data/produccion";
 
 /** Reordena la cola de "disponible ahora" de un centro a partir de un
@@ -9,7 +9,7 @@ import { reordenarCola, asignarCentrosTrabajo } from "@/lib/data/produccion";
  * Release 2, ver docs/06-backlog-release-3.md §13: "se consideró incómodo
  * ese mecanismo"). Recibe la lista completa ya reordenada, no un solo paso. */
 export async function reordenarColaAction(centroTrabajoId: string, ordenOtPiezaIds: string[]) {
-  await getUsuarioActual(); // exige sesión válida
+  await getUsuarioDePlanta(); // exige sesión válida
   if (!centroTrabajoId || ordenOtPiezaIds.length === 0) return;
   await reordenarCola(centroTrabajoId, ordenOtPiezaIds);
   revalidatePath("/centros-trabajo");
@@ -23,7 +23,7 @@ export async function reordenarColaAction(centroTrabajoId: string, ordenOtPiezaI
  * siempre la lista final completa (reemplaza, no suma/resta).
  */
 export async function asignarCentroTrabajoAction(formData: FormData) {
-  await getUsuarioActual();
+  await getUsuarioDePlanta();
   const usuarioId = String(formData.get("usuarioId") ?? "");
   const centroTrabajoIds = formData.getAll("centroTrabajoId").map(String).filter(Boolean);
   if (!usuarioId) throw new Error("Falta el usuario.");

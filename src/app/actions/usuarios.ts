@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getUsuarioActual } from "@/lib/session";
+import { getUsuarioDePlanta } from "@/lib/session";
 import {
   crearUsuario,
   actualizarRolUsuario,
@@ -10,13 +10,14 @@ import {
 } from "@/lib/data/usuarios";
 import type { Usuario } from "@/lib/db/schema";
 
-const ROLES_VALIDOS: Usuario["rol"][] = ["operario", "taller", "ingenieria", "direccion"];
+// "compras" (Fase 3.2): para dar de alta a Lucio con su perfil, el único acceso nuevo pedido por el cliente.
+const ROLES_VALIDOS: Usuario["rol"][] = ["operario", "taller", "ingenieria", "direccion", "compras"];
 
 /** Gestión de accesos (docs/05-backlog-release-2.md §5, §6): "operario" queda
  * afuera aunque proxy.ts ya lo bloquea por ruta — cada Server Action valida
  * su propia autorización, no sólo el gate de navegación. */
 async function exigirGestorDeAccesos() {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   if (usuario.rol === "operario") throw new Error("No autorizado.");
   return usuario;
 }
@@ -33,7 +34,7 @@ export async function crearUsuarioAction(formData: FormData) {
     throw new Error("Faltan datos obligatorios: nombre, rol y contraseña/PIN.");
   }
   if (rol !== "operario" && !email) {
-    throw new Error("Ingeniería, dirección y taller necesitan email para entrar.");
+    throw new Error("Salvo los operarios, todos necesitan email para entrar.");
   }
 
   await crearUsuario({ nombre, rol, email: rol === "operario" ? undefined : email, secreto });

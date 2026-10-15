@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/PageHeader";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getConfiguracion, getResumenConjuntosDeConfiguracion } from "@/lib/data/maestros";
@@ -12,13 +13,11 @@ export default async function ConfiguracionPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/maestros" className="text-sm text-accent hover:underline">
-          ← Maestros
-        </Link>
-        <h1 className="text-xl font-semibold mt-1">{configuracion.nombre}</h1>
-        <p className="text-sm text-foreground-muted">{configuracion.codigo}</p>
-      </div>
+      <PageHeader
+        migas={[{ href: "/maestros", label: "Piezas y hojas de ruta" }, { label: configuracion.nombre }]}
+        titulo={configuracion.nombre}
+        descripcion={`${configuracion.codigo} · elegí un conjunto para ver sus piezas.`}
+      />
 
       <div className="bg-surface border border-border rounded-lg overflow-hidden">
         <table className="w-full text-sm">

@@ -1,3 +1,6 @@
+import { Aviso } from "@/components/ui/Aviso";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { PestanasTercerizados } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { buscarPiezas } from "@/lib/data/maestros";
 import { getStockDisponible } from "@/lib/data/stock";
@@ -43,24 +46,14 @@ export default async function TercerizadosPage({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Tercerizados</h1>
-          <p className="text-sm text-foreground-muted mt-1">
-            Piezas que salen a un proceso tercerizado (Cromado, Pavonado, Anodizado...) y vuelven.
-            Las compras a proveedores se manejan desde{" "}
-            <Link href="/stock/compras" className="text-accent hover:underline">
-              Stock → Compras
-            </Link>
-            .
-          </p>
-        </div>
-        <Link href="/remitos" className="text-sm text-accent hover:underline whitespace-nowrap">
-          Ver remitos anteriores →
-        </Link>
-      </div>
+      <PageHeader
+        titulo="Tercerizados"
+        descripcion="Piezas que salen a un proceso de un proveedor (Cromado, Pavonado, Anodizado…) y vuelven. Se mandan con remito y, al volver, se registra la vuelta con su control."
+      >
+        <PestanasTercerizados actual="/tercerizados" />
+      </PageHeader>
 
-      {error && <div className="badge-estado badge-alerta text-sm px-3 py-2 block">{error}</div>}
+      {error && <Aviso tipo="error">{error}</Aviso>}
 
       <div id="esperando">
         <h2 className="text-sm font-semibold mb-1">Afuera, esperando que vuelvan ({afuera.length})</h2>

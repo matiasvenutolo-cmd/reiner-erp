@@ -1,13 +1,7 @@
 "use client";
 
 import type { Usuario } from "@/lib/db/schema";
-
-const ROL_LABEL: Record<string, string> = {
-  operario: "Operario",
-  taller: "Taller",
-  ingenieria: "Ingeniería",
-  direccion: "Dirección",
-};
+import { ROL_LABEL } from "@/lib/nav";
 
 /** Select de rol que dispara el submit del form al cambiar — usado en
  * /usuarios para cambiar el rol de un usuario en un solo toque. */

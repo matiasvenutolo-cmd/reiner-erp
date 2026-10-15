@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Aviso } from "@/components/ui/Aviso";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { getConfiguraciones, getModelos, getConjuntos, getPiezasPorConfiguracion } from "@/lib/data/maestros";
 import { getUsuarioActual } from "@/lib/session";
 import { getClientes } from "@/lib/data/clientes";
@@ -114,14 +115,13 @@ export default async function NuevaOtPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="max-w-xl space-y-6">
-      <div>
-        <Link href="/ot" className="text-sm text-accent hover:underline">
-          ← Órdenes de trabajo
-        </Link>
-        <h1 className="text-xl font-semibold mt-1">Generar orden de trabajo</h1>
-      </div>
+      <PageHeader
+        migas={[{ href: "/ot", label: "Órdenes de trabajo" }, { label: "Generar orden" }]}
+        titulo="Generar orden de trabajo"
+        descripcion="De una máquina completa, o sólo de un conjunto o una pieza (repuestos, mantenimiento). El sistema cruza con el stock y reserva lo que ya hay."
+      />
 
-      {error && <div className="badge-estado badge-alerta text-sm px-3 py-2 block">{error}</div>}
+      {error && <Aviso tipo="error">{error}</Aviso>}
 
       <FormTabs maquina={formaMaquina} suelta={formaSuelta} />
     </div>

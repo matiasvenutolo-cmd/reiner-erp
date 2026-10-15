@@ -1,7 +1,12 @@
+import { Aviso } from "@/components/ui/Aviso";
+import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { PestanasStock } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { getPiezasCompraPendientes } from "@/lib/data/produccion";
 import { getPedidosPendientes } from "@/lib/data/compras";
 import { getProveedores } from "@/lib/data/logistica";
+import { getSolicitudesAbiertasPorOtPieza } from "@/lib/data/gestion-compras";
 import { marcarPedidoAction, cancelarPedidoAction, registrarLlegadaAction } from "@/app/actions/stock";
 import type { Proveedor } from "@/lib/db/schema";
 
@@ -16,7 +21,12 @@ export const dynamic = "force-dynamic";
  */
 export default async function ComprasPage({ searchParams }: { searchParams: Promise<{ ot?: string; error?: string }> }) {
   const { ot, error } = await searchParams;
-  const [pendientes, pedidos, proveedores] = await Promise.all([getPiezasCompraPendientes(), getPedidosPendientes(), getProveedores()]);
+  const [pendientes, pedidos, proveedores, enCompras] = await Promise.all([
+    getPiezasCompraPendientes(),
+    getPedidosPendientes(),
+    getProveedores(),
+    getSolicitudesAbiertasPorOtPieza(),
+  ]);
 
   const pedidoPorOtPieza = new Set(pedidos.map((p) => p.otPiezaId));
   const operacionCompraPorOtPieza = new Map(pendientes.map((p) => [p.otPiezaId, p.operacionCompraId]));
@@ -26,18 +36,14 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-8">
-      <div>
-        <Link href="/stock" className="text-sm text-accent hover:underline">
-          ← Stock
-        </Link>
-        <h1 className="text-xl font-semibold mt-1">Compras</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          Lo que falta comprar para las OT abiertas: primero se marca como pedido (a qué proveedor) y cuando llega se
-          registra con su control de calidad.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Stock"
+        descripcion="Compras de producción: lo que falta comprar para las órdenes abiertas. Se marca como pedido (a qué proveedor) y, cuando llega, se registra con su control de calidad."
+      >
+        <PestanasStock actual="/stock/compras" />
+      </PageHeader>
 
-      {error && <div className="badge-estado badge-alerta text-sm px-3 py-2 block">{error}</div>}
+      {error && <Aviso tipo="error">{error}</Aviso>}
 
       <div>
         <h2 className="text-sm font-semibold mb-2">Pedidas, esperando que lleguen ({pedidos.length})</h2>
@@ -65,7 +71,10 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                       <div className="text-xs text-foreground-muted">{p.tipoPieza === "comprada" ? "pieza de compra" : "material para fabricar"}</div>
                     </td>
                     <td className="px-4 py-2.5 font-mono text-xs">{p.otPiezaCodigo}</td>
-                    <td className="px-4 py-2.5 text-foreground-muted">{p.proveedorNombre ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-foreground-muted">
+                      {p.proveedorNombre ?? "—"}
+                      {p.observacion?.startsWith("Compra Nº") && <div className="text-xs">Confirmada por Compras ({p.observacion})</div>}
+                    </td>
                     <td className="px-4 py-2.5 text-foreground-muted whitespace-nowrap">{new Date(p.fechaPedido).toLocaleDateString("es-AR")}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums">{p.cantidad}</td>
                     <td className="px-4 py-2.5">
@@ -86,9 +95,9 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                       </form>
                       <form action={cancelarPedidoAction} className="mt-1">
                         <input type="hidden" name="pedidoId" value={p.id} />
-                        <button type="submit" className="text-xs text-foreground-muted hover:text-red-700 hover:underline">
+                        <ConfirmarBoton mensaje="¿Cancelar este pedido? Vuelve a quedar como pendiente de pedir." className="text-xs text-foreground-muted hover:text-red-700 hover:underline">
                           Cancelar pedido
-                        </button>
+                        </ConfirmarBoton>
                       </form>
                     </td>
                   </tr>
@@ -141,7 +150,15 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                         {p.otPiezaCodigo}
                       </Link>
                     </td>
-                    <td className="px-4 py-2.5 text-foreground-muted">{p.detalle}</td>
+                    <td className="px-4 py-2.5 text-foreground-muted">
+                      {p.detalle}
+                      {/* Aviso, no bloqueo: la puede estar cotizando Compras (Fase 3.2). */}
+                      {enCompras.has(p.otPiezaId) && (
+                        <div className="mt-1">
+                          <span className="badge-estado bg-accent-soft text-accent">Compras la está cotizando · Nº {enCompras.get(p.otPiezaId)}</span>
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5">
                       <form action={marcarPedidoAction} className="flex flex-wrap items-center gap-1.5">
                         <input type="hidden" name="otPiezaId" value={p.otPiezaId} />

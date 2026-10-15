@@ -6,7 +6,7 @@ import { getUsuario, getUsuarioPorEmail } from "@/lib/data/usuarios";
 import { verifySecret } from "@/lib/auth/hash";
 import { HOME_POR_ROL } from "@/lib/nav";
 
-/** Ingeniería, dirección y taller entran con email + contraseña. */
+/** Ingeniería, dirección, taller y compras entran con email + contraseña. */
 export async function iniciarSesionStaffAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");

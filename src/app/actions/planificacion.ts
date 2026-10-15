@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getUsuarioActual } from "@/lib/session";
+import { getUsuarioDePlanta } from "@/lib/session";
 import { asignarTrabajo, eliminarAsignacion } from "@/lib/data/planificacion";
 
 export async function asignarTrabajoAction(formData: FormData) {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   const otPiezaId = String(formData.get("otPiezaId") ?? "");
   const operacionId = String(formData.get("operacionId") ?? "");
   const operarioId = String(formData.get("operarioId") ?? "");
@@ -20,7 +20,7 @@ export async function asignarTrabajoAction(formData: FormData) {
 }
 
 export async function eliminarAsignacionAction(formData: FormData) {
-  await getUsuarioActual();
+  await getUsuarioDePlanta();
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("Falta la asignación.");
 

@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Aviso } from "@/components/ui/Aviso";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { notFound } from "next/navigation";
 import {
   getPieza,
@@ -68,20 +69,14 @@ export default async function PiezaPage({
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div>
-        <Link href="/maestros" className="text-sm text-accent hover:underline">
-          ← Maestros
-        </Link>
-        <h1 className="text-xl font-semibold mt-1">{pieza.nombre}</h1>
-        <p className="text-sm text-foreground-muted">
-          <span className="font-mono">{pieza.codigo}</span> · {conjunto?.nombre ?? pieza.conjuntoId}
-        </p>
-        {!editable && (
-          <p className="text-xs text-foreground-muted mt-1">Sólo lectura: los datos de la pieza y su hoja de ruta los modifica ingeniería.</p>
-        )}
-      </div>
+      <PageHeader
+        migas={[{ href: "/maestros", label: "Piezas y hojas de ruta" }, { label: pieza.codigo }]}
+        titulo={pieza.nombre}
+        descripcion={`${pieza.codigo} · ${conjunto?.nombre ?? pieza.conjuntoId}`}
+      />
+      {!editable && <Aviso tipo="info">Sólo lectura: los datos de la pieza y su hoja de ruta los modifica ingeniería.</Aviso>}
 
-      {error && <div className="badge-estado badge-alerta text-sm px-3 py-2 block">{error}</div>}
+      {error && <Aviso tipo="error">{error}</Aviso>}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Metric label="Modelo" value={modeloDeCodigo(pieza.codigo)} />

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { getUsuarioActual } from "@/lib/session";
+import { getUsuarioDePlanta } from "@/lib/session";
 import {
   actualizarMaterialPieza,
   actualizarRevisionPieza,
@@ -39,7 +39,7 @@ async function conErrorEnPieza(piezaId: string, fn: () => Promise<void>) {
 /** Chequeo del lado del servidor: una server action se puede invocar aunque
  * la pantalla no muestre el formulario, así que ocultarlo no alcanza. */
 async function exigirEditorMaestros() {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   if (!puedeEditarMaestros(usuario.rol)) throw new Error("No tenés permiso para modificar maestros.");
   return usuario;
 }
@@ -164,7 +164,7 @@ export async function moverOperacionAction(formData: FormData) {
 }
 
 export async function crearNotaPiezaAction(formData: FormData) {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   const piezaId = String(formData.get("piezaId") ?? "");
   const tipo = String(formData.get("tipo") ?? "");
   const texto = String(formData.get("texto") ?? "").trim();

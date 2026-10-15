@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { PestanasOt } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { listarOtMaquinas } from "@/lib/data/ot";
 import { EstadoBadge } from "@/components/EstadoBadge";
@@ -21,27 +23,22 @@ export default async function OtPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Órdenes de trabajo</h1>
-          <p className="text-sm text-foreground-muted mt-1">
-            Al generarse quedan en ingeniería; se envían a producción desde cada orden para que aparezcan en Planificación.
-          </p>
-        </div>
-        <Link href="/ot/nueva" className="bg-accent text-accent-foreground text-sm font-medium px-4 py-2 rounded-md hover:opacity-90 whitespace-nowrap">
-          + Generar orden
-        </Link>
-      </div>
+      <PageHeader
+        titulo="Órdenes de trabajo"
+        descripcion="Cada orden nace en ingeniería; cuando está lista se envía a producción y recién ahí aparece para planificar y en el taller."
+        acciones={
+          <Link href="/ot/nueva" className="btn">
+            + Generar orden
+          </Link>
+        }
+      >
+        <PestanasOt actual="/ot" />
+      </PageHeader>
 
       <Seccion
         titulo="OT Piezas"
         descripcion="Una pieza puntual (ej. un repuesto), sin fabricar un conjunto ni una máquina."
         vacio="No hay órdenes de pieza."
-        extra={
-          <Link href="/ot/piezas" className="text-sm text-accent hover:underline whitespace-nowrap">
-            Ver todas las piezas, también las de máquinas →
-          </Link>
-        }
       >
         {piezas.length > 0 && (
           <Tabla columnas={["OT", "Pieza", "Cliente", "Orden de compra", "Plazo", "Cantidad", "Estado"]}>

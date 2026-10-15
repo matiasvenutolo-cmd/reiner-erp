@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Aviso } from "@/components/ui/Aviso";
 import { getCentrosConUso, getTiposOperacion } from "@/lib/data/operaciones";
 import { crearCentroAction, renombrarCentroAction, eliminarCentroAction } from "@/app/actions/operaciones";
 import { DestinoOperacionSelect } from "@/components/DestinoOperacionSelect";
@@ -22,16 +24,13 @@ export default async function OperacionesPage({ searchParams }: { searchParams: 
 
   return (
     <div className="max-w-4xl space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold">Operaciones y centros de trabajo</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          Las operaciones son lo que cada pieza tiene que hacer; los centros de trabajo, dónde se hace. Acá se define dónde se hace
-          cada operación por defecto. Para una pieza puntual se puede elegir otro centro desde su hoja de ruta en Maestros.
-        </p>
-        {!editable && <p className="text-xs text-foreground-muted mt-1">Sólo lectura: esta configuración la modifica ingeniería.</p>}
-      </div>
+      <PageHeader
+        titulo="Operaciones y centros"
+        descripcion="Las operaciones son lo que cada pieza tiene que hacer; los centros, dónde se hace. Acá se define dónde se hace cada operación por defecto (una pieza puntual puede usar otro centro desde su hoja de ruta)."
+      />
+      {!editable && <Aviso tipo="info">Sólo lectura: esta configuración la modifica ingeniería.</Aviso>}
 
-      {error && <div className="badge-estado badge-alerta text-sm px-3 py-2 block">{error}</div>}
+      {error && <Aviso tipo="error">{error}</Aviso>}
 
       <section>
         <h2 className="text-base font-semibold mb-2">Centros de trabajo</h2>

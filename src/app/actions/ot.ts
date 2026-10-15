@@ -11,13 +11,14 @@ import {
   enviarAProduccion,
   getOtPiezaIdsSinEnviar,
 } from "@/lib/data/ot";
-import { getUsuarioActual } from "@/lib/session";
+import { getUsuarioDePlanta } from "@/lib/session";
 
 function volverANuevaCon(mensaje: string): never {
   redirect(`/ot/nueva?error=${encodeURIComponent(mensaje)}`);
 }
 
 export async function crearOtMaquinaAction(formData: FormData) {
+  await getUsuarioDePlanta();
   const configuracionId = String(formData.get("configuracionId") ?? "");
   const numeroSerie = String(formData.get("numeroSerie") ?? "").trim();
   const clienteId = String(formData.get("clienteId") ?? "").trim();
@@ -48,6 +49,7 @@ export async function crearOtMaquinaAction(formData: FormData) {
 }
 
 export async function actualizarCantidadAction(formData: FormData) {
+  await getUsuarioDePlanta();
   const otPiezaId = String(formData.get("otPiezaId") ?? "");
   const cantidad = Number(formData.get("cantidad") ?? 0);
   const otMaquinaId = String(formData.get("otMaquinaId") ?? "");
@@ -56,6 +58,7 @@ export async function actualizarCantidadAction(formData: FormData) {
 }
 
 export async function completarOtConjuntoAction(formData: FormData) {
+  await getUsuarioDePlanta();
   const otMaquinaId = String(formData.get("otMaquinaId") ?? "");
   const otConjuntoId = String(formData.get("otConjuntoId") ?? "");
   if (!otMaquinaId || !otConjuntoId) throw new Error("Faltan datos.");
@@ -65,6 +68,7 @@ export async function completarOtConjuntoAction(formData: FormData) {
 }
 
 export async function agregarPiezaSueltaAction(formData: FormData) {
+  await getUsuarioDePlanta();
   const otMaquinaId = String(formData.get("otMaquinaId") ?? "");
   const otConjuntoId = String(formData.get("otConjuntoId") ?? "");
   const piezaId = String(formData.get("piezaId") ?? "");
@@ -79,6 +83,7 @@ export async function agregarPiezaSueltaAction(formData: FormData) {
 }
 
 export async function crearOrdenSueltaAction(formData: FormData) {
+  await getUsuarioDePlanta();
   const configuracionId = String(formData.get("configuracionId") ?? "");
   const referencia = String(formData.get("referencia") ?? "").trim();
   const clienteId = String(formData.get("clienteId") ?? "").trim();
@@ -128,7 +133,7 @@ export async function crearOrdenSueltaAction(formData: FormData) {
  * taller le asigne día, operación y operario.
  */
 export async function enviarAProduccionAction(formData: FormData) {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   if (usuario.rol === "operario") throw new Error("No autorizado.");
   const otPiezaId = String(formData.get("otPiezaId") ?? "");
   const otConjuntoId = String(formData.get("otConjuntoId") ?? "");

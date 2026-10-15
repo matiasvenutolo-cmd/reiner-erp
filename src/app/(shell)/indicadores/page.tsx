@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/PageHeader";
 import { getResumenIndicadores, getParadasPorTipo, getTiempoPorOperario, getTiempoPorProceso } from "@/lib/data/indicadores";
 
 function fmtHoras(h: number): string {
@@ -14,13 +15,10 @@ export default async function IndicadoresPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold">Indicadores de fabricación</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          Tiempos, paradas y errores cargados desde el taller — no hace falta registrar nada
-          nuevo, se arma solo con lo que ya se carga ahí.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Indicadores"
+        descripcion="Tiempos, paradas y rechazos de fabricación. Se arman solos con lo que el taller carga en cada operación."
+      />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Metric label="Horas de fabricación" value={fmtHoras(resumen.horasEjecucion)} />

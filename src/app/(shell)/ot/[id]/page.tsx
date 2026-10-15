@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { notFound } from "next/navigation";
 import { getOtMaquinaDetalle } from "@/lib/data/ot";
 import { getPiezasPorIds, getPiezasPorConfiguracion } from "@/lib/data/maestros";
@@ -65,26 +66,23 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Link href="/ot" className="text-sm text-accent hover:underline">
-            ← Órdenes de trabajo
-          </Link>
-          <h1 className="text-xl font-semibold mt-1">{otMaquina.codigo}</h1>
-          <p className="text-sm text-foreground-muted">
-            {configuracion?.nombre} ·{" "}
-            {otMaquina.tipo === "suelta" ? otMaquina.numeroSerie : `Serie ${otMaquina.numeroSerie}`} · {clienteNombre}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {otMaquina.tipo === "suelta" && (
-            <span className="badge-estado bg-surface-muted text-foreground-muted">
-              {otMaquina.alcance === "pieza" ? "Orden de pieza" : "Orden de conjunto"}
-            </span>
-          )}
-          <EstadoBadge estado={estadoCalculado} />
-        </div>
-      </div>
+      <PageHeader
+        migas={[{ href: "/ot", label: "Órdenes de trabajo" }, { label: otMaquina.codigo }]}
+        titulo={
+          <span className="flex flex-wrap items-center gap-2">
+            {otMaquina.codigo}
+            <EstadoBadge estado={estadoCalculado} />
+            {otMaquina.tipo === "suelta" && (
+              <span className="badge-estado bg-surface-muted text-foreground-muted">
+                {otMaquina.alcance === "pieza" ? "Orden de pieza" : "Orden de conjunto"}
+              </span>
+            )}
+          </span>
+        }
+        descripcion={[configuracion?.nombre, otMaquina.tipo === "suelta" ? otMaquina.numeroSerie : `Serie ${otMaquina.numeroSerie}`, clienteNombre]
+          .filter(Boolean)
+          .join(" · ")}
+      />
 
       {sinEnviar > 0 && (
         <form action={enviarAProduccionAction} className="bg-accent-soft rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-2">
@@ -93,9 +91,15 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
             {sinEnviar} pieza{sinEnviar === 1 ? "" : "s"} todavía en ingeniería. Al enviarlas a producción aparecen en Planificación para
             asignarles día y operario.
           </span>
-          <button type="submit" className="bg-accent text-accent-foreground text-sm font-medium px-3 py-2 rounded-md hover:opacity-90">
-            Enviar {sinEnviar === conjuntos.reduce((n, c) => n + c.piezas.length, 0) ? "toda la OT" : `las ${sinEnviar} restantes`} a producción
-          </button>
+          <ConfirmarBoton mensaje={`¿Enviar ${sinEnviar} pieza${sinEnviar === 1 ? "" : "s"} a producción? Van a aparecer en Planificación y en el taller.`}>
+            Enviar{" "}
+            {sinEnviar === conjuntos.reduce((n, c) => n + c.piezas.length, 0)
+              ? "toda la OT"
+              : sinEnviar === 1
+                ? "la pieza que falta"
+                : `las ${sinEnviar} piezas que faltan`}{" "}
+            a producción
+          </ConfirmarBoton>
         </form>
       )}
 

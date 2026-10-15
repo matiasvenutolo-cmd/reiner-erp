@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { getUsuarioActual } from "@/lib/session";
+import { getUsuarioDePlanta } from "@/lib/session";
 import { ajustarStock, retirarStock } from "@/lib/data/stock";
 import { marcarPedido, cancelarPedido, registrarLlegadaPedido } from "@/lib/data/compras";
 
@@ -13,13 +13,13 @@ import { marcarPedido, cancelarPedido, registrarLlegadaPedido } from "@/lib/data
  * documentado como pregunta abierta en docs/05-backlog-release-2.md §9.
  */
 async function exigirTaller() {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   if (usuario.rol !== "taller") throw new Error("Sólo taller puede ajustar el stock.");
   return usuario;
 }
 
 async function exigirStaff() {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   if (usuario.rol === "operario") throw new Error("No autorizado.");
   return usuario;
 }
@@ -92,7 +92,11 @@ export async function marcarPedidoAction(formData: FormData) {
 
 export async function cancelarPedidoAction(formData: FormData) {
   await exigirStaff();
-  await cancelarPedido(String(formData.get("pedidoId") ?? ""));
+  try {
+    await cancelarPedido(String(formData.get("pedidoId") ?? ""));
+  } catch (e) {
+    volverCon("/stock/compras", e);
+  }
   revalidarStock();
 }
 

@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { PestanasOt } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { listarOtPiezas } from "@/lib/data/ot";
 import { EstadoBadge } from "@/components/EstadoBadge";
@@ -31,15 +33,12 @@ export default async function OtPiezasPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/ot" className="text-sm text-accent hover:underline">
-          ← Órdenes de trabajo
-        </Link>
-        <h1 className="text-xl font-semibold mt-1">Todas las OT de pieza</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          {filtradas.length} de {todas.length} — de máquinas, de conjuntos y piezas sueltas.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Órdenes de trabajo"
+        descripcion={`Todas las piezas a fabricar, de máquinas, conjuntos y órdenes sueltas: ${filtradas.length} de ${todas.length} con los filtros elegidos.`}
+      >
+        <PestanasOt actual="/ot/piezas" />
+      </PageHeader>
 
       <form className="flex flex-wrap items-center gap-2">
         <input type="search" name="q" defaultValue={q ?? ""} placeholder="Código o nombre de pieza…" className="input w-56" />

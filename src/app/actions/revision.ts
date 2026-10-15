@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getUsuarioActual } from "@/lib/session";
+import { getUsuarioDePlanta } from "@/lib/session";
 import {
   resolverTareaRevision,
   agregarItemTareaRevision,
@@ -12,7 +12,7 @@ import {
 } from "@/lib/data/revision";
 
 export async function resolverTareaRevisionAction(formData: FormData) {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   const id = String(formData.get("id") ?? "");
   const resolucion = String(formData.get("resolucion") ?? "").trim();
   const otMaquinaId = String(formData.get("otMaquinaId") ?? "");
@@ -32,7 +32,7 @@ function revalidarFichaPieza(formData: FormData) {
 }
 
 export async function agregarItemTareaRevisionAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await getUsuarioDePlanta(); // exige sesión válida
   const tareaRevisionId = String(formData.get("tareaRevisionId") ?? "");
   const descripcion = String(formData.get("descripcion") ?? "").trim();
   if (!tareaRevisionId || !descripcion) throw new Error("Falta la descripción de la tarea.");
@@ -42,7 +42,7 @@ export async function agregarItemTareaRevisionAction(formData: FormData) {
 }
 
 export async function iniciarItemTareaRevisionAction(formData: FormData) {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   const id = String(formData.get("id") ?? "");
   const tareaRevisionId = String(formData.get("tareaRevisionId") ?? "");
   if (!id) throw new Error("Falta la tarea.");
@@ -55,7 +55,7 @@ export async function iniciarItemTareaRevisionAction(formData: FormData) {
 }
 
 export async function detenerItemTareaRevisionAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await getUsuarioDePlanta(); // exige sesión válida
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("Falta la tarea.");
 
@@ -64,7 +64,7 @@ export async function detenerItemTareaRevisionAction(formData: FormData) {
 }
 
 export async function eliminarItemTareaRevisionAction(formData: FormData) {
-  await getUsuarioActual(); // exige sesión válida
+  await getUsuarioDePlanta(); // exige sesión válida
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("Falta la tarea.");
 

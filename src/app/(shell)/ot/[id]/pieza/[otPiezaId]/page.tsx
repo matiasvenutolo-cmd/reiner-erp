@@ -1,3 +1,5 @@
+import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
+import { PageHeader } from "@/components/ui/PageHeader";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOtPieza, getEstadoYOperacionActual, getContextoOtPieza } from "@/lib/data/ot";
@@ -52,43 +54,39 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="max-w-4xl space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Link href={`/ot/${id}`} className="text-sm text-accent hover:underline">
-            ← {contexto?.otMaquina.codigo ?? "Orden de trabajo"}
-          </Link>
-          <h1 className="text-xl font-semibold mt-1 font-mono">{otPieza.codigo}</h1>
-          <p className="text-sm text-foreground-muted">
-            {pieza?.nombre} · {conjunto?.nombre} · {pieza?.codigo}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <EstadoBadge estado={estado} sinRouting={sinRouting} />
-          {!otPieza.enviadaProduccionAt && <span className="badge-estado badge-pendiente">En ingeniería</span>}
-          {asignacion && <AsignacionBadge asignacion={asignacion} />}
-          <Link
-            href={`/ot/${id}/pieza/${otPieza.id}/imprimir`}
-            className="border border-border text-sm font-medium px-3 py-2 rounded-md hover:bg-surface-muted"
-          >
-            Imprimir OT
-          </Link>
-          {otPieza.enviadaProduccionAt ? (
-            <Link
-              href="/planificacion"
-              className="bg-accent text-accent-foreground text-sm font-medium px-3 py-2 rounded-md hover:opacity-90"
-            >
-              Planificar →
+      <PageHeader
+        migas={[
+          { href: "/ot", label: "Órdenes de trabajo" },
+          { href: `/ot/${id}`, label: contexto?.otMaquina.codigo ?? "Orden" },
+          { label: otPieza.codigo },
+        ]}
+        titulo={
+          <span className="flex flex-wrap items-center gap-2">
+            {pieza?.nombre ?? otPieza.codigo}
+            <EstadoBadge estado={estado} sinRouting={sinRouting} />
+            {!otPieza.enviadaProduccionAt && <span className="badge-estado badge-pendiente">En ingeniería</span>}
+            {asignacion && <AsignacionBadge asignacion={asignacion} />}
+          </span>
+        }
+        descripcion={[otPieza.codigo, pieza?.codigo, conjunto?.nombre].filter(Boolean).join(" · ")}
+        acciones={
+          <>
+            <Link href={`/ot/${id}/pieza/${otPieza.id}/imprimir`} className="btn-secundario">
+              Imprimir OT
             </Link>
-          ) : (
-            <form action={enviarAProduccionAction}>
-              <input type="hidden" name="otPiezaId" value={otPieza.id} />
-              <button type="submit" className="bg-accent text-accent-foreground text-sm font-medium px-3 py-2 rounded-md hover:opacity-90">
-                Enviar a producción
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
+            {otPieza.enviadaProduccionAt ? (
+              <Link href="/planificacion" className="btn">
+                Planificar →
+              </Link>
+            ) : (
+              <form action={enviarAProduccionAction}>
+                <input type="hidden" name="otPiezaId" value={otPieza.id} />
+                <ConfirmarBoton mensaje="¿Enviar esta pieza a producción? Va a aparecer en Planificación y en el taller.">Enviar a producción</ConfirmarBoton>
+              </form>
+            )}
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Metric label="Operación actual" value={operacionActual ? nombreOperacion(operacionActual) : estado === "terminada" ? "Terminada" : "—"} />

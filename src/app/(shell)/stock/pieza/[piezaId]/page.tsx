@@ -1,3 +1,5 @@
+import { Aviso } from "@/components/ui/Aviso";
+import { PageHeader } from "@/components/ui/PageHeader";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPieza, getConjunto } from "@/lib/data/maestros";
@@ -48,19 +50,14 @@ export default async function StockPiezaPage({
 
   return (
     <div className="max-w-4xl space-y-6">
-      <div>
-        <Link href="/stock" className="text-sm text-accent hover:underline">
-          ← Stock
-        </Link>
-        <h1 className="text-xl font-semibold mt-1">{pieza.nombre}</h1>
-        <p className="text-sm text-foreground-muted">
-          <span className="font-mono">{pieza.codigo}</span> · {conjunto?.nombre}
-          {pieza.tipo === "comprada" ? " · pieza de compra" : ""}
-        </p>
-      </div>
+      <PageHeader
+        migas={[{ href: "/stock", label: "Stock" }, { label: pieza.codigo }]}
+        titulo={pieza.nombre}
+        descripcion={[pieza.codigo, conjunto?.nombre, pieza.tipo === "comprada" ? "pieza de compra" : null].filter(Boolean).join(" · ")}
+      />
 
-      {error && <div className="badge-estado badge-alerta text-sm px-3 py-2 block">{error}</div>}
-      {ok === "retiro" && <div className="badge-estado badge-terminada text-sm px-3 py-2 block">Retiro registrado.</div>}
+      {error && <Aviso tipo="error">{error}</Aviso>}
+      {ok === "retiro" && <Aviso tipo="ok">Retiro registrado.</Aviso>}
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <Dato label="En almacén" value={almacen} />

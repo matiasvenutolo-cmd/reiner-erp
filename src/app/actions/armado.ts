@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getUsuarioActual } from "@/lib/session";
+import { getUsuarioDePlanta } from "@/lib/session";
 import { registrarControlArmado } from "@/lib/data/armado";
 
 export async function registrarControlArmadoAction(formData: FormData) {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
 
   const otMaquinaId = String(formData.get("otMaquinaId") ?? "");
   const otConjuntoId = String(formData.get("otConjuntoId") ?? "");

@@ -89,3 +89,33 @@ body {
   font-size: 1rem;
   font-weight: 600;
 }
+
+/* Fase 3.2 — botones y bloques comunes para que todas las pantallas se lean igual:
+   un solo estilo de acción principal, uno de secundaria y uno de acción peligrosa. */
+.btn,
+.btn-secundario,
+.btn-peligro {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.95rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.btn { background: var(--accent); color: var(--accent-foreground); }
+.btn:hover { background: var(--accent-hover); }
+.btn-secundario { background: var(--surface); color: var(--foreground); border: 1px solid var(--border); }
+.btn-secundario:hover { border-color: var(--foreground-muted); }
+.btn-peligro { background: var(--surface); color: var(--estado-alerta-fg); border: 1px solid #f3c4c4; }
+.btn-peligro:hover { background: var(--estado-alerta-bg); }
+.btn:disabled, .btn-secundario:disabled, .btn-peligro:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-sm { padding: 0.3rem 0.65rem; font-size: 0.8rem; }
+
+.tarjeta { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; }
+
+.etiqueta { display: block; font-size: 0.75rem; font-weight: 600; color: var(--foreground-muted); margin-bottom: 0.25rem; }

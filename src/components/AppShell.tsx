@@ -1,15 +1,8 @@
 import Image from "next/image";
 import { getUsuarioActual } from "@/lib/session";
-import { getNavPrincipal, getNavAdmin } from "@/lib/nav";
+import { getMenu, ROL_LABEL } from "@/lib/nav";
 import { cerrarSesionAction } from "@/app/actions/sesion";
 import { Sidebar } from "@/components/Sidebar";
-
-const ROL_LABEL: Record<string, string> = {
-  operario: "Operario",
-  taller: "Taller",
-  ingenieria: "Ingeniería",
-  direccion: "Dirección",
-};
 
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const usuario = await getUsuarioActual();
@@ -46,19 +39,16 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const principal = getNavPrincipal(usuario.rol);
-  const admin = getNavAdmin(usuario.rol);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       <Sidebar
-        usuario={{ nombre: usuario.nombre, rol: usuario.rol }}
-        principal={principal}
-        admin={admin}
+        usuario={{ nombre: usuario.nombre, rolLabel: ROL_LABEL[usuario.rol] }}
+        secciones={getMenu(usuario.rol)}
         cerrarSesionAction={cerrarSesionAction}
       />
       <main className="flex-1 min-w-0 px-4 py-6 md:px-8 md:py-8">
-        <div className="mx-auto w-full max-w-5xl">{children}</div>
+        <div className="mx-auto w-full max-w-6xl">{children}</div>
       </main>
     </div>
   );

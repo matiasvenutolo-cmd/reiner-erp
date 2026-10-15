@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { ROL_LABEL } from "@/lib/nav";
 import { redirect } from "next/navigation";
 import { getUsuarioActual } from "@/lib/session";
 import { getUsuarios } from "@/lib/data/usuarios";
@@ -11,13 +13,6 @@ import {
   restablecerCredencialAction,
 } from "@/app/actions/usuarios";
 
-const ROL_LABEL: Record<string, string> = {
-  operario: "Operario",
-  taller: "Taller",
-  ingenieria: "Ingeniería",
-  direccion: "Dirección",
-};
-
 export default async function UsuariosPage() {
   const actual = await getUsuarioActual();
   if (actual.rol === "operario") redirect("/taller");
@@ -27,12 +22,10 @@ export default async function UsuariosPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-xl font-semibold">Usuarios y accesos</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          Altas, roles y contraseñas/PIN — accesos administrados por ingeniería, dirección y taller.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Usuarios"
+        descripcion="Quién entra al sistema y con qué perfil. Los operarios entran con su nombre y un PIN; el resto, con email y contraseña."
+      />
 
       <div className="bg-surface border border-border rounded-lg overflow-hidden">
         <table className="w-full text-sm">

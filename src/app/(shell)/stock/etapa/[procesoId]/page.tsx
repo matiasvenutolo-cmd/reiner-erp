@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/PageHeader";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProceso, getConjuntos, getConfiguraciones } from "@/lib/data/maestros";
@@ -30,16 +31,11 @@ export default async function StockEtapaPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/stock" className="text-sm text-accent hover:underline">
-          ← Stock
-        </Link>
-        <h1 className="text-xl font-semibold mt-1">{proceso.nombre}</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          {piezasDistintas} pieza{piezasDistintas === 1 ? "" : "s"} distinta{piezasDistintas === 1 ? "" : "s"} en {items.length}{" "}
-          {items.length === 1 ? "orden" : "órdenes"} de trabajo · {totalUnidades} unidades en esta etapa ahora mismo.
-        </p>
-      </div>
+      <PageHeader
+        migas={[{ href: "/stock", label: "Stock" }, { href: "/stock/en-proceso", label: "En fabricación" }, { label: proceso.nombre }]}
+        titulo={proceso.nombre}
+        descripcion={`${piezasDistintas} pieza${piezasDistintas === 1 ? "" : "s"} distinta${piezasDistintas === 1 ? "" : "s"} en ${items.length} ${items.length === 1 ? "orden" : "órdenes"} de trabajo · ${totalUnidades} unidades en esta etapa ahora mismo.`}
+      />
 
       <FiltrosStock
         conjuntos={conjuntos.map((c) => ({ id: c.id, nombre: c.nombre }))}

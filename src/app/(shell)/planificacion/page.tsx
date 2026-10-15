@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { PestanasPlanificacion } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { hoyISO } from "@/lib/fecha";
 import { getAsignacionesRango, getClavesAsignadasDesdeHoy, type AsignacionConDetalle } from "@/lib/data/planificacion";
@@ -80,12 +82,12 @@ export default async function PlanificacionPage({
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold">Planificación</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          Lo que ingeniería envió a producción, para asignarle día, operación y operario. Abajo, lo que todavía falta asignar.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Planificación"
+        descripcion="Asigná a cada operación un operario y un día. Sólo aparece lo que ya se envió a producción; abajo queda lo que falta asignar."
+      >
+        <PestanasPlanificacion actual="/planificacion" />
+      </PageHeader>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex rounded-md border border-border overflow-hidden text-sm">
@@ -152,7 +154,7 @@ export default async function PlanificacionPage({
       )}
 
       <div>
-        <h2 className="text-sm font-semibold mb-1">Pendiente de asignar ({pendientes.length})</h2>
+        <h2 className="text-base font-semibold mb-1">Pendiente de asignar ({pendientes.length})</h2>
         <p className="text-xs text-foreground-muted mb-2">
           Por centro de trabajo. &ldquo;Se puede hacer ya&rdquo; = es el paso actual de la pieza; el resto llega cuando termine el paso anterior,
           y se puede ir asignando para los próximos días.
@@ -183,11 +185,13 @@ export default async function PlanificacionPage({
                 const items = [...(pendientesPorCentro.get(c.id) ?? [])].sort((a, b) => Number(a.despuesDe !== null) - Number(b.despuesDe !== null));
                 const ya = items.filter((i) => i.despuesDe === null).length;
                 return (
-                  <details key={c.id} className="bg-surface border border-border rounded-lg">
+                  // Abierto si hay algo que se puede hacer ya: es lo primero que hay que asignar.
+                  <details key={c.id} open={ya > 0} className="tarjeta group">
                     <summary className="cursor-pointer px-4 py-2.5 text-sm flex items-center gap-2">
+                      <span className="text-foreground-muted group-open:rotate-90 transition-transform">›</span>
                       <span className="font-medium">{c.nombre}</span>
                       <span className="text-foreground-muted">
-                        · {ya} se pueden hacer ya · {items.length - ya} después
+                        · {ya} se {ya === 1 ? "puede" : "pueden"} hacer ya · {items.length - ya} después
                       </span>
                     </summary>
                     <div className="overflow-x-auto border-t border-border">

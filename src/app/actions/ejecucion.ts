@@ -9,7 +9,7 @@ import {
   finalizarOperacion,
   esUltimaOperacion,
 } from "@/lib/data/ejecucion";
-import { getUsuarioActual } from "@/lib/session";
+import { getUsuarioDePlanta } from "@/lib/session";
 
 /** Vuelve a la ficha de la pieza: con el motivo si se rechazó (más piezas de las
  * que llegaron, otra operación en curso…), o limpia si salió bien — así no
@@ -30,7 +30,7 @@ async function enLaFicha(otPiezaId: string, fn: () => Promise<void>) {
 }
 
 export async function iniciarOperacionAction(formData: FormData): Promise<void> {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   const otPiezaId = String(formData.get("otPiezaId") ?? "");
   const operacionId = String(formData.get("operacionId") ?? "");
   const tipo = String(formData.get("tipo") ?? "ejecucion") as "setup" | "ejecucion";
@@ -44,7 +44,7 @@ export async function iniciarOperacionAction(formData: FormData): Promise<void> 
 }
 
 export async function pausarOperacionAction(formData: FormData) {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   const otPiezaId = String(formData.get("otPiezaId") ?? "");
   const registroOperacionId = String(formData.get("registroOperacionId") ?? "");
   const tipoParadaId = String(formData.get("tipoParadaId") ?? "");
@@ -52,14 +52,14 @@ export async function pausarOperacionAction(formData: FormData) {
 }
 
 export async function reanudarOperacionAction(formData: FormData) {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   const otPiezaId = String(formData.get("otPiezaId") ?? "");
   const registroOperacionId = String(formData.get("registroOperacionId") ?? "");
   await enLaFicha(otPiezaId, () => reanudarOperacion(registroOperacionId, usuario.id));
 }
 
 export async function finalizarOperacionAction(formData: FormData) {
-  const usuario = await getUsuarioActual();
+  const usuario = await getUsuarioDePlanta();
   const registroOperacionId = String(formData.get("registroOperacionId") ?? "");
   const otPiezaId = String(formData.get("otPiezaId") ?? "");
   const operacionId = String(formData.get("operacionId") ?? "");

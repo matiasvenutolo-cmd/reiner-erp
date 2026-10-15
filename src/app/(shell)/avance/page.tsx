@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { PestanasOt } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { listarOtMaquinas } from "@/lib/data/ot";
 import { getResumenWipEnCursoPorProceso } from "@/lib/data/stock";
@@ -24,12 +26,12 @@ export default async function AvancePage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold">Avance de fabricación</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          Cómo viene cada máquina y, sobre todo, cómo viene avanzando cada una de sus partes.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Órdenes de trabajo"
+        descripcion="Avance de máquinas: cómo viene cada orden y cada una de sus partes. Es de consulta; los cambios se hacen dentro de cada orden."
+      >
+        <PestanasOt actual="/avance" />
+      </PageHeader>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <MetricCard label="Órdenes en curso" value={enCurso} href="/ot" />

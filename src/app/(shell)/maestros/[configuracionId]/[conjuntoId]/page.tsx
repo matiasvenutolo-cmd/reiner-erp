@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/PageHeader";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getConjunto, getConfiguracion, getPiezasPorConfiguracionYConjunto, getRoutingPieza } from "@/lib/data/maestros";
@@ -33,16 +34,15 @@ export default async function ConjuntoDeMaquinaPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href={`/maestros/${configuracionId}`} className="text-sm text-accent hover:underline">
-          ← {configuracion.nombre}
-        </Link>
-        <h1 className="text-xl font-semibold mt-1">{conjunto.nombre}</h1>
-        <p className="text-sm text-foreground-muted">
-          {conjunto.codigo} · {configuracion.nombre} · {piezas.length} pieza{piezas.length === 1 ? "" : "s"} (
-          {aProducir.length} a producir · {aComprar.length} a comprar)
-        </p>
-      </div>
+      <PageHeader
+        migas={[
+          { href: "/maestros", label: "Piezas y hojas de ruta" },
+          { href: `/maestros/${configuracionId}`, label: configuracion.nombre },
+          { label: conjunto.nombre },
+        ]}
+        titulo={conjunto.nombre}
+        descripcion={`${conjunto.codigo} · ${piezas.length} pieza${piezas.length === 1 ? "" : "s"}: ${aProducir.length} a producir y ${aComprar.length} a comprar. Tocá una pieza para ver o editar su hoja de ruta.`}
+      />
 
       <TablaPiezas titulo="A producir" filas={aProducir} />
       <TablaPiezas titulo="A comprar" filas={aComprar} />

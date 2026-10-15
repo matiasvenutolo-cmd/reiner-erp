@@ -1,65 +1,99 @@
+import Link from "next/link";
 import { getProveedores } from "@/lib/data/logistica";
-import { crearProveedorAction, actualizarProveedorAction } from "@/app/actions/proveedores";
+import { getResumenEntregasProveedores } from "@/lib/data/gestion-compras";
+import { crearProveedorAction } from "@/app/actions/proveedores";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Aviso, Vacio } from "@/components/ui/Aviso";
+import { ProveedorCampos } from "@/components/ProveedorCampos";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Proveedores: alta y edición (observación del cliente en Fase 3). Son los que
- * se eligen al registrar la vuelta de un tercerizado, la llegada de una compra
- * o un ingreso con control de calidad.
+ * Proveedores: un único registro, el mismo que se elige al cotizar una compra,
+ * al registrar la vuelta de un tercerizado o un ingreso con control. Fase 3.2:
+ * más datos (CUIT, contacto, condición de pago, dirección, horario,
+ * observaciones) y la ficha de cada uno con su desempeño en entregas.
  */
-export default async function ProveedoresPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
-  const proveedores = await getProveedores();
+export default async function ProveedoresPage({ searchParams }: { searchParams: Promise<{ q?: string; error?: string }> }) {
+  const { q, error } = await searchParams;
+  const [todos, entregas] = await Promise.all([getProveedores(), getResumenEntregasProveedores()]);
+  const query = (q ?? "").trim().toLowerCase();
+  const proveedores = query
+    ? todos.filter((p) => [p.razonSocial, p.rubro, p.cuit, p.contacto].some((v) => v?.toLowerCase().includes(query)))
+    : todos;
 
   return (
-    <div className="max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Proveedores</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          Los que aparecen al registrar la vuelta de un tercerizado, la llegada de una compra o un ingreso con control de calidad.
-        </p>
-      </div>
+    <div>
+      <PageHeader
+        titulo="Proveedores"
+        descripcion="Los datos de cada proveedor y cómo vienen sus entregas. Son los mismos que se eligen al cotizar una compra o al registrar la vuelta de un tercerizado."
+      />
+      {error && <Aviso tipo="error">{error}</Aviso>}
 
-      {error && <div className="badge-estado badge-alerta text-sm px-3 py-2 block">{error}</div>}
-
-      <form action={crearProveedorAction} className="bg-surface border border-border rounded-lg p-4 space-y-2">
-        <h2 className="text-sm font-semibold">Nuevo proveedor</h2>
-        <div className="grid sm:grid-cols-[2fr_1.5fr_1.5fr_auto] gap-2">
-          <input name="razonSocial" required placeholder="Razón social" className="input" />
-          <input name="rubro" placeholder="Rubro (ej. Cromado, Materia prima)" className="input" />
-          <input name="condicion" placeholder="Condición (opcional)" className="input" />
-          <button type="submit" className="bg-accent text-accent-foreground font-medium text-sm px-4 py-2 rounded-md hover:opacity-90">
-            Agregar
-          </button>
-        </div>
-      </form>
-
-      <div className="bg-surface border border-border rounded-lg overflow-hidden">
-        <div className="hidden sm:grid grid-cols-[2fr_1.5fr_1.5fr_4rem] gap-2 bg-surface-muted text-foreground-muted text-xs uppercase font-medium px-4 py-2">
-          <span>Razón social</span>
-          <span>Rubro</span>
-          <span>Condición</span>
-          <span></span>
-        </div>
-        {proveedores.length === 0 && <p className="px-4 py-3 text-sm text-foreground-muted">Todavía no hay proveedores cargados.</p>}
-        {proveedores.map((p) => (
-          // key: React 19 resetea el form tras la acción; así se rearma con lo guardado.
-          <form
-            key={`${p.id}|${p.razonSocial}|${p.rubro}|${p.condicion}`}
-            action={actualizarProveedorAction}
-            className="grid sm:grid-cols-[2fr_1.5fr_1.5fr_4rem] gap-2 items-center px-4 py-2 border-t border-border"
-          >
-            <input type="hidden" name="id" value={p.id} />
-            <input name="razonSocial" required defaultValue={p.razonSocial} aria-label="Razón social" className="input text-sm py-1" />
-            <input name="rubro" defaultValue={p.rubro ?? ""} placeholder="Rubro" aria-label="Rubro" className="input text-sm py-1" />
-            <input name="condicion" defaultValue={p.condicion ?? ""} placeholder="Condición" aria-label="Condición" className="input text-sm py-1" />
-            <button type="submit" className="text-xs text-accent hover:underline text-left sm:text-center">
-              Guardar
+      <div className="flex flex-wrap items-start gap-3 mb-4">
+        <form className="flex-1 min-w-[16rem]">
+          <input type="search" name="q" defaultValue={q ?? ""} placeholder="Buscar por razón social, rubro, CUIT o contacto…" className="input" />
+        </form>
+        <details className="tarjeta w-full sm:w-auto sm:min-w-[28rem] open:p-4 [&:not([open])]:px-4 [&:not([open])]:py-2">
+          <summary className="cursor-pointer text-sm font-semibold text-accent">+ Nuevo proveedor</summary>
+          <form action={crearProveedorAction} className="mt-3 space-y-3">
+            <ProveedorCampos />
+            <button type="submit" className="btn">
+              Guardar proveedor
             </button>
           </form>
-        ))}
+        </details>
       </div>
+
+      {proveedores.length === 0 ? (
+        <Vacio>{query ? `Ningún proveedor coincide con "${q}".` : "Todavía no hay proveedores cargados."}</Vacio>
+      ) : (
+        <div className="tarjeta overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-xs text-foreground-muted">
+              <tr className="border-b border-border">
+                <th className="text-left px-4 py-2 font-medium">Proveedor</th>
+                <th className="text-left px-3 py-2 font-medium">Contacto</th>
+                <th className="text-left px-3 py-2 font-medium">Condición de pago</th>
+                <th className="text-left px-3 py-2 font-medium">Entregas</th>
+                <th className="px-4 py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {proveedores.map((p) => {
+                const e = entregas.get(p.id);
+                return (
+                  <tr key={p.id} className="border-t border-border first:border-t-0">
+                    <td className="px-4 py-2.5">
+                      <Link href={`/proveedores/${p.id}`} className="font-medium hover:text-accent hover:underline">
+                        {p.razonSocial}
+                      </Link>
+                      <div className="text-xs text-foreground-muted">{[p.rubro, p.cuit].filter(Boolean).join(" · ") || "—"}</div>
+                    </td>
+                    <td className="px-3 py-2.5 text-foreground-muted">{p.contacto ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-foreground-muted">{p.condicionPago ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-xs whitespace-nowrap">
+                      {e ? (
+                        <>
+                          <span className="text-[var(--estado-terminada-fg)] font-semibold">{e.ok} OK</span> ·{" "}
+                          <span className={e.noOk ? "text-[var(--estado-alerta-fg)] font-semibold" : "text-foreground-muted"}>{e.noOk} NO OK</span>
+                        </>
+                      ) : (
+                        <span className="text-foreground-muted">sin entregas registradas</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <Link href={`/proveedores/${p.id}`} className="btn-secundario btn-sm">
+                        Ver ficha →
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

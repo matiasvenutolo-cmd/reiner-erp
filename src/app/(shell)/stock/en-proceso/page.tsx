@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { PestanasStock } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { getPiezasEnProceso } from "@/lib/data/stock";
 import { getConjuntos, getConfiguraciones } from "@/lib/data/maestros";
@@ -23,16 +25,12 @@ export default async function StockEnProcesoPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/stock" className="text-sm text-accent hover:underline">
-          ← Stock
-        </Link>
-        <h1 className="text-xl font-semibold mt-1">En proceso</h1>
-        <p className="text-sm text-foreground-muted mt-1">
-          {piezasDistintas} pieza{piezasDistintas === 1 ? "" : "s"} distinta{piezasDistintas === 1 ? "" : "s"} en {items.length}{" "}
-          {items.length === 1 ? "orden" : "órdenes"} de trabajo, en todas las etapas · {totalUnidades} unidades.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Stock"
+        descripcion={`En fabricación: ${piezasDistintas} pieza${piezasDistintas === 1 ? "" : "s"} distinta${piezasDistintas === 1 ? "" : "s"} en ${items.length} ${items.length === 1 ? "orden" : "órdenes"} de trabajo · ${totalUnidades} unidades que entran al almacén al terminar.`}
+      >
+        <PestanasStock actual="/stock/en-proceso" />
+      </PageHeader>
 
       <FiltrosStock
         conjuntos={conjuntos.map((c) => ({ id: c.id, nombre: c.nombre }))}
