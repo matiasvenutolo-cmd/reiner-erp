@@ -4,7 +4,7 @@ Mockup navegable del ERP de producción a medida para REINER S.A. (metalúrgica,
 fabricante de máquinas comprimidoras para la industria farmacéutica).
 
 No es un prototipo descartable: es la aplicación real (Next.js + TypeScript,
-Postgres en Neon vía Drizzle), corriendo hoy en la cuenta de Pinaro sin costo
+Postgres en Neon vía Drizzle), corriendo hoy en una cuenta de desarrollo sin costo
 (tiers gratuitos). Antes de la puesta en marcha real en taller se traspasa a
 la cuenta de REINER — ver [docs/01-analisis.md §5.1](docs/01-analisis.md) y
 [docs/04-runbook-traspaso.md](docs/04-runbook-traspaso.md).
