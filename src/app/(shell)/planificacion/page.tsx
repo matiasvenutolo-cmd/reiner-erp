@@ -47,7 +47,7 @@ export default async function PlanSemanaPage({ searchParams }: { searchParams: P
     clave: t.clave,
     dia: diaDeTarjeta(t),
     titulo: `${t.piezaNombre} × ${t.cantidad}`,
-    sub: `${t.paso} · ${t.proyectoCodigo}${vista === "operario" ? ` · ${centros.find((c) => c.id === t.centroId)?.nombre ?? ""}` : ""}`,
+    sub: `${t.paso} · ${t.proyectoCodigo}${t.proyectoTipo === "repuesto" ? " · Repuesto" : t.proyectoTipo === "stock" ? " · Stock" : ""}${vista === "operario" ? ` · ${centros.find((c) => c.id === t.centroId)?.nombre ?? ""}` : ""}`,
     nivel: t.nivel,
     holgura: t.holgura,
     horas: Object.entries(t.horasPorDia).filter(([d]) => d >= lunes && d <= viernes).reduce((s, [, h]) => s + h, 0) || t.horas,

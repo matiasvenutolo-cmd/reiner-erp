@@ -51,11 +51,12 @@ const TIEMPOS: Record<string, { setup?: number; unidad?: number; plazo?: number 
 };
 
 /** Secuencia de montaje estimada de la RD estándar (especificación) y la propuesta para las PS, con el mismo criterio. */
-const MONTAJE_RD: [string, number][] = [
+// Los pares "C09 / C23" y "C20 / C22" son alternativos: comparten el mismo lugar (mismo orden) en la secuencia.
+const MONTAJE_RD: [string | string[], number][] = [
   ["C15", 2], ["C14", 1], ["C13", 2], ["C07", 2], ["C01", 3], ["C02", 2], ["C03", 1], ["C06", 1], ["C04", 1], ["C05", 1],
-  ["C09", 2], ["C23", 2], ["C20", 1], ["C22", 1], ["C11", 1], ["C12", 1], ["C16", 2], ["C24", 1],
+  [["C09", "C23"], 2], [["C20", "C22"], 1], ["C11", 1], ["C12", 1], ["C16", 2], ["C24", 1],
 ];
-const MONTAJE_PS: [string, number][] = [
+const MONTAJE_PS: [string | string[], number][] = [
   ["C15", 2], ["C14", 1], ["C13", 2], ["C07", 2], ["C01", 3], ["C02", 2], ["C06", 1], ["C04", 1], ["C05", 1],
   ["C09", 2], ["C20", 1], ["C11", 1], ["C21", 1], ["C12", 1], ["C16", 2],
 ];
@@ -82,7 +83,7 @@ export async function sembrarEstimaciones(): Promise<string[]> {
     const seq = c.id.startsWith("rd") ? MONTAJE_RD : MONTAJE_PS;
     await db.delete(montajeConjunto).where(eq(montajeConjunto.configuracionId, c.id));
     const filas = seq
-      .map(([cod, dias], i) => ({ configuracionId: c.id, conjuntoId: conjuntos.find((x) => x.codigo === cod)?.id, orden: i + 1, dias }))
+      .flatMap(([cods, dias], i) => [cods].flat().map((cod) => ({ configuracionId: c.id, conjuntoId: conjuntos.find((x) => x.codigo === cod)?.id, orden: i + 1, dias })))
       .filter((f): f is { configuracionId: string; conjuntoId: string; orden: number; dias: number } => !!f.conjuntoId);
     if (filas.length) await db.insert(montajeConjunto).values(filas).onConflictDoNothing();
     await db.update(configuracion).set({ montajeFinalDias: 5, margenMontajeDias: 3, montajeOrigen: "estimado" }).where(eq(configuracion.id, c.id));

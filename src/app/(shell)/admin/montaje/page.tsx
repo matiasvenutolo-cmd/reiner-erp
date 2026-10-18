@@ -25,10 +25,13 @@ export default async function MontajePage({ searchParams }: { searchParams: Prom
         .where(eq(montajeConjunto.configuracionId, actual.id))
         .orderBy(asc(montajeConjunto.orden))
     : [];
-  const totalDias = filas.reduce((s, f) => s + f.m.dias, 0) + (actual?.montajeFinalDias ?? 0);
+  // Los conjuntos con el mismo número son alternativos: comparten el tramo, cuenta el más largo.
+  const porOrden = Map.groupBy(filas, (f) => f.m.orden);
+  const totalDias = [...porOrden.values()].reduce((s, g) => s + Math.max(...g.map((f) => f.m.dias)), 0) + (actual?.montajeFinalDias ?? 0);
+  const numero = new Map([...porOrden.keys()].sort((a, b) => a - b).map((o, i) => [o, i + 1]));
   return (
     <div className="max-w-4xl space-y-5">
-      <PageHeader titulo="Secuencias de montaje" descripcion="El orden en que se montan los conjuntos de cada máquina. Cada conjunto necesita sus piezas terminadas unos días antes de su montaje (el margen)." />
+      <PageHeader titulo="Secuencias de montaje" descripcion="El orden en que se montan los conjuntos de cada máquina. Cada conjunto necesita sus piezas terminadas unos días antes de su montaje (el margen). Los que comparten número son alternativos: la máquina lleva uno u otro." />
       {ok && <Aviso tipo="ok">{ok}</Aviso>}
       {error && <Aviso tipo="error">{error}</Aviso>}
       <div className="flex flex-wrap gap-2">
@@ -55,7 +58,10 @@ export default async function MontajePage({ searchParams }: { searchParams: Prom
               <tbody>
                 {filas.map((f, i) => (
                   <tr key={f.m.conjuntoId} className="border-t border-border">
-                    <td className="px-4 py-2 tabular-nums text-foreground-muted">{i + 1}</td>
+                    <td className="px-4 py-2 tabular-nums text-foreground-muted">
+                      {numero.get(f.m.orden)}
+                      {(porOrden.get(f.m.orden)?.length ?? 0) > 1 && <span className="block text-[10px]">alternativo</span>}
+                    </td>
                     <td className="px-3 py-2">
                       <span className="font-mono text-xs text-foreground-muted mr-2">{f.codigo}</span>
                       {f.nombre}

@@ -238,13 +238,15 @@ export function haciaAtras(p: ProyectoEntrada, centros: Map<string, CentroEntrad
   const esMaquina = p.tipo === "maquina";
   const montajeFinalInicio = esMaquina ? sumarHabiles(entrega, -p.montajeFinalDias, cal) : entrega;
   const conjuntos = new Map<string, { inicio: string; fin: string }>();
-  const orden = [...p.conjuntos].sort((a, b) => a.orden - b.orden);
+  // Conjuntos con el mismo orden comparten el lugar en la secuencia (alternativos, como C09 / C23):
+  // se montan en el mismo tramo y el tramo dura lo del más largo.
+  const tramos = [...Map.groupBy(p.conjuntos, (c) => c.orden).entries()].sort(([a], [b]) => a - b);
   let fin = montajeFinalInicio;
-  for (let i = orden.length - 1; i >= 0; i--) {
-    const c = orden[i];
-    const dias = esMaquina ? c.dias : 0;
+  for (let i = tramos.length - 1; i >= 0; i--) {
+    const grupo = tramos[i][1];
+    const dias = esMaquina ? Math.max(...grupo.map((c) => c.dias)) : 0;
     const inicio = sumarHabiles(fin, -dias, cal);
-    conjuntos.set(c.id, { inicio, fin });
+    for (const c of grupo) conjuntos.set(c.id, { inicio, fin });
     fin = inicio;
   }
   const pasos = new Map<string, { fechaLimite: string; inicioMasTardio: string; dias: number }>();

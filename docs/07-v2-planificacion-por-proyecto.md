@@ -115,9 +115,9 @@ Todo lo estimado queda marcado como **estimado** y el plan lo avisa ("Plan calcu
 - Precios de servicios de Cromados del Norte.
 - Materias primas y consumibles en stock.
 
-Estado al 18/10:
+Estado al 18/10, después de corregir la secuencia de montaje:
 
-- OTM006 llega 1 día tarde.
+- OTM006 llega 4 días tarde. Con la secuencia corregida sus fechas límite se corren 3 días más tarde, y el motor, que ordena por holgura, le da paso primero a los otros dos proyectos.
 - La demo PS llega 20 días tarde.
 - La orden de stock llega 18 días tarde.
 - Torno y Corte por hilo están sobrecargados.
@@ -149,7 +149,54 @@ Estado al 18/10:
 | 11 | Recepción NO OK: ¿va a cuarentena en el stock, con la decisión de retrabajo, reenvío o rehacer? (ver §6) | Horacio / Lucio |
 | 12 | ¿Los movimientos de asignación, liberación y traspaso se registran como movimientos de stock propios? (ver §6) | Horacio |
 
-## 8 · Archivos principales
+## 8 · Contraste contra las especificaciones (revisión del 18/10)
+
+Se revisó punto por punto contra los dos documentos.
+
+**Coincide:**
+- Los 25 tiempos y plazos estimados.
+- Defaults de capacidad (8 h · 1 máquina · 85 %).
+- Plazos supuestos (compra 10, tercerizado 5, comercial 20).
+- Motor de dos pasadas con las fórmulas de la especificación.
+- Niveles de holgura.
+- Liberación por tandas a 15 días hábiles.
+- Las 6 pantallas por rol.
+- Destino Cliente/Stock con sus prioridades y la fecha objetivo de 20 días hábiles.
+- Reclasificación propuesta, no aplicada.
+- Semilla que no pisa lo definido por REINER.
+- Escenario de demo con "Borrar datos de demo".
+- Sólo el jefe de planta confirma la semana.
+
+**Corregido en la revisión:**
+- **Secuencia de montaje RD:** la especificación pone C09 / C23 y C20 / C22 como alternativos en el mismo lugar (29 días en total). Se habían cargado como pasos separados (32 días), lo que adelantaba 3 días todas las fechas. Ahora los conjuntos con el mismo número comparten el tramo, se mueven juntos y el total da 29. Tiene test propio.
+- "Usar el tiempo medido" aparece recién con 3 o más registros, como pide la especificación.
+- "Por llegar" muestra primero lo atrasado y después ordena por fecha prometida.
+- Nueva alerta en Hoy: pedido que llega después de cuando se necesita.
+- Las tarjetas del plan llevan la etiqueta Repuesto / Stock.
+
+**Todavía no está** (para priorizar después de la reunión):
+
+| Tema | Qué falta |
+|---|---|
+| Snapshot de estructura | Al activar, el proyecto no copia la estructura ni las rutas: lee el maestro vigente |
+| Montaje | Dependencias entre conjuntos (hoy rige el orden de la lista); reordenar arrastrando (hoy con ↑↓) |
+| Hoja de ruta | Espera posterior y plazo de tercerizado por paso: existen en la base y el motor los usa, pero no se editan en pantalla |
+| Calendario | Días hábiles y horario configurables (hoy fijos de lunes a viernes) |
+| Auditoría | Registro de usuario y fecha de cada cambio de tiempos, plazos y capacidad |
+| Rechazos | Decisión retrabajo / rehacer al terminar con rechazados |
+| Cambios de ingeniería | Aviso cuando cambia la revisión de una pieza de un proyecto activo |
+| Plan de la semana | Arrastrar entre centros compatibles (hoy dentro del mismo centro) |
+| Pedir esta semana | Sumar cantidades del mismo artículo de varios proyectos; listar aparte "Completar datos" (hoy es un aviso con el total) |
+| Compras | Resumen arriba de /compras; compra con varias líneas; necesidades por material con redondeo a la presentación; seguimiento con impacto en "Esperando entrega"; recepción parcial |
+| Proveedores | Plazo real promedio; artículos habituales con último precio; documentos adjuntos; que un bloqueado no aparezca en compras y remitos |
+| Tercerizados | Proveedor y plazo propuestos solos al armar el remito; remito asociado al precio vigente; plazos reales por proveedor |
+| Stock | Estado cuarentena; filtros (inmovilizado, bajo mínimo, por orden); CSV; movimiento propio al asignar, liberar o traspasar; que una orden de repuesto reserve lo que produce |
+| OT | Destildar piezas al crear una orden de conjunto (hoy se ajusta la cantidad en el detalle después de crearla) |
+| Stock mínimo | La cantidad sugerida en Hoy es mínimo − stock (falta restar lo que ya está en fabricación; la ficha de stock sí lo resta) |
+| Rendimiento | Sin medir con 5 proyectos de 250 piezas (la especificación pide menos de 2 s); con los 3 actuales, unos 2 s en local |
+| Forma de trabajo | La especificación pide frenar al final de cada etapa. Para la reunión se armó todo junto, a pedido de Matías |
+
+## 9 · Archivos principales
 
 - Motor:
   - `src/lib/planning/` — `calendario.ts`, `motor.ts` + `motor.test.ts`, `datos.ts` (carga desde la base), `carga.ts`

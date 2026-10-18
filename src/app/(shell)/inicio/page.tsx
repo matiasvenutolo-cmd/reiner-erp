@@ -68,6 +68,12 @@ export default async function HoyPage() {
     ...(comprasSemana.length
       ? [{ texto: `${comprasSemana.length} compras hay que pedirlas esta semana${comprasVencidas.length ? ` (${comprasVencidas.length} ya vencidas)` : ""}`, boton: "Ir a Pedir esta semana", href: "/pedir", urgente: comprasVencidas.length > 0 }]
       : []),
+    ...(() => {
+      const tarde = r.compras.filter((c) => c.pedido && c.llegadaPrevista && c.llegadaPrevista > c.llegadaNecesaria);
+      return tarde.length
+        ? [{ texto: `${tarde.length} pedido${tarde.length === 1 ? "" : "s"} llega${tarde.length === 1 ? "" : "n"} después de cuando se necesita${tarde.length === 1 ? "" : "n"} (${[...new Set(tarde.map((c) => c.proyectoCodigo))].join(", ")})`, boton: "Ver Por llegar", href: "/pedir?vista=llegar", urgente: true }]
+        : [];
+    })(),
     ...sobrecargas.map((s) => ({ texto: `${s.centro} está al ${s.pct}% de su capacidad ${s.semana}`, boton: "Ver el plan", href: `/planificacion${s.semana === "esta semana" ? "" : `?semana=${sumarHabiles(viernes, 1, cal)}`}`, urgente: true })),
     ...enRiesgo.map((p) => ({ texto: `${p.codigo} termina ${p.diferenciaDias} día${p.diferenciaDias === 1 ? "" : "s"} hábil${p.diferenciaDias === 1 ? "" : "es"} después de la entrega (${fechaCorta(p.entrega)})`, boton: "Ver proyecto", href: `/proyectos/${p.id}`, urgente: true })),
     ...sinPlan

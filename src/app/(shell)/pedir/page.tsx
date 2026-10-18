@@ -57,6 +57,12 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
   const infoPieza = new Map(piezas.map((p) => [p.id, p]));
   const nombreProv = new Map(proveedores.map((p) => [p.id, p.razonSocial]));
   const compraDe = new Map(r.compras.map((c) => [c.otPiezaId, c]));
+  // Por llegar: primero lo atrasado (prometida vencida o que no llega a tiempo), después por fecha prometida.
+  const atrasoDe = (p: (typeof abiertos)[number]["p"]) => {
+    const c = compraDe.get(p.otPiezaId);
+    return (p.fechaPrometida && p.fechaPrometida < hoy) || (c && p.fechaPrometida && p.fechaPrometida > c.llegadaNecesaria) ? 0 : 1;
+  };
+  abiertos.sort((a, b) => atrasoDe(a.p) - atrasoDe(b.p) || (a.p.fechaPrometida ?? "9999").localeCompare(b.p.fechaPrometida ?? "9999"));
   // Sin proveedor habitual cargado, se sugiere el único proveedor activo de ese tipo (si hay uno solo).
   const unicoDe = (tipo: string) => {
     const xs = proveedores.filter((p) => p.tipoProveedor === tipo && p.estadoProveedor === "activo");

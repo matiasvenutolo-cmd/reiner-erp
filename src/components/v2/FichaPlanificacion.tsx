@@ -129,9 +129,12 @@ export async function FichaPlanificacion({ piezaId, editable }: { piezaId: strin
                         </>
                       )}
                     </td>
-                    <td className="py-1.5 tabular-nums text-foreground-muted">{m && m.n > 0 ? `${m.setup ?? 0} min + ${m.min ?? "?"} min/u (${m.n} registro${m.n === 1 ? "" : "s"})` : "—"}</td>
+                    <td className="py-1.5 tabular-nums text-foreground-muted">
+                      {m && m.n > 0 ? `${m.setup ?? 0} min + ${m.min ?? "?"} min/u (${m.n} registro${m.n === 1 ? "" : "s"})` : "—"}
+                      {m && m.n > 0 && m.n < 3 && <span className="block text-xs">hacen falta 3 registros para proponerlo</span>}
+                    </td>
                     <td className="py-1.5 text-right">
-                      {editable && m && m.min != null && tipo === "interno" && (
+                      {editable && m && m.min != null && m.n >= 3 && tipo === "interno" && (
                         <form action={usarTiempoMedidoAction}>
                           <input type="hidden" name="operacionId" value={o.id} />
                           <input type="hidden" name="minPorUnidad" value={m.min} />

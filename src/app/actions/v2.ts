@@ -291,11 +291,17 @@ export async function moverMontajeAction(fd: FormData) {
   await correr(`/admin/montaje?config=${cfg}`, async () => {
     const filas = await db.select().from(montajeConjunto).where(eq(montajeConjunto.configuracionId, cfg)).orderBy(montajeConjunto.orden);
     const [dir, conjuntoId] = t(fd, "mover").split("|");
-    const i = filas.findIndex((f) => f.conjuntoId === conjuntoId);
+    // Se mueve el tramo entero: los alternativos (mismo orden) van juntos.
+    const ordenes = [...new Set(filas.map((f) => f.orden))].sort((a, b) => a - b);
+    const actual = filas.find((f) => f.conjuntoId === conjuntoId)?.orden;
+    const i = actual == null ? -1 : ordenes.indexOf(actual);
     const j = dir === "arriba" ? i - 1 : i + 1;
-    if (i < 0 || j < 0 || j >= filas.length) return;
-    await db.update(montajeConjunto).set({ orden: filas[j].orden }).where(and(eq(montajeConjunto.configuracionId, cfg), eq(montajeConjunto.conjuntoId, filas[i].conjuntoId)));
-    await db.update(montajeConjunto).set({ orden: filas[i].orden }).where(and(eq(montajeConjunto.configuracionId, cfg), eq(montajeConjunto.conjuntoId, filas[j].conjuntoId)));
+    if (i < 0 || j < 0 || j >= ordenes.length) return;
+    const [a, b] = [ordenes[i], ordenes[j]];
+    const conOrden = (o: number) => filas.filter((f) => f.orden === o).map((f) => f.conjuntoId);
+    const deA = conOrden(a), deB = conOrden(b);
+    for (const c of deA) await db.update(montajeConjunto).set({ orden: b }).where(and(eq(montajeConjunto.configuracionId, cfg), eq(montajeConjunto.conjuntoId, c)));
+    for (const c of deB) await db.update(montajeConjunto).set({ orden: a }).where(and(eq(montajeConjunto.configuracionId, cfg), eq(montajeConjunto.conjuntoId, c)));
     await db.update(configuracion).set({ montajeOrigen: "definido" }).where(eq(configuracion.id, cfg));
   });
 }

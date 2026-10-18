@@ -100,3 +100,20 @@ test("fecha estimada de fin: un proyecto sin margen llega tarde", () => {
   assert.ok(r.proyectos[0].diferenciaDias > 0);
   assert.ok(r.tareas[0].tarde);
 });
+
+test("montaje: conjuntos alternativos (mismo orden) comparten el tramo y no suman días", () => {
+  const p = proyecto([paso("A")], {
+    entrega: "2026-12-18",
+    montajeFinalDias: 5,
+    conjuntos: [
+      { id: "C1", nombre: "Uno", orden: 1, dias: 2, codigo: "C01" },
+      { id: "C9", nombre: "Forzada", orden: 2, dias: 2, codigo: "C09" },
+      { id: "C23", nombre: "Gravedad", orden: 2, dias: 2, codigo: "C23" },
+    ],
+  });
+  const a = haciaAtras(p, centros, cal);
+  // 18/12 − 5 = 11/12 (montaje final); tramo 2 (C09 / C23 juntos) = 09/12 a 11/12; C01 = 07/12 a 09/12
+  assert.equal(a.conjuntos.get("C9")!.inicio, "2026-12-09");
+  assert.equal(a.conjuntos.get("C23")!.inicio, "2026-12-09");
+  assert.equal(a.conjuntos.get("C1")!.inicio, "2026-12-07");
+});
