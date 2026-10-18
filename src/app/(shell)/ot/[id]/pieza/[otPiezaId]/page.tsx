@@ -56,7 +56,7 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
     <div className="max-w-4xl space-y-6">
       <PageHeader
         migas={[
-          { href: "/ot", label: "Órdenes de trabajo" },
+          { href: "/proyectos", label: "Proyectos y órdenes" },
           { href: `/ot/${id}`, label: contexto?.otMaquina.codigo ?? "Orden" },
           { label: otPieza.codigo },
         ]}

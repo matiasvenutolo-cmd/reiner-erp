@@ -16,6 +16,14 @@ const TRAZOS: Record<string, string> = {
   alerta: "M12 4 2.5 20h19zM12 10v4.5M12 17.5v.5",
   ok: "M5 12.5 10 17.5 19 7",
   reloj: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2",
+  proyectos: "M3 7h18v13H3zM8 7V4h8v3M3 12h18",
+  llegamos: "M4 21V4M4 4h11l-2 4 2 4H4",
+  liberacion: "M12 3v12M7 8l5-5 5 5M5 21h14",
+  calendario: "M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5zM4 10h16M8.5 3v4M15.5 3v4M8 14h2M14 14h2",
+  montaje: "M4 20h16M6 20V10l6-6 6 6v10M10 20v-5h4v5",
+  completitud: "M5 12.5 9 16.5 19 6.5M4 4h16v16H4z",
+  demo: "M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3",
+  pedir: "M4 5h2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.3h7.6a1.5 1.5 0 0 0 1.5-1.2L20 8H7M14 3v5M11.5 5.5 14 8l2.5-2.5",
 };
 
 export function Icono({ nombre, className = "w-5 h-5" }: { nombre: string; className?: string }) {
@@ -40,4 +48,12 @@ export const ICONO_RUTA: Record<string, string> = {
   "/proveedores": "proveedores",
   "/usuarios": "usuarios",
   "/taller": "taller",
+  "/proyectos": "proyectos",
+  "/llegamos": "llegamos",
+  "/pedir": "pedir",
+  "/liberacion": "liberacion",
+  "/admin/calendario": "calendario",
+  "/admin/montaje": "montaje",
+  "/admin/completitud": "completitud",
+  "/admin/demo": "demo",
 };

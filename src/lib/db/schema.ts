@@ -146,6 +146,15 @@ export const proveedor = pgTable("proveedor", {
   direccion: text("direccion"),
   horario: text("horario"),
   observaciones: text("observaciones"),
+  // v2 — planificación: plazo estándar que usa el motor si no hay cotización, tipo, procesos que hace y estado.
+  plazoDias: integer("plazo_dias"),
+  tipoProveedor: text("tipo_proveedor"), // materia_prima | comercial | servicio
+  procesos: text("procesos"), // procesos tercerizados que hace, separados por coma
+  estadoProveedor: text("estado_proveedor").notNull().default("activo"), // activo | evaluacion | bloqueado
+  motivoBloqueo: text("motivo_bloqueo"),
+  monedaHabitual: text("moneda_habitual").notNull().default("ARS"),
+  telefono: text("telefono"),
+  email: text("email"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -170,6 +179,10 @@ export const configuracion = pgTable("configuracion", {
   variante: text("variante").notNull(), // ej. "120", "124"
   instrumentacion: instrumentacionEnum("instrumentacion").notNull(),
   nombre: text("nombre").notNull(),
+  // v2 — montaje: días de montaje final y pruebas, y margen entre pieza terminada y montaje del conjunto.
+  montajeFinalDias: integer("montaje_final_dias").notNull().default(5),
+  margenMontajeDias: integer("margen_montaje_dias").notNull().default(3),
+  montajeOrigen: text("montaje_origen").notNull().default("estimado"),
 });
 
 export const conjunto = pgTable("conjunto", {
@@ -205,6 +218,11 @@ export const centroTrabajo = pgTable("centro_trabajo", {
   codigo: text("codigo").notNull().unique(),
   nombre: text("nombre").notNull(),
   orden: integer("orden").notNull().default(0),
+  // v2 — capacidad: horas por día, máquinas iguales y eficiencia planificable (0,85 = 85 %).
+  horasDia: numeric("horas_dia", { precision: 5, scale: 2, mode: "number" }).notNull().default(8),
+  maquinas: integer("maquinas").notNull().default(1),
+  eficiencia: numeric("eficiencia", { precision: 4, scale: 2, mode: "number" }).notNull().default(0.85),
+  capacidadOrigen: text("capacidad_origen").notNull().default("estimado"),
 });
 
 /**
@@ -233,6 +251,11 @@ export const proceso = pgTable("proceso", {
   ordenFlujo: integer("orden_flujo").notNull().default(0),
   tipo: tipoProcesoEnum("tipo").notNull().default("interno"),
   centroTrabajoId: text("centro_trabajo_id").references(() => centroTrabajo.id),
+  // v2 — tiempos por defecto del proceso (los heredan los pasos sin tiempo propio).
+  setupMin: integer("setup_min"),
+  minPorUnidad: numeric("min_por_unidad", { precision: 8, scale: 2, mode: "number" }),
+  plazoDias: integer("plazo_dias"), // tercerizado / compras: días hábiles
+  tiempoOrigen: text("tiempo_origen").notNull().default("estimado"), // estimado | definido
 });
 
 export const dispositivo = pgTable("dispositivo", {
@@ -265,6 +288,14 @@ export const pieza = pgTable("pieza", {
   tipo: tipoPiezaEnum("tipo").notNull().default("fabricada"),
   esDeStock: boolean("es_de_stock").notNull().default(false),
   stockMinimo: integer("stock_minimo").notNull().default(0),
+  // v2 — tipo de artículo y materia prima.
+  clase: text("clase").notNull().default("fabricada"), // fabricada | a_medida | comercial
+  claseSugerida: text("clase_sugerida"), // propuesta de reclasificación pendiente de aprobar
+  materialCantidad: numeric("material_cantidad", { precision: 10, scale: 3, mode: "number" }),
+  materialUnidad: text("material_unidad"),
+  materialDeStock: boolean("material_de_stock").notNull().default(false),
+  proveedorHabitualId: text("proveedor_habitual_id"),
+  plazoCompraDias: integer("plazo_compra_dias"),
   // Pathname del blob, no URL completa (ver runbook §A5).
   fotoPathname: text("foto_pathname"),
 });
@@ -350,6 +381,12 @@ export const operacion = pgTable("operacion", {
   // Centro de trabajo para ESTA pieza, distinto del que tiene por defecto su
   // tipo de operación (proceso.centroTrabajoId). null = usar el de defecto.
   centroTrabajoId: text("centro_trabajo_id").references(() => centroTrabajo.id),
+  // v2 — tiempo propio del paso (null = hereda el del proceso).
+  setupMin: integer("setup_min"),
+  minPorUnidad: numeric("min_por_unidad", { precision: 8, scale: 2, mode: "number" }),
+  esperaHoras: numeric("espera_horas", { precision: 6, scale: 2, mode: "number" }).notNull().default(0),
+  plazoTercerizadoDias: integer("plazo_tercerizado_dias"),
+  tiempoOrigen: text("tiempo_origen"), // null = hereda | estimado | definido | medido
 });
 
 // ── Stock (con posición por etapa — hallazgo 3.1) ───────────────────────
@@ -437,6 +474,14 @@ export const otMaquina = pgTable("ot_maquina", {
   observaciones: text("observaciones"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  // v2 — proyecto: fecha de entrega comprometida, estado, prioridad, destino y marca de demo.
+  fechaEntrega: date("fecha_entrega"),
+  fechaInicioProyecto: date("fecha_inicio_proyecto"),
+  prioridad: text("prioridad").notNull().default("normal"), // normal | alta
+  estadoProyecto: text("estado_proyecto").notNull().default("borrador"), // borrador | activo | en_montaje | terminado | entregado | pausado
+  destino: text("destino").notNull().default("maquina"), // maquina | repuesto | stock
+  motivoStock: text("motivo_stock"),
+  esDemo: boolean("es_demo").notNull().default(false),
 });
 
 export const otConjunto = pgTable("ot_conjunto", {
@@ -525,6 +570,7 @@ export const pedidoCompra = pgTable("pedido_compra", {
     .references(() => usuario.id),
   fechaPedido: timestamp("fecha_pedido").notNull().defaultNow(),
   recibidoAt: timestamp("recibido_at"),
+  fechaPrometida: date("fecha_prometida"), // v2 — la que promete el proveedor
 });
 
 /**
@@ -651,6 +697,7 @@ export const asignacionTrabajo = pgTable("asignacion_trabajo", {
     .notNull()
     .references(() => usuario.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  dePlanConfirmado: boolean("de_plan_confirmado").notNull().default(false), // v2 — la publicó "Confirmar semana"
 });
 
 // ── Ejecución — el corazón del sistema (RF-05) ──────────────────────────
@@ -819,6 +866,114 @@ export const remitoItem = pgTable("remito_item", {
 // sobre `registro_operacion` agrupada por pieza × proceso × tipo, con
 // promedio, mínimo, máximo y n_observaciones (ver docs/02-modelo-datos.md).
 
+// ── v2 — Planificación por proyecto ──────────────────────────────────────
+
+/** Feriados nacionales y días de cierre de la planta. */
+export const feriado = pgTable("feriado", {
+  fecha: date("fecha").primaryKey(),
+  nombre: text("nombre").notNull(),
+  tipo: text("tipo").notNull().default("nacional"), // nacional | cierre
+});
+
+/** Ausencias y vacaciones: restan capacidad al centro del operario. */
+export const ausencia = pgTable("ausencia", {
+  id: id(),
+  usuarioId: text("usuario_id")
+    .notNull()
+    .references(() => usuario.id),
+  desde: date("desde").notNull(),
+  hasta: date("hasta").notNull(),
+  motivo: text("motivo"),
+});
+
+/** Secuencia de montaje de cada configuración: orden y días por conjunto. */
+export const montajeConjunto = pgTable(
+  "montaje_conjunto",
+  {
+    configuracionId: text("configuracion_id")
+      .notNull()
+      .references(() => configuracion.id),
+    conjuntoId: text("conjunto_id")
+      .notNull()
+      .references(() => conjunto.id),
+    orden: integer("orden").notNull(),
+    dias: integer("dias").notNull().default(1),
+  },
+  (t) => [primaryKey({ columns: [t.configuracionId, t.conjuntoId] })],
+);
+
+/** Parámetros generales (horizonte de liberación, exigir plano…). */
+export const parametro = pgTable("parametro", {
+  clave: text("clave").primaryKey(),
+  valor: text("valor").notNull(),
+  nota: text("nota"),
+});
+
+/** Ajustes manuales al plan propuesto: tarea movida, operario cambiado o fijada con candado. */
+export const planAjuste = pgTable(
+  "plan_ajuste",
+  {
+    otPiezaId: text("ot_pieza_id")
+      .notNull()
+      .references(() => otPieza.id),
+    operacionId: text("operacion_id").notNull(),
+    fecha: date("fecha"),
+    centroTrabajoId: text("centro_trabajo_id"),
+    operarioId: text("operario_id"),
+    fijada: boolean("fijada").notNull().default(false),
+    usuarioId: text("usuario_id").notNull(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.otPiezaId, t.operacionId] })],
+);
+
+/** Bitácora del proyecto: cambios de fecha (con motivo), pausas, liberaciones. */
+export const proyectoEvento = pgTable("proyecto_evento", {
+  id: id(),
+  otMaquinaId: text("ot_maquina_id")
+    .notNull()
+    .references(() => otMaquina.id),
+  tipo: text("tipo").notNull(),
+  texto: text("texto").notNull(),
+  usuarioId: text("usuario_id").notNull(),
+  fecha: timestamp("fecha").notNull().defaultNow(),
+});
+
+/** Condición vigente de un proveedor para un servicio tercerizado. */
+export const proveedorServicio = pgTable("proveedor_servicio", {
+  id: id(),
+  proveedorId: text("proveedor_id")
+    .notNull()
+    .references(() => proveedor.id),
+  procesoId: text("proceso_id")
+    .notNull()
+    .references(() => proceso.id),
+  precio: numeric("precio", { precision: 14, scale: 2, mode: "number" }),
+  unidadPrecio: text("unidad_precio"), // pieza | kg | lote
+  moneda: text("moneda").notNull().default("ARS"),
+  plazoDias: integer("plazo_dias"),
+  loteMinimo: integer("lote_minimo"),
+  vigenteHasta: date("vigente_hasta"),
+  habitual: boolean("habitual").notNull().default(false),
+  esDemo: boolean("es_demo").notNull().default(false),
+});
+
+/** Stock que no es una pieza del maestro: materia prima y consumibles de taller. */
+export const articuloStock = pgTable("articulo_stock", {
+  id: id(),
+  tipo: text("tipo").notNull(), // materia_prima | consumible
+  nombre: text("nombre").notNull(),
+  medida: text("medida"),
+  unidad: text("unidad").notNull().default("u."),
+  cantidad: numeric("cantidad", { precision: 12, scale: 3, mode: "number" }).notNull().default(0),
+  asignada: numeric("asignada", { precision: 12, scale: 3, mode: "number" }).notNull().default(0),
+  minimo: numeric("minimo", { precision: 12, scale: 3, mode: "number" }).notNull().default(0),
+  ubicacion: text("ubicacion"),
+  proveedorId: text("proveedor_id"),
+  centroUso: text("centro_uso"),
+  esDemo: boolean("es_demo").notNull().default(false),
+});
+
 // ── Tipos inferidos (usados en toda la app) ─────────────────────────────
 
 export type Modelo = typeof modelo.$inferSelect;
@@ -859,3 +1014,8 @@ export type SolicitudCompra = typeof solicitudCompra.$inferSelect;
 export type CotizacionCompra = typeof cotizacionCompra.$inferSelect;
 export type PagoCompra = typeof pagoCompra.$inferSelect;
 export type RecepcionCompra = typeof recepcionCompra.$inferSelect;
+export type Feriado = typeof feriado.$inferSelect;
+export type MontajeConjunto = typeof montajeConjunto.$inferSelect;
+export type PlanAjuste = typeof planAjuste.$inferSelect;
+export type ProveedorServicio = typeof proveedorServicio.$inferSelect;
+export type ArticuloStock = typeof articuloStock.$inferSelect;

@@ -16,13 +16,15 @@ export const ROL_LABEL: Record<Usuario["rol"], string> = {
   compras: "Compras",
 };
 
-export type GrupoNav = "produccion" | "materiales" | "seguimiento" | "admin";
+export type GrupoNav = "produccion" | "taller" | "compras" | "stock" | "ingenieria" | "admin";
 
 export const GRUPO_LABEL: Record<GrupoNav, string> = {
   produccion: "Producción",
-  materiales: "Materiales",
-  seguimiento: "Seguimiento",
-  admin: "Administración",
+  taller: "Taller",
+  compras: "Compras",
+  stock: "Stock",
+  ingenieria: "Ingeniería",
+  admin: "Admin",
 };
 
 export type ItemNav = { href: string; label: string; grupo?: GrupoNav; ayuda?: string };
@@ -52,25 +54,35 @@ const COMPRAS: Usuario["rol"][] = ["compras"];
  * permisos son exactamente los mismos que antes.
  */
 const NAV_ITEMS: NavEntry[] = [
-  { href: "/inicio", label: "Inicio", roles: STAFF, ayuda: "Lo que hay que atender hoy" },
+  // v2 — menú por área y por frecuencia de uso: primero lo diario, al final los maestros y ADMIN.
+  { href: "/inicio", label: "Hoy", roles: STAFF, ayuda: "Qué hay que hacer hoy y qué está trabado" },
 
-  { href: "/ot", label: "Órdenes de trabajo", roles: STAFF, grupo: "produccion", ayuda: "Generar órdenes y seguir cada pieza" },
-  { href: "/avance", label: "Avance de máquinas", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/ot" },
-  { href: "/planificacion", label: "Planificación", roles: STAFF, grupo: "produccion", ayuda: "Quién hace qué y cuándo" },
+  { href: "/planificacion", label: "Plan de la semana", roles: STAFF, grupo: "produccion", ayuda: "Qué se hace en cada centro esta semana" },
   { href: "/centros-trabajo", label: "Colas por centro", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/planificacion" },
+  { href: "/proyectos", label: "Proyectos y órdenes", roles: STAFF, grupo: "produccion", ayuda: "Cada máquina con su fecha de entrega" },
+  { href: "/ot", label: "Órdenes de trabajo", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/proyectos" },
+  { href: "/tercerizados", label: "Tercerizados", roles: STAFF, grupo: "produccion", ayuda: "Para mandar, afuera y vueltas" },
+  { href: "/llegamos", label: "¿Llegamos?", roles: STAFF, grupo: "produccion", ayuda: "¿Cada máquina llega a su fecha?" },
+  { href: "/avance", label: "Avance de máquinas", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/llegamos" },
+  { href: "/indicadores", label: "Indicadores", roles: STAFF, grupo: "produccion", ayuda: "Tiempos, paradas y rechazos" },
 
-  { href: "/stock", label: "Stock", roles: STAFF, grupo: "materiales", ayuda: "Almacén, fabricación y compras de producción" },
-  { href: "/tercerizados", label: "Tercerizados", roles: STAFF, grupo: "materiales", ayuda: "Mandar piezas afuera y registrar la vuelta" },
-  { href: "/compras", label: "Compras", roles: COMPRAS, grupo: "materiales", ayuda: "Solicitudes, cotizaciones y gastos" },
+  { href: "/pedir", label: "Pedir esta semana", roles: [...STAFF, ...COMPRAS], grupo: "compras", ayuda: "Qué hay que pedir y a quién" },
+  { href: "/compras", label: "Compras", roles: COMPRAS, grupo: "compras", ayuda: "Cotizaciones, gastos y pagos" },
+  { href: "/proveedores", label: "Proveedores", roles: [...STAFF, ...COMPRAS], grupo: "compras" },
 
-  { href: "/indicadores", label: "Indicadores", roles: STAFF, grupo: "seguimiento", ayuda: "Tiempos, paradas y rechazos" },
+  { href: "/stock", label: "Stock", roles: STAFF, grupo: "stock", ayuda: "Materia prima, insumos, en proceso y terminados" },
 
-  { href: "/maestros", label: "Piezas y hojas de ruta", roles: STAFF, grupo: "admin", ayuda: "Maestros de máquinas, conjuntos y piezas" },
-  { href: "/operaciones", label: "Operaciones y centros", roles: STAFF, grupo: "admin" },
-  { href: "/proveedores", label: "Proveedores", roles: [...STAFF, ...COMPRAS], grupo: "admin" },
+  { href: "/maestros", label: "Piezas y hojas de ruta", roles: STAFF, grupo: "ingenieria", ayuda: "Máquinas, conjuntos, piezas, rutas y tiempos" },
+  { href: "/liberacion", label: "Liberación de piezas", roles: STAFF, grupo: "ingenieria", ayuda: "Qué piezas entran al plan" },
+
+  { href: "/operaciones", label: "Operaciones y centros", roles: STAFF, grupo: "admin", ayuda: "Tiempos por proceso y capacidad" },
+  { href: "/admin/calendario", label: "Calendario", roles: STAFF, grupo: "admin", ayuda: "Feriados, cierres y ausencias" },
+  { href: "/admin/montaje", label: "Secuencias de montaje", roles: STAFF, grupo: "admin" },
+  { href: "/admin/completitud", label: "Completitud de datos", roles: STAFF, grupo: "admin" },
   { href: "/usuarios", label: "Usuarios", roles: STAFF, grupo: "admin" },
+  { href: "/admin/demo", label: "Datos de demo", roles: STAFF, grupo: "admin" },
 
-  { href: "/taller", label: "Mi trabajo", roles: ["operario"] },
+  { href: "/taller", label: "Mi próxima tarea", roles: ["operario"] },
 ];
 
 export type SeccionNav = { grupo: GrupoNav | null; items: ItemNav[] };
@@ -94,6 +106,7 @@ export function itemDelMenu(pathname: string): string | null {
     (a, b) => b.href.length - a.href.length,
   )[0];
   if (!entrada) return pathname.startsWith("/remitos") ? "/tercerizados" : null;
+  // Las fichas de una orden y la creación de órdenes viven dentro de Proyectos.
   return entrada.dentroDe ?? entrada.href;
 }
 

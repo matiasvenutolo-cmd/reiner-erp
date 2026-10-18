@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/ui/PageHeader";
-import { PestanasOt } from "@/components/ui/PestanasSecciones";
+import { PestanasLlegamos } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { listarOtMaquinas } from "@/lib/data/ot";
 import { getResumenWipEnCursoPorProceso } from "@/lib/data/stock";
@@ -27,10 +27,10 @@ export default async function AvancePage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        titulo="Órdenes de trabajo"
+        titulo="¿Llegamos?"
         descripcion="Avance de máquinas: cómo viene cada orden y cada una de sus partes. Es de consulta; los cambios se hacen dentro de cada orden."
       >
-        <PestanasOt actual="/avance" />
+        <PestanasLlegamos actual="/avance" />
       </PageHeader>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

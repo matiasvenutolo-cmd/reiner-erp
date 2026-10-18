@@ -7,9 +7,9 @@ export function PestanasOt({ actual }: { actual: string }) {
     <Pestanas
       actual={actual}
       items={[
-        { href: "/ot", label: "Órdenes" },
+        { href: "/proyectos", label: "Proyectos" },
+        { href: "/ot", label: "Órdenes por tipo" },
         { href: "/ot/piezas", label: "Todas las piezas" },
-        { href: "/avance", label: "Avance de máquinas" },
       ]}
     />
   );
@@ -20,8 +20,9 @@ export function PestanasPlanificacion({ actual }: { actual: string }) {
     <Pestanas
       actual={actual}
       items={[
-        { href: "/planificacion", label: "Plan por día" },
+        { href: "/planificacion", label: "Plan de la semana" },
         { href: "/centros-trabajo", label: "Colas por centro" },
+        { href: "/planificacion/manual", label: "Asignar a mano" },
       ]}
     />
   );
@@ -48,6 +49,18 @@ export function PestanasTercerizados({ actual }: { actual: string }) {
       items={[
         { href: "/tercerizados", label: "Envíos y vueltas" },
         { href: "/remitos", label: "Remitos" },
+      ]}
+    />
+  );
+}
+
+export function PestanasLlegamos({ actual }: { actual: string }) {
+  return (
+    <Pestanas
+      actual={actual}
+      items={[
+        { href: "/llegamos", label: "¿Llegamos?" },
+        { href: "/avance", label: "Avance por piezas" },
       ]}
     />
   );

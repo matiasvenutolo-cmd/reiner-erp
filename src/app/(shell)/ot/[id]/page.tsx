@@ -67,7 +67,7 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-6">
       <PageHeader
-        migas={[{ href: "/ot", label: "Órdenes de trabajo" }, { label: otMaquina.codigo }]}
+        migas={[{ href: "/proyectos", label: "Proyectos y órdenes" }, { label: otMaquina.codigo }]}
         titulo={
           <span className="flex flex-wrap items-center gap-2">
             {otMaquina.codigo}

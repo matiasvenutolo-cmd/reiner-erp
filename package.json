@@ -10,7 +10,8 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/seed-db.ts",
-    "db:migrate-excel": "tsx scripts/migrate-excel.ts"
+    "db:migrate-excel": "tsx scripts/migrate-excel.ts",
+    "test": "node --import tsx --test src/lib/planning/*.test.ts"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",

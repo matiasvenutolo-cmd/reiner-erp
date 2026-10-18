@@ -1,218 +1,223 @@
 import Link from "next/link";
 import { getUsuarioActual } from "@/lib/session";
-import { getParadasActivas } from "@/lib/data/ejecucion";
+import { getPlan, getProyectosSinPlan } from "@/lib/planning/datos";
+import { lunesDe, proximosHabiles, sumarHabiles } from "@/lib/planning/calendario";
 import { getPiezasStockBajo } from "@/lib/data/stock";
-import { getTareasRevision } from "@/lib/data/revision";
-import { listarOtMaquinas } from "@/lib/data/ot";
-import { getPendientesDePlanificar, getPiezasAfueraTercerizado, getPiezasCompraPendientes, contarPiezasSinCentro } from "@/lib/data/produccion";
-import { getClavesAsignadasDesdeHoy } from "@/lib/data/planificacion";
-import { getPedidosPendientes } from "@/lib/data/compras";
-import { EstadoBadge } from "@/components/EstadoBadge";
+import { db } from "@/lib/db/client";
+import { pieza, proveedor } from "@/lib/db/schema";
+import { isNotNull, sql } from "drizzle-orm";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Icono } from "@/components/ui/Icono";
+import { Holgura, EstadoTareaChip, fechaCorta, Estimado } from "@/components/v2/Plan";
+import type { Tarea } from "@/lib/planning/motor";
+import { cargaSemana } from "@/lib/planning/carga";
 
-// Datos en vivo (stock/producción cambian todo el tiempo) — nunca prerenderizar en build.
 export const dynamic = "force-dynamic";
 
-function minutosDesde(fecha: Date): number {
-  return Math.max(0, Math.round((Date.now() - fecha.getTime()) / 60000));
-}
-
-type Tarea = { cantidad: number; titulo: string; detalle: string; href: string; accion: string; icono: string; urgente?: boolean };
-
 /**
- * Inicio = "qué hay que hacer hoy" (Fase 3.2, rediseño de usabilidad). En vez
- * de métricas sueltas, cada pendiente del circuito es una tarea con su
- * cantidad, una explicación de una línea y el botón que lleva exactamente a
- * donde se resuelve. Todo sale de datos que ya calculan las otras pantallas;
- * no hay reglas nuevas. Sólo se muestran las tareas que tienen algo.
+ * Hoy (reemplaza Inicio): tres bloques y nada más — qué se hace hoy, qué está
+ * trabado y qué hay que decidir. Cada ítem tiene el botón que lo resuelve.
+ * Si un bloque está vacío, lo dice en verde en vez de desaparecer.
  */
-export default async function InicioPage() {
+export default async function HoyPage() {
   const usuario = await getUsuarioActual();
-
-  const [paradas, stockBajo, revisionPendiente, ordenes, asignadas, tercerizados, comprasPendientes, pedidos, sinCentro] = await Promise.all([
-    getParadasActivas(),
+  const [plan, sinPlan, stockBajo, propuestas] = await Promise.all([
+    getPlan(),
+    getProyectosSinPlan(),
     getPiezasStockBajo(),
-    getTareasRevision("pendiente"),
-    listarOtMaquinas(),
-    getClavesAsignadasDesdeHoy(),
-    getPiezasAfueraTercerizado(),
-    getPiezasCompraPendientes(),
-    getPedidosPendientes(),
-    contarPiezasSinCentro(),
+    db.select({ n: sql<number>`count(*)`.mapWith(Number) }).from(pieza).where(isNotNull(pieza.claseSugerida)),
   ]);
-  const paraPlanificar = (await getPendientesDePlanificar(asignadas)).filter((p) => p.despuesDe === null && p.centroTrabajoId);
-  const sinEnviar = ordenes.reduce((t, o) => t + (o.estadoCalculado !== "terminada" ? o.piezasSinEnviar : 0), 0);
-  const conPedido = new Set(pedidos.map((p) => p.otPiezaId));
-  const porPedir = comprasPendientes.filter((c) => !conPedido.has(c.otPiezaId)).length;
-  const paraMandar = tercerizados.filter((t) => !t.remito).length;
-  const afuera = tercerizados.filter((t) => t.remito).length;
+  const { resultado: r, entrada, centros, operarios } = plan;
+  const cal = entrada.calendario;
+  const hoy = proximosHabiles(entrada.hoy, 1, cal)[0];
+  const esHoy = hoy === entrada.hoy;
+  const nombreCentro = (id: string | null) => centros.find((c) => c.id === id)?.nombre ?? "Sin centro";
 
-  const tareas: Tarea[] = [
-    { cantidad: paradas.length, titulo: "Piezas frenadas", detalle: "Operaciones en pausa ahora mismo, con su motivo.", href: "#frenado", accion: "Ver cuáles", icono: "alerta", urgente: true },
-    { cantidad: sinEnviar, titulo: "Piezas sin enviar a producción", detalle: "Órdenes que siguen en ingeniería: hasta enviarlas no aparecen para planificar ni en el taller.", href: "/ot", accion: "Revisar órdenes", icono: "ot" },
-    { cantidad: paraPlanificar.length, titulo: "Operaciones para planificar", detalle: "Se pueden hacer ya y no tienen operario ni día asignado.", href: "/planificacion", accion: "Planificar", icono: "planificacion" },
-    { cantidad: sinCentro, titulo: "Piezas sin centro de trabajo", detalle: "Su operación actual no tiene definido dónde se hace: no entran en ninguna cola.", href: "/operaciones", accion: "Ver operaciones", icono: "operaciones" },
-    { cantidad: paraMandar, titulo: "Para mandar a tercerizar", detalle: "Llegaron a un paso tercerizado y todavía no salieron con remito.", href: "/tercerizados", accion: "Armar remito", icono: "tercerizados" },
-    { cantidad: afuera, titulo: "Esperando que vuelvan del proveedor", detalle: "Salieron con remito: al volver se registra la vuelta con su control.", href: "/tercerizados#esperando", accion: "Registrar vuelta", icono: "tercerizados" },
-    { cantidad: porPedir, titulo: "Compras de producción sin pedir", detalle: "Material o piezas que las órdenes necesitan y todavía no se pidieron.", href: "/stock/compras", accion: "Ver compras", icono: "compras" },
-    { cantidad: revisionPendiente.length, titulo: "Retrabajos pendientes", detalle: "Piezas defectuosas o a retrabajar esperando su revisión.", href: "#retrabajos", accion: "Ver cuáles", icono: "alerta" },
-    { cantidad: stockBajo.length, titulo: "Stock por debajo del mínimo", detalle: "Piezas del almacén con menos unidades libres que su mínimo.", href: "#stock-bajo", accion: "Ver cuáles", icono: "stock" },
-  ].filter((t) => t.cantidad > 0);
+  // 1 · Qué se hace hoy
+  const deHoy = r.tareas.filter((t) => t.tipo === "interno" && !["terminada", "futura"].includes(t.estado) && t.horasPorDia[hoy]);
+  const porCentro = new Map<string, Tarea[]>();
+  for (const t of deHoy) porCentro.set(t.centroId ?? "", [...(porCentro.get(t.centroId ?? "") ?? []), t]);
+  const atrasadasHoy = deHoy.filter((t) => t.nivel === "atrasada").length;
 
-  const enCurso = ordenes.filter((o) => o.estadoCalculado !== "terminada");
-  const proximas = enCurso
-    .filter((o) => o.fechaComprometida)
-    .sort((a, b) => new Date(a.fechaComprometida!).getTime() - new Date(b.fechaComprometida!).getTime())
-    .slice(0, 5);
+  // 2 · Qué está trabado
+  const trabadas = r.tareas.filter((t) => t.estado === "trabada");
+  const porMotivo = new Map<string, Tarea[]>();
+  for (const t of trabadas) porMotivo.set(t.motivoTraba ?? "Otro", [...(porMotivo.get(t.motivoTraba ?? "Otro") ?? []), t]);
+  const provs = await db.select({ id: proveedor.id, razonSocial: proveedor.razonSocial, telefono: proveedor.telefono, email: proveedor.email, contacto: proveedor.contacto }).from(proveedor);
+
+  // 3 · Qué hay que decidir
+  const viernes = sumarHabiles(lunesDe(hoy), 4, cal);
+  const comprasSemana = r.compras.filter((c) => !c.pedido && c.pedirAntes <= viernes);
+  const comprasVencidas = comprasSemana.filter((c) => c.pedirAntes < hoy);
+  const sobrecargas: { centro: string; pct: number; semana: string }[] = [];
+  for (const [desde, semana] of [[lunesDe(hoy), "esta semana"], [sumarHabiles(viernes, 1, cal), "la semana que viene"]] as const) {
+    for (const c of centros) {
+      const { pct } = cargaSemana(r, c.id, proximosHabiles(desde, 5, cal), semana === "esta semana");
+      if (pct > 100) sobrecargas.push({ centro: c.nombre, pct, semana });
+    }
+  }
+  const enRiesgo = r.proyectos.filter((p) => p.diferenciaDias > 0);
+  const sinRuta = r.proyectos.reduce((s, p) => s + p.piezasSinRuta, 0);
+  const decisiones: { texto: string; boton: string; href: string; urgente?: boolean }[] = [
+    ...r.tandas
+      .filter((t) => t.otPiezaIds.length)
+      .map((t) => ({
+        texto: `${t.otPiezaIds.length} piezas de ${r.proyectos.find((p) => p.id === t.proyectoId)?.codigo} entran en el horizonte de liberación`,
+        boton: "Liberarlas",
+        href: `/liberacion#${t.proyectoId}`,
+      })),
+    ...(comprasSemana.length
+      ? [{ texto: `${comprasSemana.length} compras hay que pedirlas esta semana${comprasVencidas.length ? ` (${comprasVencidas.length} ya vencidas)` : ""}`, boton: "Ir a Pedir esta semana", href: "/pedir", urgente: comprasVencidas.length > 0 }]
+      : []),
+    ...sobrecargas.map((s) => ({ texto: `${s.centro} está al ${s.pct}% de su capacidad ${s.semana}`, boton: "Ver el plan", href: `/planificacion${s.semana === "esta semana" ? "" : `?semana=${sumarHabiles(viernes, 1, cal)}`}`, urgente: true })),
+    ...enRiesgo.map((p) => ({ texto: `${p.codigo} termina ${p.diferenciaDias} día${p.diferenciaDias === 1 ? "" : "s"} hábil${p.diferenciaDias === 1 ? "" : "es"} después de la entrega (${fechaCorta(p.entrega)})`, boton: "Ver proyecto", href: `/proyectos/${p.id}`, urgente: true })),
+    ...sinPlan
+      .filter((p) => p.estado === "borrador" && !["entregado", "terminado"].includes(p.estado))
+      .map((p) => ({ texto: `${p.codigo} no tiene fecha de entrega: no se puede planificar`, boton: "Cargar la fecha", href: `/proyectos/${p.id}` })),
+    ...stockBajo.slice(0, 3).map((s) => ({
+      texto: `${s.piezaNombre} quedó debajo del mínimo (${s.disponible} de ${s.minimo})`,
+      boton: "Generar OT para stock",
+      href: `/ot/nueva?tipo=suelta&destino=stock&pieza=${encodeURIComponent(s.piezaId)}&cantidad=${Math.max(1, s.minimo - s.disponible)}`,
+    })),
+    ...(sinRuta ? [{ texto: `${sinRuta} piezas de proyectos activos no tienen hoja de ruta: se planifican con un tiempo genérico`, boton: "Completar datos", href: "/admin/completitud" }] : []),
+    ...(propuestas[0].n ? [{ texto: `${propuestas[0].n} artículos parecen comerciales (motores, reductores, correas…) y figuran como fabricados`, boton: "Revisar la propuesta", href: "/admin/completitud#reclasificar" }] : []),
+  ];
+  const pctEst = Math.max(0, ...r.proyectos.map((p) => p.pctEstimado));
 
   return (
     <div className="space-y-8">
       <PageHeader
         titulo={`Hola, ${usuario.nombre}`}
-        descripcion="Lo que hay que atender hoy en el circuito. Cada tarjeta lleva directo a donde se resuelve."
+        descripcion={esHoy ? "Lo que hay que hacer hoy, lo que está trabado y lo que hay que decidir." : `Hoy no es día hábil: esto es lo del ${fechaCorta(hoy)}.`}
         acciones={
           <>
-            <Link href="/ot/nueva" className="btn">
-              + Generar orden
+            <Link href="/planificacion" className="btn">
+              Plan de la semana
             </Link>
-            <Link href="/planificacion" className="btn-secundario">
-              Planificar
+            <Link href="/ot/nueva" className="btn-secundario">
+              + Generar orden
             </Link>
           </>
         }
-      />
-
-      <section>
-        <h2 className="text-base font-semibold mb-3">Para hacer</h2>
-        {tareas.length === 0 ? (
-          <div className="tarjeta px-4 py-6 text-center text-sm text-foreground-muted">
-            Todo al día: nada frenado, nada para enviar, planificar, tercerizar ni pedir.
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            {tareas.map((t) => (
-              <Link
-                key={t.titulo}
-                href={t.href}
-                className={`tarjeta p-4 flex flex-col gap-2 hover:border-accent transition-colors ${t.urgente ? "border-[#f3c4c4]" : ""}`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`rounded-lg p-1.5 ${t.urgente ? "bg-[var(--estado-alerta-bg)] text-[var(--estado-alerta-fg)]" : "bg-accent-soft text-accent"}`}>
-                    <Icono nombre={t.icono} className="w-4 h-4" />
-                  </span>
-                  <span className="text-2xl font-semibold tabular-nums">{t.cantidad}</span>
-                  <span className="font-medium leading-tight">{t.titulo}</span>
-                </div>
-                <p className="text-xs text-foreground-muted flex-1">{t.detalle}</p>
-                <span className="text-sm font-semibold text-accent">{t.accion} →</span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {paradas.length > 0 && (
-        <Bloque id="frenado" titulo="Frenado ahora mismo" href="/planificacion" hrefLabel="Ir a Planificación">
-          {paradas.slice(0, 8).map((p) => (
-            <li key={p.id} className="py-2 flex flex-wrap items-center justify-between gap-2 text-sm">
-              <div className="min-w-0">
-                <span className="font-medium">{p.piezaNombre}</span> <span className="text-foreground-muted font-mono text-xs">{p.otPiezaCodigo}</span>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="badge-estado badge-alerta">{p.tipoParadaNombre}</span>
-                <span className="text-xs text-foreground-muted">
-                  hace {minutosDesde(p.inicio)} min · {p.usuarioNombre}
-                </span>
-              </div>
-            </li>
-          ))}
-        </Bloque>
-      )}
-
-      {revisionPendiente.length > 0 && (
-        <Bloque id="retrabajos" titulo="Retrabajos pendientes" ayuda="Entrá a la pieza para cargar las tareas del retrabajo y cronometrarlas.">
-          {revisionPendiente.slice(0, 8).map((t) => (
-            <li key={t.id} className="py-2">
-              <Link href={`/ot/${t.otMaquinaId}/pieza/${t.otPiezaId}`} className="flex flex-wrap items-center justify-between gap-2 text-sm hover:text-accent">
-                <div className="min-w-0">
-                  <span className="font-medium">{t.piezaNombre}</span> <span className="text-foreground-muted font-mono text-xs">{t.otPiezaCodigo}</span>
-                </div>
-                <span className="text-xs text-foreground-muted shrink-0">
-                  {t.piezasDefectuosas > 0 && `${t.piezasDefectuosas} defectuosas`}
-                  {t.piezasDefectuosas > 0 && t.piezasRetrabajadas > 0 && " · "}
-                  {t.piezasRetrabajadas > 0 && `${t.piezasRetrabajadas} a retrabajar`}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </Bloque>
-      )}
-
-      {stockBajo.length > 0 && (
-        <Bloque id="stock-bajo" titulo="Stock por debajo del mínimo" href="/stock" hrefLabel="Ir a Stock">
-          {stockBajo.slice(0, 8).map((p) => (
-            <li key={p.piezaId} className="py-2 flex items-center justify-between gap-3 text-sm">
-              <Link href={`/stock/pieza/${p.piezaId}`} className="min-w-0 hover:text-accent">
-                <span className="font-medium">{p.piezaNombre}</span> <span className="text-foreground-muted font-mono text-xs">{p.piezaCodigo}</span>
-              </Link>
-              <span className="text-xs text-foreground-muted shrink-0 tabular-nums">
-                {p.disponible} libres / mínimo {p.minimo}
-              </span>
-            </li>
-          ))}
-        </Bloque>
-      )}
-
-      <section>
-        <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-base font-semibold">Órdenes en curso ({enCurso.length})</h2>
-          <Link href="/avance" className="text-sm text-accent hover:underline">
-            Ver avance de máquinas →
-          </Link>
+      >
+        <div className="mt-2">
+          <Estimado pct={pctEst} />
         </div>
-        {proximas.length === 0 ? (
-          <p className="text-sm text-foreground-muted">
-            {enCurso.length === 0 ? "No hay órdenes en curso." : "Ninguna orden en curso tiene plazo comprometido cargado."}
-          </p>
-        ) : (
-          <ul className="tarjeta divide-y divide-border">
-            {proximas.map((o) => (
-              <li key={o.id}>
-                <Link href={`/ot/${o.id}`} className="px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-sm hover:bg-surface-muted">
-                  <span className="min-w-0">
-                    <span className="font-mono font-medium">{o.codigo}</span> <span className="text-foreground-muted">{o.configuracion?.nombre}</span>
-                  </span>
-                  <span className="flex items-center gap-3 shrink-0">
-                    <span className="text-xs text-foreground-muted">plazo {new Date(o.fechaComprometida!).toLocaleDateString("es-AR")}</span>
-                    <EstadoBadge estado={o.estadoCalculado} />
-                    <span className="text-xs text-foreground-muted tabular-nums">
-                      {o.piezasTerminadas}/{o.totalPiezasAFabricar} piezas
-                    </span>
-                  </span>
+      </PageHeader>
+
+      <Bloque
+        titulo="Qué se hace hoy"
+        resumen={`${deHoy.length} tareas · ${porCentro.size} centros${atrasadasHoy ? ` · ${atrasadasHoy} atrasadas` : ""}`}
+        vacio="Nada planificado para hoy."
+        vacioVerde={false}
+        hay={deHoy.length > 0}
+      >
+        {[...porCentro].map(([centroId, ts]) => (
+          <div key={centroId} className="tarjeta overflow-hidden">
+            <div className="px-4 py-2 bg-surface-muted text-sm font-semibold">{nombreCentro(centroId)}</div>
+            <ul className="divide-y divide-border">
+              {ts.sort((a, b) => a.holgura - b.holgura).map((t) => (
+                <li key={t.clave} className="px-4 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">
+                      {t.paso} — {t.piezaNombre} × {t.cantidad}
+                    </div>
+                    <div className="text-xs text-foreground-muted">
+                      {t.proyectoCodigo} · {t.piezaCodigo} · {Math.round(t.horasPorDia[hoy] * 10) / 10} h hoy · {t.operarioId ? operarios.get(t.operarioId) : "sin operario"}
+                    </div>
+                  </div>
+                  <EstadoTareaChip estado={t.estado} />
+                  <Holgura nivel={t.nivel} dias={t.holgura} corto />
+                  <div className="flex gap-2">
+                    <Link href={`/planificacion?ver=${encodeURIComponent(t.clave)}`} className="btn-secundario btn-sm">
+                      Mover
+                    </Link>
+                    <Link href={`/maestros/pieza/${t.piezaCodigo}`} className="btn-secundario btn-sm">
+                      Ver plano
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </Bloque>
+
+      <Bloque titulo="Qué está trabado" resumen={trabadas.length ? `${trabadas.length} tareas no pueden avanzar` : ""} vacio="Nada trabado." vacioVerde hay={trabadas.length > 0}>
+        {[...porMotivo].map(([motivo, ts]) => (
+          <div key={motivo} className="tarjeta p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="badge-estado badge-alerta">{motivo}</span>
+                <span className="text-sm ml-2">{ts.length} tarea{ts.length === 1 ? "" : "s"}</span>
+              </div>
+              {motivo === "Falta material" && (
+                <Link href="/pedir" className="btn btn-sm">
+                  Ver compra
                 </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+              )}
+              {motivo === "Falta plano" && (
+                <Link href="/liberacion" className="btn btn-sm">
+                  Avisar a ingeniería
+                </Link>
+              )}
+              {motivo === "Tercerizado demorado" && (
+                <Link href="/tercerizados#esperando" className="btn btn-sm">
+                  Reclamar al proveedor
+                </Link>
+              )}
+            </div>
+            <ul className="mt-2 text-sm text-foreground-muted space-y-0.5">
+              {ts.slice(0, 5).map((t) => (
+                <li key={t.clave}>
+                  {t.proyectoCodigo} · {t.piezaNombre} — {t.paso}
+                </li>
+              ))}
+              {ts.length > 5 && <li>y {ts.length - 5} más</li>}
+            </ul>
+            {motivo === "Tercerizado demorado" && provs.some((p) => p.telefono || p.email) && (
+              <p className="text-xs mt-2">Contactos: {provs.filter((p) => p.telefono || p.email).map((p) => `${p.razonSocial} ${p.telefono ?? ""} ${p.email ?? ""}`).join(" · ")}</p>
+            )}
+          </div>
+        ))}
+      </Bloque>
+
+      <Bloque titulo="Qué hay que decidir" resumen={decisiones.length ? `${decisiones.length} decisiones` : ""} vacio="Nada para decidir." vacioVerde hay={decisiones.length > 0}>
+        <ul className="tarjeta divide-y divide-border">
+          {decisiones.map((d, i) => (
+            <li key={i} className="px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-sm flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${d.urgente ? "bg-[#dc2626]" : "bg-accent"}`} />
+                {d.texto}
+              </span>
+              <Link href={d.href} className={d.urgente ? "btn btn-sm" : "btn-secundario btn-sm"}>
+                {d.boton} →
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Bloque>
+      <p className="text-xs text-foreground-muted">
+        Plan calculado en {plan.ms} ms · {r.tareas.length} tareas de {r.proyectos.length} proyectos activos · hoy {fechaCorta(entrada.hoy)}
+      </p>
     </div>
   );
 }
 
-function Bloque({ id, titulo, ayuda, href, hrefLabel, children }: { id: string; titulo: string; ayuda?: string; href?: string; hrefLabel?: string; children: React.ReactNode }) {
+function Bloque({ titulo, resumen, vacio, vacioVerde, hay, children }: { titulo: string; resumen: string; vacio: string; vacioVerde: boolean; hay: boolean; children: React.ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-6">
-      <div className="flex items-baseline justify-between mb-1">
-        <h2 className="text-base font-semibold">{titulo}</h2>
-        {href && (
-          <Link href={href} className="text-sm text-accent hover:underline whitespace-nowrap">
-            {hrefLabel} →
-          </Link>
-        )}
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h2 className="text-lg font-semibold">{titulo}</h2>
+        {resumen && <span className="text-sm text-foreground-muted">{resumen}</span>}
       </div>
-      {ayuda && <p className="text-xs text-foreground-muted mb-2">{ayuda}</p>}
-      <ul className="tarjeta px-4 divide-y divide-border">{children}</ul>
+      {!hay ? (
+        <p className={`text-sm ${vacioVerde ? "text-[var(--estado-terminada-fg)] font-medium" : "text-foreground-muted"}`}>
+          {vacioVerde ? "✓ " : ""}
+          {vacio}
+        </p>
+      ) : (
+        children
+      )}
     </section>
   );
 }
