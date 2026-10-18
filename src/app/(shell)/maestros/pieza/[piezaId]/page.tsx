@@ -31,6 +31,7 @@ import { getCentrosTrabajo } from "@/lib/data/produccion";
 import { urlDeAdjunto } from "@/lib/blob";
 import { getUsuarioActual } from "@/lib/session";
 import { puedeEditarMaestros } from "@/lib/permisos";
+import { FichaPlanificacion } from "@/components/v2/FichaPlanificacion";
 
 const TIPO_ADJUNTO_LABEL: Record<string, string> = {
   plano: "Plano",
@@ -47,10 +48,10 @@ export default async function PiezaPage({
   searchParams,
 }: {
   params: Promise<{ piezaId: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string }>;
 }) {
   const { piezaId } = await params;
-  const { error } = await searchParams;
+  const { error, ok } = await searchParams;
   const pieza = await getPieza(piezaId);
   if (!pieza) notFound();
   // Taller ve la ficha (llega desde Stock y OT) pero no la modifica — ver src/lib/permisos.ts.
@@ -77,6 +78,7 @@ export default async function PiezaPage({
       {!editable && <Aviso tipo="info">Sólo lectura: los datos de la pieza y su hoja de ruta los modifica ingeniería.</Aviso>}
 
       {error && <Aviso tipo="error">{error}</Aviso>}
+      {ok && <Aviso tipo="ok">{ok}</Aviso>}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Metric label="Modelo" value={modeloDeCodigo(pieza.codigo)} />
@@ -141,6 +143,8 @@ export default async function PiezaPage({
           <Dato label="Stock mínimo" value={String(pieza.stockMinimo)} />
         </div>
       )}
+
+      <FichaPlanificacion piezaId={pieza.id} editable={editable} />
 
       {wip.length > 0 && (
         <div>

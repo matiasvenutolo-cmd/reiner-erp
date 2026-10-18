@@ -19,7 +19,8 @@ import { Aviso } from "@/components/ui/Aviso";
 import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
 import { EstadoCompra, OrigenCompra, ImporteDoble, CantidadCompra } from "@/components/compras/Partes";
 import { formatearFecha, formatearImporte, formatearNumero } from "@/lib/formato";
-import { fechaISO, hoyISO } from "@/lib/fecha";
+import { fechaISO, hoyISO, sumarDias } from "@/lib/fecha";
+import { getPlan } from "@/lib/planning/datos";
 
 export const dynamic = "force-dynamic";
 
@@ -50,8 +51,12 @@ export default async function CompraPage({
 }) {
   const { id } = await params;
   const { ok, error } = await searchParams;
-  const [s, proveedores] = await Promise.all([getSolicitud(id), getProveedores()]);
+  const [s, proveedores, plan] = await Promise.all([getSolicitud(id), getProveedores(), getPlan()]);
   if (!s) notFound();
+  // v2 — la fecha en que hace falta sale del plan (si la pieza está en un proyecto activo); si no, la que cargó Producción.
+  const compraPlan = s.otPiezaId ? plan.resultado.compras.find((c) => c.otPiezaId === s.otPiezaId) : undefined;
+  const necesidad = compraPlan?.llegadaNecesaria ?? s.fechaNecesidad;
+  const diasTarde = (a: string, b: string) => Math.round((Date.parse(`${a}T12:00:00Z`) - Date.parse(`${b}T12:00:00Z`)) / 86400000);
 
   const hoy = hoyISO();
   const abierta = s.estado !== "anulada";
@@ -148,7 +153,11 @@ export default async function CompraPage({
           <form action={actualizarSolicitudAction} className="space-y-3" key={`${s.fechaNecesidad}|${s.fechaCompraPrevista}|${s.fechaPagoPrevista}`}>
             <input type="hidden" name="id" value={s.id} />
             <Fecha nombre="fechaNecesidad" titulo="Se necesita el material" valor={s.fechaNecesidad} habilitado={abierta}>
-              {s.origen === "orden_trabajo" &&
+              {compraPlan ? (
+                <span className={compraPlan.pedirAntes < hoy ? "text-[#991b1b] font-semibold" : ""}>
+                  Según el plan de {compraPlan.proyectoCodigo}: tiene que llegar el {formatearFecha(compraPlan.llegadaNecesaria)} · pedir antes del {formatearFecha(compraPlan.pedirAntes)}.
+                </span>
+              ) : s.origen === "orden_trabajo" &&
                 (s.primeraPlanificada
                   ? `Referencia: Producción planificó la primera operación de esta pieza para el ${formatearFecha(s.primeraPlanificada)}.`
                   : "La indica Producción; esta pieza todavía no tiene operaciones planificadas.")}
@@ -231,7 +240,21 @@ export default async function CompraPage({
                         )}
                         {s.cotizaciones.length > 1 && c.importe.enPesos === minPesos && <div className="text-[11px] text-foreground-muted">la más baja</div>}
                       </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap">{c.tiempoEntregaDias != null ? `${c.tiempoEntregaDias} días` : "—"}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap">
+                        {c.tiempoEntregaDias != null ? `${c.tiempoEntregaDias} días` : "—"}
+                        {(() => {
+                          if (c.tiempoEntregaDias == null || !necesidad) return null;
+                          const llega = sumarDias(c.fechaConfirmacionPosible ?? hoy, c.tiempoEntregaDias);
+                          const tarde = diasTarde(llega, necesidad);
+                          return tarde > 0 ? (
+                            <div className="text-xs font-semibold text-[#991b1b]">
+                              Llega {tarde} día{tarde === 1 ? "" : "s"} tarde{compraPlan ? ` para ${compraPlan.proyectoCodigo}` : ""}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-[#00755d]">llega a tiempo ({formatearFecha(llega)})</div>
+                          );
+                        })()}
+                      </td>
                       <td className="px-3 py-2.5">{c.condicionPago ?? "—"}</td>
                       <td className="px-3 py-2.5 whitespace-nowrap">{formatearFecha(c.fechaConfirmacionPosible)}</td>
                       <td className="px-4 py-2.5 text-right whitespace-nowrap">

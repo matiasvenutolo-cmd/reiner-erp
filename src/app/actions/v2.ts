@@ -32,11 +32,13 @@ async function correr(volver: string, fn: () => Promise<string | void>) {
   } catch (e) {
     error = e instanceof Error ? e.message : "No se pudo guardar.";
   }
-  const sep = volver.includes("?") ? "&" : "?";
-  if (error) redirect(`${volver}${sep}error=${encodeURIComponent(error)}`);
+  const [base, ancla] = volver.split("#");
+  const sep = base.includes("?") ? "&" : "?";
+  const con = (q: string) => `${base}${sep}${q}${ancla ? `#${ancla}` : ""}`;
+  if (error) redirect(con(`error=${encodeURIComponent(error)}`));
   for (const r of ["/inicio", "/planificacion", "/proyectos", "/llegamos", "/pedir", "/liberacion", "/taller", "/stock", "/admin", "/operaciones", "/maestros", "/tercerizados"])
     revalidatePath(r, "layout");
-  redirect(ok ? `${volver}${sep}ok=${encodeURIComponent(ok)}` : volver);
+  redirect(ok ? con(`ok=${encodeURIComponent(ok)}`) : volver);
 }
 
 // ── Liberación y plan ─────────────────────────────────────────────────────
@@ -122,12 +124,15 @@ export async function confirmarSemanaAction(fd: FormData) {
     const plan = await getPlan();
     const dias = proximosHabiles(lunes, 5, plan.entrada.calendario);
     const desde = dias[0], hasta = dias.at(-1)!;
-    const tareas = plan.resultado.tareas.filter((x) => x.tipo === "interno" && x.estado !== "terminada" && x.operarioId && x.fechaPlan && x.fechaPlan >= desde && x.fechaPlan <= hasta);
+    // Sólo lo liberado: una pieza sin liberar no la puede empezar el operario.
+    const tareas = plan.resultado.tareas.filter(
+      (x) => x.tipo === "interno" && x.estado !== "terminada" && x.estado !== "futura" && x.operarioId && x.fechaPlan && x.fechaPlan >= desde && x.fechaPlan <= hasta && !x.operacionId.startsWith("fabricar-"),
+    );
     await db.transaction(async (tx) => {
       await tx.delete(asignacionTrabajo).where(and(eq(asignacionTrabajo.dePlanConfirmado, true), gte(asignacionTrabajo.fecha, desde), lte(asignacionTrabajo.fecha, hasta)));
       if (tareas.length)
         await tx.insert(asignacionTrabajo).values(
-          tareas.filter((x) => !x.operacionId.startsWith("fabricar-")).map((x) => ({ otPiezaId: x.otPiezaId, operacionId: x.operacionId, operarioId: x.operarioId!, fecha: x.fechaPlan!, asignadoPorId: u.id, dePlanConfirmado: true })),
+          tareas.map((x) => ({ otPiezaId: x.otPiezaId, operacionId: x.operacionId, operarioId: x.operarioId!, fecha: x.fechaPlan!, asignadoPorId: u.id, dePlanConfirmado: true })),
         );
     });
     return `Semana confirmada: ${tareas.length} tareas publicadas en "Mi próxima tarea" de cada operario.`;
@@ -223,7 +228,7 @@ export async function recibirPedidoAction(fd: FormData) {
 
 export async function guardarProcesoAction(fd: FormData) {
   await getUsuarioDePlanta();
-  await correr("/operaciones", async () => {
+  await correr("/operaciones?vista=tiempos", async () => {
     await db
       .update(proceso)
       .set({ setupMin: n(fd, "setupMin"), minPorUnidad: n(fd, "minPorUnidad"), plazoDias: n(fd, "plazoDias"), tiempoOrigen: "definido" })
@@ -285,8 +290,9 @@ export async function moverMontajeAction(fd: FormData) {
   const cfg = t(fd, "configuracionId");
   await correr(`/admin/montaje?config=${cfg}`, async () => {
     const filas = await db.select().from(montajeConjunto).where(eq(montajeConjunto.configuracionId, cfg)).orderBy(montajeConjunto.orden);
-    const i = filas.findIndex((f) => f.conjuntoId === t(fd, "conjuntoId"));
-    const j = t(fd, "dir") === "arriba" ? i - 1 : i + 1;
+    const [dir, conjuntoId] = t(fd, "mover").split("|");
+    const i = filas.findIndex((f) => f.conjuntoId === conjuntoId);
+    const j = dir === "arriba" ? i - 1 : i + 1;
     if (i < 0 || j < 0 || j >= filas.length) return;
     await db.update(montajeConjunto).set({ orden: filas[j].orden }).where(and(eq(montajeConjunto.configuracionId, cfg), eq(montajeConjunto.conjuntoId, filas[i].conjuntoId)));
     await db.update(montajeConjunto).set({ orden: filas[i].orden }).where(and(eq(montajeConjunto.configuracionId, cfg), eq(montajeConjunto.conjuntoId, filas[j].conjuntoId)));
@@ -498,6 +504,11 @@ export async function moverReservaAction(fd: FormData) {
       }
       return accion === "liberar" ? `${cantidad} unidades liberadas.` : `${cantidad} unidades traspasadas.`;
     }
+    const [{ libre }] = await db.execute<{ libre: number }>(
+      sql`select coalesce((select cantidad_disponible from stock_pieza where pieza_id = ${piezaId}), 0) - coalesce((select sum(cantidad) from reserva_stock where pieza_id = ${piezaId}), 0) libre`,
+    );
+    if (cantidad > Number(libre)) throw new Error(`Sólo hay ${libre} unidades libres.`);
+    if (!t(fd, "destinoOtMaquinaId")) throw new Error("Elegí la orden.");
     await db.insert(reservaStock).values({ otMaquinaId: t(fd, "destinoOtMaquinaId"), piezaId, cantidad });
     return `${cantidad} unidades asignadas.`;
   });
@@ -505,7 +516,7 @@ export async function moverReservaAction(fd: FormData) {
 
 export async function retirarArticuloAction(fd: FormData) {
   await getUsuarioDePlanta();
-  await correr(`/stock?vista=${t(fd, "vista") || "consumibles"}`, async () => {
+  await correr(`/stock/${t(fd, "vista") || "consumibles"}`, async () => {
     const cant = n(fd, "cantidad") ?? 0;
     const [a] = await db.select().from(articuloStock).where(eq(articuloStock.id, t(fd, "id")));
     if (!a || cant <= 0 || cant > a.cantidad) throw new Error("Cantidad inválida.");

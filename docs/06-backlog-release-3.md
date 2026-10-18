@@ -1573,3 +1573,7 @@ Compras para Lucio.
 6. **Pagos en moneda extranjera**: se registran en la moneda de la cotización; el equivalente
    en pesos usa el tipo de cambio de la cotización, no el del día del pago.
 7. Aprobaciones por monto: quedan para más adelante, como pidió el cliente.
+
+## 27 · v2 — Planificación por proyecto (2026-10-18)
+
+Rediseño propuesto por Matías a partir de dos especificaciones (planificación por proyecto + OT independientes, stock, tercerizados y compras). Se armó como demo en un acceso aparte: rama `v2` y base `reiner_v2`, copia de producción, sin infraestructura nueva. El detalle de lo construido, lo que la demo simplifica y las preguntas abiertas para la reunión está en [`07-v2-planificacion-por-proyecto.md`](07-v2-planificacion-por-proyecto.md).

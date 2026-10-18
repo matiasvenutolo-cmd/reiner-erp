@@ -5,8 +5,8 @@ import { useState } from "react";
 /** Alterna entre "Generar OT de máquina" y "Generar orden suelta" en
  * /ot/nueva — los dos formularios llegan ya armados como children (uno
  * server, otro client) y este componente sólo decide cuál se ve. */
-export function FormTabs({ maquina, suelta }: { maquina: React.ReactNode; suelta: React.ReactNode }) {
-  const [tab, setTab] = useState<"maquina" | "suelta">("maquina");
+export function FormTabs({ maquina, suelta, inicial = "maquina" }: { maquina: React.ReactNode; suelta: React.ReactNode; inicial?: "maquina" | "suelta" }) {
+  const [tab, setTab] = useState<"maquina" | "suelta">(inicial);
 
   return (
     <div className="space-y-4">

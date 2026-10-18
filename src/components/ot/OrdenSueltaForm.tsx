@@ -19,17 +19,27 @@ export function OrdenSueltaForm({
   usuarioNombre,
   conjuntosPorConfiguracion,
   piezasPorConfiguracion,
+  inicial = {},
+  fechaObjetivo,
+  stockLibre = {},
 }: {
   configuraciones: { id: string; nombre: string }[];
   clientes: { id: string; razonSocial: string }[];
   usuarioNombre: string;
   conjuntosPorConfiguracion: Record<string, ConjuntoOpcion[]>;
   piezasPorConfiguracion: Record<string, PiezaOpcion[]>;
+  /** v2 — precarga desde Stock o desde la alerta de mínimo. */
+  inicial?: { destino?: "repuesto" | "stock"; configuracionId?: string; piezaId?: string; cantidad?: number; motivo?: string };
+  /** Fecha objetivo por defecto de una orden para stock (20 días hábiles). */
+  fechaObjetivo: string;
+  stockLibre?: Record<string, number>;
 }) {
-  const [configuracionId, setConfiguracionId] = useState("");
-  const [tipoSuelta, setTipoSuelta] = useState<"conjunto" | "pieza">("conjunto");
+  const [configuracionId, setConfiguracionId] = useState(inicial.configuracionId ?? "");
+  const [tipoSuelta, setTipoSuelta] = useState<"conjunto" | "pieza">(inicial.piezaId ? "pieza" : "conjunto");
   const [conjuntoId, setConjuntoId] = useState("");
-  const [piezaId, setPiezaId] = useState("");
+  const [piezaId, setPiezaId] = useState(inicial.piezaId ?? "");
+  const [destino, setDestino] = useState<"repuesto" | "stock">(inicial.destino ?? "repuesto");
+  const libre = piezaId ? (stockLibre[piezaId] ?? 0) : 0;
 
   const conjuntos = configuracionId ? (conjuntosPorConfiguracion[configuracionId] ?? []) : [];
   const piezas = configuracionId ? (piezasPorConfiguracion[configuracionId] ?? []) : [];
@@ -40,6 +50,24 @@ export function OrdenSueltaForm({
 
   return (
     <form action={crearOrdenSueltaAction} className="bg-surface border border-border rounded-lg p-5 space-y-4">
+      <Field label="¿Para quién es?">
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          {(
+            [
+              ["repuesto", "Para un cliente", "Repuesto o mantenimiento. Prioridad alta."],
+              ["stock", "Para stock", "Sin cliente: entra al almacén como libre."],
+            ] as const
+          ).map(([v, l, ayuda]) => (
+            <label key={v} className={`flex gap-2 rounded-md border p-2.5 cursor-pointer ${destino === v ? "border-accent bg-accent-soft" : "border-border"}`}>
+              <input type="radio" name="destino" value={v} checked={destino === v} onChange={() => setDestino(v)} className="mt-0.5" />
+              <span>
+                <span className="font-medium block">{l}</span>
+                <span className="text-xs text-foreground-muted">{ayuda}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </Field>
       <Field label="Máquina (de ahí sale el catálogo de conjuntos y piezas)">
         <select
           name="configuracionId"
@@ -142,8 +170,17 @@ export function OrdenSueltaForm({
             </select>
           </Field>
           <Field label="Cantidad">
-            <input name="cantidad" type="number" min={1} required defaultValue={1} className="input w-24" />
+            <input name="cantidad" type="number" min={1} required defaultValue={inicial.cantidad ?? 1} className="input w-24" />
           </Field>
+          {destino === "repuesto" && libre > 0 && (
+            <p className="text-sm rounded-md border border-[#bbf7d0] bg-[#f0fdf4] px-3 py-2">
+              Hay <strong>{libre}</strong> libre{libre === 1 ? "" : "s"} en stock.{" "}
+              <a href={`/stock/pieza/${encodeURIComponent(piezaId)}`} className="text-accent underline">
+                Usar stock
+              </a>{" "}
+              en vez de fabricar.
+            </p>
+          )}
         </>
       )}
 
@@ -151,24 +188,48 @@ export function OrdenSueltaForm({
         <input name="referencia" required placeholder="ej. Repuesto cabezal" className="input" />
       </Field>
 
-      <Field label="Cliente">
-        <select name="clienteId" required className="input">
-          {clientes.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.razonSocial}
-            </option>
-          ))}
+      {destino === "repuesto" ? (
+        <>
+          <Field label="Cliente">
+            <select name="clienteId" required className="input">
+              {clientes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.razonSocial}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Orden de compra">
+              <input name="ordenCompra" placeholder="ej. 008" className="input" />
+            </Field>
+            <Field label="Fecha de entrega al cliente">
+              <input name="fechaEntrega" type="date" className="input" />
+            </Field>
+          </div>
+        </>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Motivo">
+            <select name="motivoStock" required defaultValue={inicial.motivo ?? "Reposición por mínimo"} className="input">
+              <option>Reposición por mínimo</option>
+              <option>Adelantar para próximas máquinas</option>
+              <option>Otro</option>
+            </select>
+          </Field>
+          <Field label="Fecha objetivo">
+            <input name="fechaEntrega" type="date" defaultValue={fechaObjetivo} className="input" />
+          </Field>
+        </div>
+      )}
+
+      <Field label="Prioridad">
+        <select name="prioridad" key={destino} defaultValue={destino === "repuesto" ? "alta" : "normal"} className="input w-40">
+          <option value="alta">Alta</option>
+          <option value="normal">Normal</option>
         </select>
       </Field>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Orden de compra">
-          <input name="ordenCompra" placeholder="ej. 008" className="input" />
-        </Field>
-        <Field label="Plazo de entrega">
-          <input name="plazoEntrega" placeholder="ej. 2 semanas" className="input" />
-        </Field>
-      </div>
+      <p className="text-xs text-foreground-muted -mt-2">Con fecha, la orden entra sola al plan. Sin fecha queda en borrador, para activarla después desde Proyectos.</p>
 
       <Field label="Emitido por">
         <input name="emitidoPor" required defaultValue={usuarioNombre} className="input" />
@@ -178,7 +239,7 @@ export function OrdenSueltaForm({
         type="submit"
         className="w-full bg-accent text-accent-foreground font-medium text-sm py-2.5 rounded-md hover:opacity-90"
       >
-        Generar orden suelta
+        {destino === "stock" ? "Generar orden para stock" : "Generar orden para el cliente"}
       </button>
     </form>
   );

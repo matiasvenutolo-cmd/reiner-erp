@@ -6,6 +6,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { EstadoCompra, OrigenCompra, ImporteDoble, CantidadCompra, LinkCompra, PestanasCompras } from "@/components/compras/Partes";
 import { formatearFecha, formatearImporte } from "@/lib/formato";
 import { hoyISO } from "@/lib/fecha";
+import { getPlan } from "@/lib/planning/datos";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,11 @@ const PASOS: { id: string; titulo: string; ayuda: string; estado?: EstadoSolicit
 
 export default async function ComprasPage({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const { ok, error } = await searchParams;
-  const [solicitudes, necesidades] = await Promise.all([listarSolicitudes(), getNecesidadesProduccion()]);
+  const [solicitudes, necesidadesSinOrden, plan] = await Promise.all([listarSolicitudes(), getNecesidadesProduccion(), getPlan()]);
   const hoy = hoyISO();
+  // v2 — "pedir antes del…" sale del plan; las vencidas arriba.
+  const compraDe = new Map(plan.resultado.compras.map((c) => [c.otPiezaId, c]));
+  const necesidades = [...necesidadesSinOrden].sort((a, b) => (compraDe.get(a.otPiezaId)?.pedirAntes ?? "9999").localeCompare(compraDe.get(b.otPiezaId)?.pedirAntes ?? "9999"));
   const porEstado = (e: EstadoSolicitud) => solicitudes.filter((s) => s.estado === e);
   const pagoPendiente = solicitudes.filter((s) => s.estado === "recibida" && (s.saldo ?? 0) > 0);
   const cerradas = solicitudes.filter((s) => (s.estado === "recibida" && (s.saldo ?? 0) <= 0) || s.estado === "anulada");
@@ -77,7 +81,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                   <th className="text-left px-4 py-2 font-medium">Qué hay que comprar</th>
                   <th className="text-left px-4 py-2 font-medium">Orden de trabajo</th>
                   <th className="text-right px-4 py-2 font-medium">Cantidad</th>
-                  <th className="text-left px-4 py-2 font-medium">Producción planificó</th>
+                  <th className="text-left px-4 py-2 font-medium">Pedir antes del</th>
                   <th className="px-4 py-2"></th>
                 </tr>
               </thead>
@@ -95,8 +99,18 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                       <div className="text-xs text-foreground-muted">{n.conjuntoNombre}</div>
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums">{n.cantidad}</td>
-                    <td className="px-4 py-2.5 text-xs text-foreground-muted">
-                      {n.primeraPlanificada ? `1ª operación el ${formatearFecha(n.primeraPlanificada)}` : "Sin planificar"}
+                    <td className="px-4 py-2.5 text-xs">
+                      {compraDe.get(n.otPiezaId) ? (
+                        <>
+                          <div className={`text-sm font-semibold ${compraDe.get(n.otPiezaId)!.pedirAntes < hoy ? "text-[#991b1b]" : ""}`}>
+                            {formatearFecha(compraDe.get(n.otPiezaId)!.pedirAntes)}
+                            {compraDe.get(n.otPiezaId)!.pedirAntes < hoy && " · vencida"}
+                          </div>
+                          <div className="text-foreground-muted">se necesita el {formatearFecha(compraDe.get(n.otPiezaId)!.llegadaNecesaria)}</div>
+                        </>
+                      ) : (
+                        <span className="text-foreground-muted">{n.primeraPlanificada ? `1ª operación el ${formatearFecha(n.primeraPlanificada)}` : "Sin fecha: el proyecto no está activo"}</span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <form action={tomarNecesidadAction}>

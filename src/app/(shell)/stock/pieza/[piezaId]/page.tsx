@@ -10,6 +10,7 @@ import { listarOtMaquinas } from "@/lib/data/ot";
 import { getUsuarioActual } from "@/lib/session";
 import { retirarStockAction, ajustarStockAction } from "@/app/actions/stock";
 import { MovimientosTabla } from "@/components/MovimientosTabla";
+import { moverReservaAction } from "@/app/actions/v2";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ export default async function StockPiezaPage({
   const enFabricacion = enProceso.reduce((s, e) => s + e.cantidad, 0);
   const pedido = pedidos.reduce((s, p) => s + p.cantidad, 0);
   const otsAbiertas = ordenes.filter((o) => o.estadoCalculado !== "terminada");
+  const sugeridoFabricar = Math.max(0, pieza.stockMinimo - almacen - enFabricacion) || Math.max(1, pieza.stockMinimo);
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -57,7 +59,23 @@ export default async function StockPiezaPage({
       />
 
       {error && <Aviso tipo="error">{error}</Aviso>}
-      {ok === "retiro" && <Aviso tipo="ok">Retiro registrado.</Aviso>}
+      {ok === "retiro" ? <Aviso tipo="ok">Retiro registrado.</Aviso> : ok ? <Aviso tipo="ok">{ok}</Aviso> : null}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 tarjeta px-4 py-3">
+        <div className="flex flex-wrap items-center gap-1.5 text-sm">
+          <strong className="mr-1">{almacen} en total:</strong>
+          <span className="badge-estado bg-[#d9f0ea] text-[#00755d]">{libre} libres</span>
+          {reservas.map((r) => (
+            <span key={r.id} className="badge-estado bg-accent-soft text-accent">
+              {r.cantidad} {r.otMaquinaCodigo}
+            </span>
+          ))}
+          {almacen < pieza.stockMinimo && <span className="badge-estado badge-alerta">debajo del mínimo ({pieza.stockMinimo})</span>}
+        </div>
+        <Link href={`/ot/nueva?tipo=suelta&destino=stock&pieza=${encodeURIComponent(pieza.id)}&cantidad=${sugeridoFabricar}`} className="btn btn-sm">
+          Fabricar para stock
+        </Link>
+      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <Dato label="En almacén" value={almacen} />
@@ -98,21 +116,72 @@ export default async function StockPiezaPage({
         <p className="text-xs text-foreground-muted">Queda registrado quién lo sacó ({usuario.nombre}) y cuándo.</p>
       </div>
 
-      {reservas.length > 0 && (
+      <div className="grid sm:grid-cols-2 gap-4 items-start">
         <div>
-          <h2 className="text-sm font-semibold mb-2">Comprometido para</h2>
-          <ul className="text-sm space-y-1">
-            {reservas.map((r) => (
-              <li key={r.id} className="flex justify-between bg-surface border border-border rounded-md px-3 py-2">
-                <Link href={`/ot/${r.otMaquinaId}`} className="font-mono text-accent hover:underline">
-                  {r.otMaquinaCodigo}
-                </Link>
-                <span className="tabular-nums">{r.cantidad} u.</span>
-              </li>
-            ))}
-          </ul>
+          <h2 className="text-sm font-semibold mb-2">Asignado a</h2>
+          {reservas.length === 0 ? (
+            <p className="text-sm text-foreground-muted">Nada asignado: todo lo que hay está libre.</p>
+          ) : (
+            <ul className="text-sm space-y-2">
+              {reservas.map((r) => (
+                <li key={r.id} className="bg-surface border border-border rounded-md px-3 py-2 space-y-2">
+                  <div className="flex justify-between">
+                    <Link href={`/ot/${r.otMaquinaId}`} className="font-mono text-accent hover:underline">
+                      {r.otMaquinaCodigo}
+                    </Link>
+                    <span className="tabular-nums">{r.cantidad} u.</span>
+                  </div>
+                  <form action={moverReservaAction} className="flex flex-wrap items-center gap-1.5 text-xs">
+                    <input type="hidden" name="piezaId" value={pieza.id} />
+                    <input type="hidden" name="reservaId" value={r.id} />
+                    <input name="cantidad" type="number" min={1} max={r.cantidad} defaultValue={r.cantidad} className="input text-xs py-0.5 w-14" aria-label="Cantidad" />
+                    <button name="accion" value="liberar" className="btn-secundario btn-sm">
+                      Liberar
+                    </button>
+                    <span className="text-foreground-muted">o pasar a</span>
+                    <select name="destinoOtMaquinaId" className="input text-xs py-0.5 w-28" aria-label="Orden destino">
+                      {otsAbiertas.filter((o) => o.id !== r.otMaquinaId).map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.codigo}
+                        </option>
+                      ))}
+                    </select>
+                    <input name="motivo" placeholder="motivo" className="input text-xs py-0.5 w-28" />
+                    <button name="accion" value="traspasar" className="btn-secundario btn-sm">
+                      Traspasar
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      )}
+        <form action={moverReservaAction} className="bg-surface border border-border rounded-lg p-3 space-y-2 text-sm">
+          <h2 className="text-sm font-semibold">Asignar unidades libres</h2>
+          <input type="hidden" name="piezaId" value={pieza.id} />
+          <input type="hidden" name="accion" value="asignar" />
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="text-xs text-foreground-muted">
+              Cantidad
+              <input name="cantidad" type="number" min={1} max={libre} required className="input text-sm block mt-0.5 w-20" />
+            </label>
+            <label className="text-xs text-foreground-muted flex-1">
+              A la orden
+              <select name="destinoOtMaquinaId" className="input text-sm block mt-0.5 w-full">
+                {otsAbiertas.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.codigo}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button disabled={libre === 0} className="btn btn-sm">
+              Asignar
+            </button>
+          </div>
+          <p className="text-xs text-foreground-muted">Sirve para destinar a una máquina o un repuesto piezas que se fabricaron para stock.</p>
+        </form>
+      </div>
 
       {(enProceso.length > 0 || pedidos.length > 0) && (
         <div className="grid sm:grid-cols-2 gap-4">

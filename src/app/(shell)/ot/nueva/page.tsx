@@ -6,9 +6,20 @@ import { getClientes } from "@/lib/data/clientes";
 import { crearOtMaquinaAction } from "@/app/actions/ot";
 import { FormTabs } from "@/components/ot/FormTabs";
 import { OrdenSueltaForm } from "@/components/ot/OrdenSueltaForm";
+import { sql } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { getCalendario } from "@/lib/planning/datos";
+import { sumarHabiles } from "@/lib/planning/calendario";
+import { hoyISO } from "@/lib/fecha";
 
-export default async function NuevaOtPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export const dynamic = "force-dynamic";
+
+export default async function NuevaOtPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; tipo?: string; destino?: string; pieza?: string; cantidad?: string; motivo?: string }>;
+}) {
+  const { error, tipo, destino, pieza: piezaInicial, cantidad, motivo } = await searchParams;
   const [configuraciones, modelos, usuario, clientes, conjuntosTodos] = await Promise.all([
     getConfiguraciones(),
     getModelos(),
@@ -35,6 +46,14 @@ export default async function NuevaOtPage({ searchParams }: { searchParams: Prom
       .map((id) => ({ id, nombre: nombreConjunto.get(id) ?? id }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
   }
+
+  // v2 — precarga desde la ficha de Stock ("Fabricar") o la alerta de mínimo de Hoy.
+  const configInicial = piezaInicial ? Object.entries(piezasPorConfiguracion).find(([, ps]) => ps.some((p) => p.id === piezaInicial))?.[0] : undefined;
+  const libres = await db.execute<{ pieza_id: string; libre: number }>(sql`
+    select s.pieza_id, (s.cantidad_disponible - coalesce((select sum(r.cantidad) from reserva_stock r where r.pieza_id = s.pieza_id), 0))::int libre
+    from stock_pieza s where s.cantidad_disponible > 0`);
+  const stockLibre = Object.fromEntries(libres.filter((l) => l.libre > 0).map((l) => [l.pieza_id, l.libre]));
+  const fechaObjetivo = sumarHabiles(hoyISO(), 20, await getCalendario());
 
   const formaMaquina = (
     <div>
@@ -109,6 +128,9 @@ export default async function NuevaOtPage({ searchParams }: { searchParams: Prom
         usuarioNombre={usuario.nombre}
         conjuntosPorConfiguracion={conjuntosPorConfiguracion}
         piezasPorConfiguracion={piezasPorConfiguracion}
+        inicial={{ destino: destino === "stock" ? "stock" : destino === "repuesto" ? "repuesto" : undefined, configuracionId: configInicial, piezaId: configInicial ? piezaInicial : undefined, cantidad: cantidad ? Number(cantidad) : undefined, motivo }}
+        fechaObjetivo={fechaObjetivo}
+        stockLibre={stockLibre}
       />
     </div>
   );
@@ -123,7 +145,7 @@ export default async function NuevaOtPage({ searchParams }: { searchParams: Prom
 
       {error && <Aviso tipo="error">{error}</Aviso>}
 
-      <FormTabs maquina={formaMaquina} suelta={formaSuelta} />
+      <FormTabs maquina={formaMaquina} suelta={formaSuelta} inicial={tipo === "suelta" ? "suelta" : "maquina"} />
     </div>
   );
 }

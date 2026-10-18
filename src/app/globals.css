@@ -64,19 +64,22 @@ body {
 .badge-terminada { background: var(--estado-terminada-bg); color: var(--estado-terminada-fg); }
 .badge-alerta { background: var(--estado-alerta-bg); color: var(--estado-alerta-fg); }
 
-.input {
-  display: block;
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 0.375rem;
-  padding: 0.5rem 0.65rem;
-  font-size: 0.875rem;
-  background: var(--surface);
-  color: var(--foreground);
-}
-.input:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
+/* En la capa de componentes para que los anchos de Tailwind (w-20, w-14…) puedan achicarlo. */
+@layer components {
+  .input {
+    display: block;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.875rem;
+    background: var(--surface);
+    color: var(--foreground);
+  }
+  .input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
 }
 
 .btn-lg {

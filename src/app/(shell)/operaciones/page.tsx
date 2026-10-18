@@ -5,6 +5,8 @@ import { crearCentroAction, renombrarCentroAction, eliminarCentroAction } from "
 import { DestinoOperacionSelect } from "@/components/DestinoOperacionSelect";
 import { getUsuarioActual } from "@/lib/session";
 import { puedeEditarMaestros } from "@/lib/permisos";
+import { Pestanas } from "@/components/ui/Pestanas";
+import { TiemposPorProceso, Capacidad } from "./Vistas";
 
 export const dynamic = "force-dynamic";
 
@@ -15,22 +17,33 @@ export const dynamic = "force-dynamic";
  * de máquina o compran una nueva. Cada pieza puede además usar otro centro
  * para un paso puntual desde su hoja de ruta en Maestros.
  */
-export default async function OperacionesPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function OperacionesPage({ searchParams }: { searchParams: Promise<{ error?: string; ok?: string; vista?: string }> }) {
+  const { error, ok, vista } = await searchParams;
   const [centros, tipos, usuario] = await Promise.all([getCentrosConUso(), getTiposOperacion(), getUsuarioActual()]);
   // Taller lo consulta pero no lo modifica — ver src/lib/permisos.ts.
   const editable = puedeEditarMaestros(usuario.rol);
   const sinAsignar = tipos.filter((t) => t.tipo === "interno" && !t.centroTrabajoId && t.operacionesEnHojasDeRuta > 0);
 
   return (
-    <div className="max-w-4xl space-y-8">
+    <div className="max-w-5xl space-y-8">
       <PageHeader
         titulo="Operaciones y centros"
-        descripcion="Las operaciones son lo que cada pieza tiene que hacer; los centros, dónde se hace. Acá se define dónde se hace cada operación por defecto (una pieza puntual puede usar otro centro desde su hoja de ruta)."
-      />
+        descripcion="Las operaciones son lo que cada pieza tiene que hacer; los centros, dónde se hace. Acá se define dónde se hace cada operación, cuánto tarda por defecto y cuántas horas produce cada centro."
+      >
+        <Pestanas
+          actual={vista === "tiempos" ? "/operaciones?vista=tiempos" : vista === "capacidad" ? "/operaciones?vista=capacidad" : "/operaciones"}
+          items={[
+            { href: "/operaciones", label: "Centros y operaciones" },
+            { href: "/operaciones?vista=tiempos", label: "Tiempos por proceso" },
+            { href: "/operaciones?vista=capacidad", label: "Capacidad" },
+          ]}
+        />
+      </PageHeader>
       {!editable && <Aviso tipo="info">Sólo lectura: esta configuración la modifica ingeniería.</Aviso>}
 
       {error && <Aviso tipo="error">{error}</Aviso>}
+      {ok && <Aviso tipo="ok">{ok}</Aviso>}
+      {vista === "tiempos" ? <TiemposPorProceso editable={editable} /> : vista === "capacidad" ? <Capacidad editable={editable} /> : <>
 
       <section>
         <h2 className="text-base font-semibold mb-2">Centros de trabajo</h2>
@@ -149,6 +162,7 @@ export default async function OperacionesPage({ searchParams }: { searchParams: 
           </table>
         </div>
       </section>
+      </>}
     </div>
   );
 }

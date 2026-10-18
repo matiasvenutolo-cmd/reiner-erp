@@ -263,7 +263,9 @@ export async function generarOtMaquina(input: NuevaOtMaquinaInput): Promise<stri
 export type NuevaOrdenSueltaInput = {
   configuracionId: string;
   referencia: string; // reemplaza al número de serie — texto libre (ej. "Repuesto — Cliente X")
-  clienteId: string;
+  clienteId: string | null; // v2: null en una orden para stock
+  /** v2 — orden para stock: no reserva stock libre para sí misma. */
+  paraStock?: boolean;
   ordenCompra?: string;
   plazoEntrega?: string;
   emitidoPor: string;
@@ -337,10 +339,12 @@ export async function generarOrdenSuelta(input: NuevaOrdenSueltaInput): Promise<
     const piezasDelConjunto = piezasConfig.filter((p) => p.conjuntoId === conjuntoIdFinal);
     const piezasAInsertar: (typeof otPieza.$inferInsert)[] = [];
     let seq = 0;
-    const cobertura = await reservarStockLibre({
-      otMaquinaId: nuevaOt.id,
-      piezas: piezasDelConjunto.map((p) => ({ piezaId: p.id, necesaria: p.cantidadNecesaria })),
-    });
+    const cobertura = input.paraStock
+      ? new Map<string, { cubre: number }>()
+      : await reservarStockLibre({
+          otMaquinaId: nuevaOt.id,
+          piezas: piezasDelConjunto.map((p) => ({ piezaId: p.id, necesaria: p.cantidadNecesaria })),
+        });
     for (const pieza of piezasDelConjunto) {
       const stockDisponible = cobertura.get(pieza.id)?.cubre ?? 0;
       const propuesta = Math.max(pieza.cantidadNecesaria - stockDisponible, 0);

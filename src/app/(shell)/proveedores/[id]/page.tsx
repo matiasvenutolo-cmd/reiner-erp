@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Aviso } from "@/components/ui/Aviso";
 import { ProveedorCampos } from "@/components/ProveedorCampos";
 import { formatearFecha } from "@/lib/formato";
+import { guardarProveedorPlanAction } from "@/app/actions/v2";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +24,10 @@ export default async function ProveedorPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; guardado?: string }>;
+  searchParams: Promise<{ error?: string; guardado?: string; ok?: string }>;
 }) {
   const { id } = await params;
-  const { error, guardado } = await searchParams;
+  const { error, guardado, ok: okPlan } = await searchParams;
   const [p, desempeno] = await Promise.all([getProveedor(id), getDesempenoProveedor(id)]);
   if (!p) notFound();
   const { entregas, plazos } = desempeno;
@@ -39,9 +40,12 @@ export default async function ProveedorPage({
     <div className="space-y-6">
       <PageHeader migas={[{ href: "/proveedores", label: "Proveedores" }, { label: p.razonSocial }]} titulo={p.razonSocial} descripcion={p.rubro ?? undefined} />
       {guardado && <Aviso tipo="ok">Datos guardados.</Aviso>}
+      {okPlan && <Aviso tipo="ok">{okPlan}</Aviso>}
+      {p.estadoProveedor === "bloqueado" && <Aviso tipo="error">Proveedor bloqueado{p.motivoBloqueo ? `: ${p.motivoBloqueo}` : ""}. No se le compra.</Aviso>}
       {error && <Aviso tipo="error">{error}</Aviso>}
 
       <div className="grid lg:grid-cols-[1.1fr_1fr] gap-4 items-start [&>*]:min-w-0">
+        <div className="space-y-4">
         <section className="tarjeta p-4">
           <h2 className="font-semibold mb-3">Datos</h2>
           {/* key: React 19 resetea el form tras guardar; así se rearma con lo guardado. */}
@@ -53,6 +57,60 @@ export default async function ProveedorPage({
             </button>
           </form>
         </section>
+
+        <section className="tarjeta p-4">
+          <h2 className="font-semibold">Para planificar</h2>
+          <p className="text-xs text-foreground-muted mb-3">El plazo es el que usa el plan para calcular &ldquo;pedir antes del…&rdquo; y la vuelta de los tercerizados, cuando no hay una cotización con plazo propio.</p>
+          <form action={guardarProveedorPlanAction} className="grid sm:grid-cols-2 gap-3 text-sm">
+            <input type="hidden" name="id" value={p.id} />
+            <label>
+              Tipo
+              <select name="tipoProveedor" defaultValue={p.tipoProveedor ?? ""} className="input block w-full mt-0.5">
+                <option value="">—</option>
+                <option value="materia_prima">Materia prima</option>
+                <option value="comercial">Artículos comerciales</option>
+                <option value="servicio">Servicios (tercerizados)</option>
+              </select>
+            </label>
+            <label>
+              Plazo estándar (días hábiles)
+              <input name="plazoDias" type="number" min="0" defaultValue={p.plazoDias ?? ""} className="input block w-full mt-0.5" />
+            </label>
+            <label className="sm:col-span-2">
+              Procesos que hace (si es de servicios)
+              <input name="procesos" defaultValue={p.procesos ?? ""} placeholder="ej. Cromado, Pavonado" className="input block w-full mt-0.5" />
+            </label>
+            <label>
+              Teléfono
+              <input name="telefono" defaultValue={p.telefono ?? ""} className="input block w-full mt-0.5" />
+            </label>
+            <label>
+              Email
+              <input name="email" type="email" defaultValue={p.email ?? ""} className="input block w-full mt-0.5" />
+            </label>
+            <label>
+              Moneda habitual
+              <select name="monedaHabitual" defaultValue={p.monedaHabitual} className="input block w-full mt-0.5">
+                <option value="ARS">Pesos</option>
+                <option value="USD">Dólares</option>
+              </select>
+            </label>
+            <label>
+              Estado
+              <select name="estadoProveedor" defaultValue={p.estadoProveedor} className="input block w-full mt-0.5">
+                <option value="activo">Activo</option>
+                <option value="evaluacion">En evaluación</option>
+                <option value="bloqueado">Bloqueado</option>
+              </select>
+            </label>
+            <label className="sm:col-span-2">
+              Motivo de bloqueo (obligatorio si está bloqueado)
+              <input name="motivoBloqueo" defaultValue={p.motivoBloqueo ?? ""} className="input block w-full mt-0.5" />
+            </label>
+            <button className="btn sm:col-span-2">Guardar datos de planificación</button>
+          </form>
+        </section>
+        </div>
 
         <div className="space-y-4">
           <section className="tarjeta p-4">

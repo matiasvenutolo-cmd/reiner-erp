@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { asignacionTrabajo, operacion, dispositivo, piezaAdjunto, piezaNota } from "@/lib/db/schema";
 import { getUsuarioActual } from "@/lib/session";
 import { getOperacionesAbiertas } from "@/lib/data/ejecucion";
-import { getPlan } from "@/lib/planning/datos";
+import { getPlan, getCalendario } from "@/lib/planning/datos";
+import { ajustarAHabil, lunesDe } from "@/lib/planning/calendario";
 import { urlDeAdjunto } from "@/lib/blob";
 import { iniciarOperacionAction } from "@/app/actions/ejecucion";
 import { hoyISO } from "@/lib/fecha";
@@ -27,14 +28,19 @@ export default async function MiProximaTareaPage({ searchParams }: { searchParam
   if (enCurso) redirect(`/taller/${enCurso.otPiezaId}`);
   const pausadas = abiertas.filter((a) => a.pausada);
 
-  const hoy = hoyISO();
+  // Fin de semana o feriado: muestra lo del próximo día hábil.
+  const hoy = ajustarAHabil(hoyISO(), await getCalendario());
   const [plan, asignadas] = await Promise.all([
     getPlan(),
-    db.select().from(asignacionTrabajo).where(and(eq(asignacionTrabajo.operarioId, usuario.id), eq(asignacionTrabajo.fecha, hoy))),
+    // Lo confirmado para él esta semana hasta hoy: lo que no terminó ayer sigue en su cola.
+    db
+      .select()
+      .from(asignacionTrabajo)
+      .where(and(eq(asignacionTrabajo.operarioId, usuario.id), gte(asignacionTrabajo.fecha, lunesDe(hoy)), lte(asignacionTrabajo.fecha, hoy))),
   ]);
   const porClave = new Map(plan.resultado.tareas.map((t) => [t.clave, t]));
-  const cola = asignadas
-    .map((a) => porClave.get(`${a.otPiezaId}::${a.operacionId}`))
+  const cola = [...new Set(asignadas.map((a) => `${a.otPiezaId}::${a.operacionId}`))]
+    .map((clave) => porClave.get(clave))
     .filter((t): t is NonNullable<typeof t> => !!t && t.estado !== "terminada" && !pausadas.some((p) => p.otPiezaId === t.otPiezaId))
     .sort((a, b) => Number(b.estado === "lista") - Number(a.estado === "lista") || a.holgura - b.holgura);
   const proxima = cola[0];

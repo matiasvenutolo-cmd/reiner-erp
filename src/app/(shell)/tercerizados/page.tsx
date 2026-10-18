@@ -12,6 +12,9 @@ import { MovimientosTabla } from "@/components/MovimientosTabla";
 import { ArmadoRemito } from "@/components/logistica/ArmadoRemito";
 import type { MovimientoStock, Proveedor } from "@/lib/db/schema";
 import { getUsuarioActual } from "@/lib/session";
+import { getPlan } from "@/lib/planning/datos";
+import { habilesEntre, sumarHabiles } from "@/lib/planning/calendario";
+import { fechaCorta } from "@/components/v2/Plan";
 
 export const dynamic = "force-dynamic";
 
@@ -31,14 +34,32 @@ export default async function TercerizadosPage({
   const query = (q ?? "").trim();
   const tipoFiltro = (tipo ?? "") as MovimientoStock["tipo"] | "";
 
-  const [piezasEncontradas, proveedores, enPasoTercerizado, movimientos, usuario] = await Promise.all([
+  const [piezasEncontradas, proveedores, enPasoTercerizado, movimientos, usuario, plan] = await Promise.all([
     query ? buscarPiezas(query) : Promise.resolve([]),
     getProveedores(),
     getPiezasAfueraTercerizado(),
     listarMovimientos(tipoFiltro || undefined),
     getUsuarioActual(),
+    getPlan(),
   ]);
-  const afuera = enPasoTercerizado.filter((a) => a.remito);
+  const { resultado: r, entrada } = plan;
+  const hoy = entrada.hoy;
+  const tareaDe = new Map(r.tareas.map((t) => [t.clave, t]));
+  const provPorNombre = new Map(proveedores.map((p) => [p.razonSocial.toLowerCase(), p]));
+  const afuera = enPasoTercerizado
+    .filter((a) => a.remito)
+    .map((a) => {
+      const t = tareaDe.get(`${a.otPiezaId}::${a.operacionId}`);
+      const vuelta = t?.finPlan ?? null;
+      return { ...a, t, vuelta, atraso: vuelta && vuelta <= hoy && t?.estado !== "terminada" ? habilesEntre(vuelta, hoy, entrada.calendario) : 0, prov: a.remito ? provPorNombre.get(a.remito.destino.toLowerCase()) : undefined };
+    })
+    .sort((x, y) => y.atraso - x.atraso || (x.vuelta ?? "").localeCompare(y.vuelta ?? ""));
+  // Para mandar, según el plan: paso anterior terminado, ordenadas por "mandar antes del…".
+  const enTresDias = sumarHabiles(hoy, 3, entrada.calendario);
+  const terc = r.tareas.filter((t) => t.tipo === "tercerizado" && !afuera.some((a) => a.otPiezaId === t.otPiezaId && a.operacionId === t.operacionId));
+  const listas = terc.filter((t) => t.estado === "lista").sort((a, b) => a.inicioMasTardio.localeCompare(b.inicioMasTardio));
+  const pronto = terc.filter((t) => t.estado === "liberada" && t.fechaPlan && t.fechaPlan <= enTresDias);
+  const porProceso = [...Map.groupBy(listas, (t) => t.paso).entries()];
   const paraMandar = enPasoTercerizado.filter((a) => !a.remito);
   const resultados = await Promise.all(
     piezasEncontradas.map(async (p) => ({ pieza: p, stock: await getStockDisponible(p.id) })),
@@ -54,6 +75,41 @@ export default async function TercerizadosPage({
       </PageHeader>
 
       {error && <Aviso tipo="error">{error}</Aviso>}
+
+      <section>
+        <h2 className="text-sm font-semibold mb-1">Para mandar ({listas.length})</h2>
+        <p className="text-xs text-foreground-muted mb-2">Piezas que ya terminaron el paso anterior. &ldquo;Mandar antes del&rdquo; es el último día para que vuelvan a tiempo (fecha límite − plazo del proveedor − 1 día de logística).</p>
+        {porProceso.length === 0 ? (
+          <p className="text-sm text-foreground-muted">Nada listo para mandar.</p>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-3">
+            {porProceso.map(([proceso, ts]) => {
+              const proximas = pronto.filter((t) => t.paso === proceso).length;
+              return (
+                <div key={proceso} className="tarjeta p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-semibold">{proceso}</div>
+                    <span className="text-xs text-foreground-muted">{ts.length} pieza{ts.length === 1 ? "" : "s"}</span>
+                  </div>
+                  <ul className="text-sm mt-2 space-y-1">
+                    {ts.slice(0, 8).map((t) => (
+                      <li key={t.clave} className="flex items-center justify-between gap-2">
+                        <span className="truncate">
+                          {t.piezaNombre} × {t.cantidad} <span className="text-xs text-foreground-muted">· {t.proyectoCodigo}</span>
+                        </span>
+                        <span className="whitespace-nowrap text-xs">
+                          antes del <strong className={t.inicioMasTardio < hoy ? "text-[#991b1b]" : ""}>{fechaCorta(t.inicioMasTardio)}</strong>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {proximas > 0 && <p className="text-xs text-[#5b3aa8] mt-2">En los próximos 3 días se suman {proximas} pieza{proximas === 1 ? "" : "s"} más a {proceso}: puede convenir esperar y mandar todo junto.</p>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <div id="esperando">
         <h2 className="text-sm font-semibold mb-1">Afuera, esperando que vuelvan ({afuera.length})</h2>
@@ -71,12 +127,13 @@ export default async function TercerizadosPage({
                   <th className="text-left px-4 py-2 font-medium">OT</th>
                   <th className="text-left px-4 py-2 font-medium">Proceso</th>
                   <th className="text-left px-4 py-2 font-medium">Salió</th>
+                  <th className="text-left px-4 py-2 font-medium">Vuelta prevista</th>
                   <th className="text-left px-4 py-2 font-medium">Registrar vuelta</th>
                 </tr>
               </thead>
               <tbody>
                 {afuera.map((a) => (
-                  <tr key={a.otPiezaId} className="border-t border-border align-top">
+                  <tr key={a.otPiezaId} className={`border-t border-border align-top ${a.atraso > 0 ? "bg-[#fef2f2]" : ""}`}>
                     <td className="px-4 py-2.5">
                       <div className="font-mono text-xs text-foreground-muted">{a.piezaCodigo}</div>
                       <div>{a.piezaNombre}</div>
@@ -100,6 +157,14 @@ export default async function TercerizadosPage({
                             {a.cantidadRecibida > 0 && ` · volvieron ${a.cantidadRecibida}`}
                           </div>
                         </>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      {a.vuelta ? fechaCorta(a.vuelta) : "—"}
+                      {a.atraso > 0 && <div className="text-xs font-semibold text-[#991b1b]">{a.atraso} día{a.atraso === 1 ? "" : "s"} de atraso</div>}
+                      {a.t?.tarde && <div className="text-xs font-semibold text-[#991b1b]">vuelve después de su fecha límite</div>}
+                      {a.atraso > 0 && a.prov && (a.prov.contacto || a.prov.telefono) && (
+                        <div className="text-xs text-foreground-muted">Reclamar: {[a.prov.contacto, a.prov.telefono].filter(Boolean).join(" · ")}</div>
                       )}
                     </td>
                     <td className="px-4 py-2.5">

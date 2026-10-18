@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/ui/PageHeader";
 import Link from "next/link";
+import { PestanasMaestros } from "@/components/ui/PestanasSecciones";
 import { getModelos, getConfiguraciones, contarPiezasPorConfiguracion } from "@/lib/data/maestros";
 
 /**
@@ -21,7 +22,9 @@ export default async function MaestrosPage() {
       <PageHeader
         titulo="Piezas y hojas de ruta"
         descripcion="Los maestros: máquinas, sus conjuntos y piezas, y la hoja de ruta de cada pieza (qué operaciones lleva y dónde se hacen). Elegí una máquina para empezar."
-      />
+      >
+        <PestanasMaestros actual="/maestros" />
+      </PageHeader>
 
       <div className="space-y-6">
         {modelos.map((m) => (

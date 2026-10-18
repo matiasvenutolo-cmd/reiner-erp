@@ -29,7 +29,7 @@ export default async function StockFinalizadoPage({
         titulo="Stock"
         descripcion={`Almacén: existencias físicas reales. ${piezas.length} pieza${piezas.length === 1 ? "" : "s"} distinta${piezas.length === 1 ? "" : "s"} · ${totalUnidades} unidades, ${totalComprometido} ya reservadas para una máquina vendida.`}
       >
-        <PestanasStock actual="/stock/finalizado" />
+        <PestanasStock actual={tipoFiltro ? `/stock/finalizado?tipo=${tipoFiltro}` : "/stock/finalizado"} />
       </PageHeader>
 
       <FiltrosStock

@@ -12,6 +12,10 @@ import {
   getOtPiezaIdsSinEnviar,
 } from "@/lib/data/ot";
 import { getUsuarioDePlanta } from "@/lib/session";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { otMaquina } from "@/lib/db/schema";
+import { hoyISO } from "@/lib/fecha";
 
 function volverANuevaCon(mensaje: string): never {
   redirect(`/ot/nueva?error=${encodeURIComponent(mensaje)}`);
@@ -92,14 +96,21 @@ export async function crearOrdenSueltaAction(formData: FormData) {
   const emitidoPor = String(formData.get("emitidoPor") ?? "").trim();
   const tipo = String(formData.get("tipoSuelta") ?? "");
 
-  if (!configuracionId || !referencia || !clienteId || !emitidoPor) {
-    throw new Error("Faltan datos obligatorios: máquina, referencia, cliente y emitido por.");
+  // v2 — destino: Cliente (repuesto) o Stock. Stock no tiene cliente y pide un motivo.
+  const destino = String(formData.get("destino") ?? "repuesto") === "stock" ? "stock" : "repuesto";
+  const fechaEntrega = String(formData.get("fechaEntrega") ?? "").trim();
+  const prioridad = String(formData.get("prioridad") ?? "") === "alta" ? "alta" : "normal";
+  const motivoStock = String(formData.get("motivoStock") ?? "").trim();
+  if (!configuracionId || !referencia || (destino === "repuesto" && !clienteId) || !emitidoPor) {
+    volverANuevaCon(destino === "stock" ? "Faltan datos obligatorios: máquina, referencia y emitido por." : "Faltan datos obligatorios: máquina, referencia, cliente y emitido por.");
   }
+  if (destino === "stock" && !motivoStock) volverANuevaCon("Una orden para stock pide un motivo.");
 
   const base = {
     configuracionId,
     referencia,
-    clienteId,
+    clienteId: destino === "stock" ? null : clienteId,
+    paraStock: destino === "stock",
     ordenCompra: ordenCompra || undefined,
     plazoEntrega: plazoEntrega || undefined,
     emitidoPor,
@@ -123,8 +134,14 @@ export async function crearOrdenSueltaAction(formData: FormData) {
     volverANuevaCon(e instanceof Error ? e.message : "No se pudo generar la orden.");
   }
 
+  // v2 — una orden de un solo nivel con fecha queda activa: entra sola al plan.
+  await db
+    .update(otMaquina)
+    .set({ destino, motivoStock: destino === "stock" ? motivoStock : null, prioridad, fechaEntrega: fechaEntrega || null, estadoProyecto: fechaEntrega ? "activo" : "borrador", fechaInicioProyecto: fechaEntrega ? hoyISO() : null })
+    .where(eq(otMaquina.id, id));
   revalidatePath("/ot");
-  redirect(`/ot/${id}`);
+  revalidatePath("/proyectos");
+  redirect(fechaEntrega ? `/proyectos/${id}` : `/ot/${id}`);
 }
 
 /**

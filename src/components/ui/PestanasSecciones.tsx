@@ -34,9 +34,13 @@ export function PestanasStock({ actual }: { actual: string }) {
       actual={actual}
       items={[
         { href: "/stock", label: "Resumen" },
-        { href: "/stock/finalizado", label: "Almacén" },
-        { href: "/stock/en-proceso", label: "En fabricación" },
-        { href: "/stock/compras", label: "Compras de producción" },
+        { href: "/stock/materia-prima", label: "Materia prima" },
+        { href: "/stock/finalizado?tipo=comprada", label: "Insumos comprados" },
+        { href: "/stock/consumibles", label: "Consumibles" },
+        { href: "/stock/en-proceso", label: "En proceso" },
+        { href: "/stock/finalizado?tipo=fabricada", label: "Terminados" },
+        { href: "/stock/maquinas", label: "Máquinas" },
+        { href: "/stock/movimientos", label: "Movimientos" },
       ]}
     />
   );
@@ -61,6 +65,18 @@ export function PestanasLlegamos({ actual }: { actual: string }) {
       items={[
         { href: "/llegamos", label: "¿Llegamos?" },
         { href: "/avance", label: "Avance por piezas" },
+      ]}
+    />
+  );
+}
+
+export function PestanasMaestros({ actual }: { actual: string }) {
+  return (
+    <Pestanas
+      actual={actual}
+      items={[
+        { href: "/maestros", label: "Piezas y hojas de ruta" },
+        { href: "/maestros/tiempos", label: "Grilla de tiempos" },
       ]}
     />
   );
