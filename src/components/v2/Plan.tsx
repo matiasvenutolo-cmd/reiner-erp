@@ -1,4 +1,6 @@
-import type { Nivel, EstadoTarea } from "@/lib/planning/motor";
+import Link from "next/link";
+import type { Nivel, EstadoTarea, Causa } from "@/lib/planning/motor";
+import { fechaCorta as fc, diasHabiles } from "@/lib/formato";
 import { TONO, Etiqueta, type Tono } from "@/components/ui/Etiqueta";
 
 /**
@@ -73,4 +75,58 @@ const BORDE_PALETA = ["border-proy-1", "border-proy-2", "border-proy-3", "border
 export function colorProyecto(orden: number, tipo?: string): { fondo: string; borde: string } {
   if (tipo === "stock") return { fondo: "bg-proy-stock", borde: "border-proy-stock" };
   return { fondo: PALETA[orden % PALETA.length], borde: BORDE_PALETA[orden % PALETA.length] };
+}
+
+// ── Causa raíz (mejoras de usabilidad §1.5): una frase con su acción ──
+
+
+/** Qué pasa, en una frase, y el botón que lo resuelve. */
+export function textoCausa(c: Causa, hoy: string): { texto: string; accion: string; href: string; hacer: string } {
+  switch (c.tipo) {
+    case "compra":
+    case "comercial": {
+      const que = c.tipo === "compra" ? `el material de ${c.conjunto}` : `${c.pieza} (${c.conjunto})`;
+      if (c.pedido) return { texto: `${que} llega ${c.llegada ? `el ${fc(c.llegada, hoy)}` : "sin fecha prometida"}`, accion: "Ver lo que está por llegar", href: "/pedir?vista=llegar", hacer: `Apurar ${que}` };
+      return {
+        texto: c.pedirAntes < hoy ? `${que} se tenía que pedir antes del ${fc(c.pedirAntes, hoy)}` : `${que} hay que pedirlo antes del ${fc(c.pedirAntes, hoy)} y el plazo no alcanza`,
+        accion: "Ir a pedir",
+        href: "/pedir",
+        hacer: `Pedir ${que}`,
+      };
+    }
+    case "tercerizado":
+      return { texto: `el ${c.paso.toLowerCase()} de ${c.pieza} vuelve el ${fc(c.vuelta, hoy)}`, accion: "Ver tercerizados", href: "/tercerizados", hacer: `Reclamar el ${c.paso.toLowerCase()} de ${c.pieza}` };
+    case "capacidad":
+      return { texto: `${c.centro} no tiene lugar para ${c.pieza} (${c.conjunto}) hasta el ${fc(c.desde, hoy)}`, accion: "Ver el plan", href: `/planificacion?centro=${encodeURIComponent(c.centroId)}`, hacer: `Hacer lugar en ${c.centro}` };
+    case "sin_liberar":
+      return { texto: `faltan liberar las piezas de ${c.conjunto}`, accion: "Liberar piezas", href: "/liberacion", hacer: `Liberar las piezas de ${c.conjunto}` };
+  }
+}
+
+/** "OTMD01 llega 16 días hábiles tarde porque el material de Mando Principal se tenía que pedir antes del vie 25/09. → Ir a pedir" */
+export function CausaRaiz({ codigo, causas, hoy, chico }: { codigo: string; causas: { causa: Causa; dias: number }[]; hoy: string; chico?: boolean }) {
+  if (!causas.length) return null;
+  return (
+    <ul className={`space-y-2 ${chico ? "text-sm" : ""}`}>
+      {causas.map(({ causa, dias }, i) => {
+        const c = textoCausa(causa, hoy);
+        return (
+          <li key={i} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="flex-1 min-w-0">
+              {i === 0 ? (
+                <>
+                  <strong>{codigo}</strong> llega {diasHabiles(dias)} tarde porque {c.texto}.
+                </>
+              ) : (
+                <>Además, {c.texto} (atrasa {diasHabiles(dias)}).</>
+              )}
+            </span>
+            <Link href={c.href} className={i === 0 ? "btn btn-sm" : "btn-texto btn-sm"}>
+              {c.accion} →
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
