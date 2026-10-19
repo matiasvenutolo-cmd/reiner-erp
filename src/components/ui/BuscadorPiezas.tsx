@@ -41,9 +41,10 @@ export function BuscadorPiezas({ piezas, destino, placeholder = "Buscar una piez
         aria-label={placeholder}
         role="combobox"
         aria-expanded={resultados.length > 0}
+        aria-controls="buscador-piezas-lista"
       />
       {resultados.length > 0 && (
-        <ul className="absolute z-30 mt-1 w-full tarjeta py-1 max-h-80 overflow-y-auto" role="listbox">
+        <ul id="buscador-piezas-lista" className="absolute z-30 mt-1 w-full tarjeta py-1 max-h-80 overflow-y-auto" role="listbox">
           {resultados.map((p, i) => (
             <li key={p.codigo} role="option" aria-selected={i === activo}>
               <button type="button" onMouseEnter={() => setActivo(i)} onClick={() => ir(p.codigo)} className={`w-full text-left px-3 py-2 ${i === activo ? "bg-surface-muted" : ""}`}>

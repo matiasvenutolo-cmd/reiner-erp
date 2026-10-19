@@ -581,7 +581,7 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
   /** Por pieza: la primera tarea que terminó después de su fecha límite (de ahí sale la causa raíz). */
   const origenAtraso = new Map<string, { t: Tarea; porLiberar: boolean }>();
   const compraDe = new Map(compras.map((c) => [c.clave, c]));
-  for (const { p, pz } of piezas) {
+  for (const { pz } of piezas) {
     let desdeInicial = hoy;
     let porLiberar = false;
     if (!pz.liberada) {

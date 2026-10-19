@@ -127,7 +127,23 @@ export default async function LlegamosPage() {
       <section>
         <h2 className="text-lg font-semibold">Carga de los próximos 30 días</h2>
         <p className="text-sm text-foreground-muted mb-3">Cada celda es un día de un centro: de blanco (libre) a rojo (lleno o sobrecargado). Pasá el mouse para ver las horas.</p>
-        <div className="tarjeta overflow-x-auto p-3">
+        {/* En el celular, una tarjeta por centro con su día más cargado (§1.9) */}
+        <ul className="md:hidden tarjeta divide-y divide-border">
+          {centros.map((c) => {
+            const porDia = dias.map((d) => ({ d, pct: (r.capacidad.get(c.id)?.get(d) ?? 0) ? (r.carga.get(c.id)?.get(d) ?? 0) / (r.capacidad.get(c.id)?.get(d) ?? 1) : 0 }));
+            const pico = [...porDia].sort((a, b) => b.pct - a.pct)[0];
+            const llenos = porDia.filter((x) => x.pct >= 0.99).length;
+            return (
+              <li key={c.id} className="px-4 py-2.5 flex items-center justify-between gap-3 text-sm">
+                <span className="font-medium">{c.nombre}</span>
+                <span className={pico && pico.pct >= 0.99 ? "text-rojo-fg font-semibold" : "text-foreground-muted"}>
+                  {pico && pico.pct > 0 ? `${llenos ? `${llenos} días llenos · ` : ""}pico ${Math.round(pico.pct * 100)}% el ${fechaCorta(pico.d, hoy)}` : "libre"}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="hidden md:block tarjeta overflow-x-auto p-3">
           <table className="text-xs border-separate border-spacing-0.5">
             <thead>
               <tr>

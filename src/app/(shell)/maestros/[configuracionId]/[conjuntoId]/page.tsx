@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/ui/PageHeader";
+import { capitalizar } from "@/lib/formato";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getConjunto, getConfiguracion, getPiezasPorConfiguracionYConjunto, getRoutingPieza } from "@/lib/data/maestros";
@@ -70,8 +71,7 @@ function TablaPiezas({ titulo, filas }: { titulo: string; filas: Fila[] }) {
           <table className="w-full text-sm">
             <thead className="bg-surface-muted text-foreground-muted text-xs">
               <tr>
-                <th className="text-left px-4 py-2 font-medium">Código</th>
-                <th className="text-left px-4 py-2 font-medium">Nombre</th>
+                <th className="text-left px-4 py-2 font-medium" colSpan={2}>Pieza</th>
                 <th className="text-right px-4 py-2 font-medium">Cant. necesaria</th>
                 <th className="text-right px-4 py-2 font-medium">Stock</th>
                 <th className="text-right px-4 py-2 font-medium">En proceso</th>
@@ -81,12 +81,12 @@ function TablaPiezas({ titulo, filas }: { titulo: string; filas: Fila[] }) {
             <tbody>
               {filas.map(({ pieza, routing, stock, wip }) => (
                 <tr key={pieza.id} className="border-t border-border hover:bg-surface-muted/50">
-                  <td className="px-4 py-2.5">
-                    <Link href={`/maestros/pieza/${pieza.id}`} className="font-mono text-xs text-accent hover:underline">
-                      {pieza.codigo}
+                  <td className="px-4 py-2.5" colSpan={2}>
+                    <Link href={`/maestros/pieza/${pieza.id}`} className="font-medium hover:text-accent hover:underline">
+                      {capitalizar(pieza.nombre)}
                     </Link>
+                    <div className="font-mono text-[13px] text-foreground-muted">{pieza.codigo}</div>
                   </td>
-                  <td className="px-4 py-2.5">{pieza.nombre}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">{pieza.cantidadNecesaria}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{stock}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">{wip || "—"}</td>

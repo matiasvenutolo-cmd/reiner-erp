@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/ui/PageHeader";
+import { capitalizar } from "@/lib/formato";
 import { PestanasStock } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { getPiezasEnProceso } from "@/lib/data/stock";
@@ -58,10 +59,8 @@ export default async function StockEnProcesoPage({
               {items.map((it) => (
                 <tr key={it.otPiezaId} className="border-t border-border hover:bg-surface-muted/50">
                   <td className="px-4 py-2.5">
-                    <Link href={`/stock/pieza/${it.piezaId}`} className="font-mono text-xs text-accent hover:underline mr-1">
-                      {it.piezaCodigo}
-                    </Link>
-                    {it.piezaNombre}
+                    <Link href={`/stock/pieza/${it.piezaId}`} className="font-medium hover:text-accent hover:underline">{capitalizar(it.piezaNombre)}</Link>
+                    <div className="font-mono text-[13px] text-foreground-muted">{it.piezaCodigo}</div>
                   </td>
                   <td className="px-4 py-2.5 text-foreground-muted">{it.conjuntoNombre}</td>
                   <td className="px-4 py-2.5">

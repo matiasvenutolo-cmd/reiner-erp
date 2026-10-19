@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { plural } from "@/lib/formato";
+import { plural, capitalizar } from "@/lib/formato";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { configuracion, conjunto, pieza, piezaConfiguracion } from "@/lib/db/schema";
@@ -118,12 +118,12 @@ export default async function GrillaTiemposPage({ searchParams }: { searchParams
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
           <span className={`font-semibold ${pctPropio >= 90 ? "text-verde-fg" : pctPropio >= 50 ? "text-naranja-fg" : "text-rojo-fg"}`}>{pctPropio}% con tiempo propio</span>
           <a href={`/maestros/tiempos/csv?config=${config.id}${conj ? `&conjunto=${conj.id}` : ""}`} className="btn-secundario btn-sm">
             Exportar CSV
           </a>
-          <form action={importarTiemposCsvAction} className="flex items-center gap-1">
+          <form action={importarTiemposCsvAction} className="flex flex-wrap items-center gap-1">
             <input type="hidden" name="volver" value={volver} />
             <input type="file" name="archivo" accept=".csv,text/csv" required className="text-xs w-44" aria-label="Archivo CSV" />
             <button className="btn-secundario btn-sm">Importar</button>
@@ -154,10 +154,12 @@ export default async function GrillaTiemposPage({ searchParams }: { searchParams
               {filas.map((p) => (
                 <li key={p.id} className="flex items-center gap-3 px-4 py-2">
                   <input type="checkbox" name="destino" value={p.id} aria-label={p.nombre} />
-                  <Link href={`/maestros/pieza/${p.id}`} className="font-mono text-xs text-accent hover:underline w-36">
-                    {p.codigo}
-                  </Link>
-                  <span>{p.nombre}</span>
+                  <span className="flex-1">
+                    <Link href={`/maestros/pieza/${p.id}`} className="font-medium hover:text-accent hover:underline">
+                      {capitalizar(p.nombre)}
+                    </Link>
+                    <span className="block font-mono text-[13px] text-foreground-muted">{p.codigo}</span>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -180,10 +182,10 @@ export default async function GrillaTiemposPage({ searchParams }: { searchParams
                 {filas.map((p) => (
                   <tr key={p.id} className="border-t border-border align-top">
                     <td className="px-3 py-2 sticky left-0 bg-surface">
-                      <Link href={`/maestros/pieza/${p.id}`} className="font-mono text-xs text-accent hover:underline">
-                        {p.codigo}
+                      <Link href={`/maestros/pieza/${p.id}`} className="block text-sm font-medium leading-tight hover:text-accent hover:underline">
+                        {capitalizar(p.nombre)}
                       </Link>
-                      <div className="text-xs leading-tight">{p.nombre}</div>
+                      <div className="font-mono text-[13px] text-foreground-muted">{p.codigo}</div>
                       {p.clase !== "fabricada" && <span className="badge-estado bg-surface-muted text-foreground text-[10px]">{p.clase === "comercial" ? "Comercial" : "A medida"}</span>}
                     </td>
                     {p.pasos.length === 0 ? (

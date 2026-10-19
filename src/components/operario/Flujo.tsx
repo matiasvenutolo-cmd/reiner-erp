@@ -57,6 +57,7 @@ export function TarjetaPlanta({ tarea, detalle, hoy, cantidad, campos, children 
           <div className="text-xl font-semibold">
             {tarea.paso} <span className="text-foreground-muted font-normal">— paso {tarea.posicion} de {tarea.totalPasos}</span>
           </div>
+          {tarea.lote && <div className="text-[15px] font-semibold text-accent">Lote {tarea.lote.n} de {tarea.lote.de}</div>}
           {detalle.detalle && <div className="text-foreground-muted">{detalle.detalle}</div>}
         </div>
         <div className="text-right">

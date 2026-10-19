@@ -7,7 +7,7 @@
  * un array en memoria cargado de fixtures JSON — la firma de cada función
  * no cambió, así que ninguna pantalla tuvo que tocarse (ver docs/01 §6).
  */
-import { eq, inArray, asc, desc, or, ilike, sql } from "drizzle-orm";
+import { eq, inArray, asc, desc, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   modelo,
@@ -439,12 +439,17 @@ export async function getPiezasPorConfiguracionYConjunto(
 }
 
 /** Busca piezas por código o nombre (usado en /stock). */
+/**
+ * Busca por código o por nombre, sin importar mayúsculas ni acentos (mejoras
+ * de usabilidad §4.4): "buje", "BUJE" y "bujé" encuentran lo mismo.
+ */
 export async function buscarPiezas(query: string, limite = 30): Promise<Pieza[]> {
-  const patron = `%${query}%`;
+  const sinAcento = (col: unknown) => sql`translate(lower(${col}), 'áéíóúüñàèìòù', 'aeiouunaeiou')`;
+  const patron = `%${query.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()}%`;
   return db
     .select()
     .from(pieza)
-    .where(or(ilike(pieza.codigo, patron), ilike(pieza.nombre, patron)))
+    .where(or(sql`${sinAcento(pieza.codigo)} like ${patron}`, sql`${sinAcento(pieza.nombre)} like ${patron}`))
     .limit(limite);
 }
 

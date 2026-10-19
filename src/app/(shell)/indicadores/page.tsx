@@ -1,8 +1,10 @@
 import { PageHeader } from "@/components/ui/PageHeader";
+import { horas } from "@/lib/formato";
 import { getResumenIndicadores, getParadasPorTipo, getTiempoPorOperario, getTiempoPorProceso } from "@/lib/data/indicadores";
 
+/** Coma decimal y, debajo de 1 h, en minutos (§4.5). */
 function fmtHoras(h: number): string {
-  return h.toFixed(1) + " h";
+  return horas(h);
 }
 
 export default async function IndicadoresPage() {

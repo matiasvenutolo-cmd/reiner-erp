@@ -1,4 +1,4 @@
-import { asc, count, eq } from "drizzle-orm";
+import { asc, count } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { proceso, centroTrabajo, usuarioCentroTrabajo } from "@/lib/db/schema";
 import { guardarProcesoAction, guardarCapacidadAction } from "@/app/actions/v2";

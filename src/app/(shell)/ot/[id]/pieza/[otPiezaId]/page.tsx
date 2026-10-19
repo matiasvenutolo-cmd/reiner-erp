@@ -136,7 +136,7 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
                               <input type="hidden" name="otMaquinaId" value={id} />
                               <input type="hidden" name="otPiezaId" value={otPieza.id} />
                               <button type="submit" className="text-xs text-accent hover:underline shrink-0">
-                                ⏸ Detener
+                                <Icono nombre="pausa" className="w-3.5 h-3.5" /> Detener
                               </button>
                             </form>
                           </>

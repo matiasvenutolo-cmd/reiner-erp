@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/ui/PageHeader";
+import { capitalizar } from "@/lib/formato";
 import { PestanasPlanificacion } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { getColaPorCentroTrabajo, getPiezasCompraPendientes, contarPiezasSinCentro } from "@/lib/data/produccion";
@@ -108,8 +109,8 @@ export default async function CentrosTrabajoPage() {
                 {compraPendiente.map((it) => (
                   <tr key={it.otPiezaId} className="border-t border-border hover:bg-surface-muted/50">
                     <td className="px-4 py-2.5">
-                      <span className="font-mono text-xs text-foreground-muted mr-1">{it.piezaCodigo}</span>
-                      {it.piezaNombre}
+                      <div>{capitalizar(it.piezaNombre)}</div>
+                      <div className="font-mono text-[13px] text-foreground-muted">{it.piezaCodigo}</div>
                     </td>
                     <td className="px-4 py-2.5">{it.conjuntoNombre}</td>
                     <td className="px-4 py-2.5">

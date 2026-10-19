@@ -220,7 +220,7 @@ export default async function TercerizadosPage({
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
           <h2 className="text-lg font-semibold">Movimientos</h2>
-          <form className="flex items-center gap-2">
+          <form className="flex flex-wrap items-center gap-2">
             {q && <input type="hidden" name="q" value={q} />}
             <label className="text-xs text-foreground-muted flex items-center gap-1">
               Desde

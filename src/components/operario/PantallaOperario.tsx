@@ -41,15 +41,17 @@ export async function PantallaOperario({
       getCantidadesOperacion(abierta.otPiezaId, abierta.operacionId, abierta.id),
     ]);
     const motivoParada = parada ? ((await db.select({ n: tipoParada.nombre }).from(tipoParada).where(eq(tipoParada.id, parada.tipoParadaId)))[0]?.n ?? "") : "";
+    // Con lotes, lo que se hace (y se precarga al terminar) es el lote, no todo el paso.
+    const cantidadAhora = actual?.lote ? Math.min(cantidades.disponibles, actual.cantidad) : cantidades.disponibles;
     if (actual && detalle)
       contenido = (
-        <TarjetaPlanta tarea={actual} detalle={detalle} hoy={hoy} cantidad={cantidades.disponibles} campos={campos}>
+        <TarjetaPlanta tarea={actual} detalle={detalle} hoy={hoy} cantidad={cantidadAhora} campos={campos}>
           <BotonesEnCurso
             registro={{ id: abierta.id, tipo: abierta.tipo, inicio: abierta.inicio, otPiezaId: abierta.otPiezaId, operacionId: abierta.operacionId }}
             parada={parada ? { inicio: parada.inicio, motivo: motivoParada } : null}
             tarea={actual}
             detalle={detalle}
-            disponibles={cantidades.disponibles}
+            disponibles={cantidadAhora}
             campos={campos}
           />
         </TarjetaPlanta>
@@ -59,7 +61,7 @@ export async function PantallaOperario({
     if (actual && (actual.estado === "lista" || otPiezaId)) {
       const [detalle, cantidades] = await Promise.all([getDetalleTarea(actual), getCantidadesOperacion(actual.otPiezaId, actual.operacionId)]);
       contenido = (
-        <TarjetaPlanta tarea={actual} detalle={detalle} hoy={hoy} cantidad={cantidades.disponibles || actual.cantidad} campos={campos}>
+        <TarjetaPlanta tarea={actual} detalle={detalle} hoy={hoy} cantidad={actual.lote ? Math.min(cantidades.disponibles || actual.cantidad, actual.cantidad) : cantidades.disponibles || actual.cantidad} campos={campos}>
           {actual.tipo === "interno" ? (
             <BotonesPorEmpezar tarea={actual} campos={campos} />
           ) : (
