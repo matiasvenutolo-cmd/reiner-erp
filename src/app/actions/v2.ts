@@ -7,7 +7,7 @@ import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   otMaquina, planAjuste, asignacionTrabajo, proyectoEvento, proceso, centroTrabajo, feriado, ausencia, montajeConjunto, configuracion,
-  parametro, pieza, operacion, pedidoCompra, proveedor, proveedorServicio, reservaStock, articuloStock, otPieza,
+  parametro, pieza, operacion, pedidoCompra, proveedor, proveedorServicio, reservaStock, articuloStock, otPieza, tareaLote, semanaConfirmada,
 } from "@/lib/db/schema";
 import { getUsuarioActual, getUsuarioDePlanta } from "@/lib/session";
 import { enviarAProduccion } from "@/lib/data/ot";
@@ -55,9 +55,21 @@ export async function liberarAction(fd: FormData) {
   });
 }
 
+/** "otPiezaId::operacionId" o, para un lote, "otPiezaId::operacionId::L2" (el ajuste del lote se guarda aparte del resto). */
 function partirClave(clave: string) {
-  const [otPiezaId, operacionId] = clave.split("::");
-  return { otPiezaId, operacionId };
+  const [otPiezaId, ...resto] = clave.split("::");
+  return { otPiezaId, operacionId: resto.join("::"), operacionBase: resto[0] };
+}
+
+/** Partir una tarea grande en lotes (mejoras de usabilidad §1.6): cada lote se planifica, mueve y termina por separado. 0 = sin lotes. */
+export async function partirEnLotesAction(fd: FormData) {
+  await getUsuarioDePlanta();
+  const { otPiezaId, operacionBase } = partirClave(t(fd, "clave"));
+  await correr(t(fd, "volver") || "/planificacion", async () => {
+    const tamano = Math.max(0, Math.round(n(fd, "tamano") ?? 0));
+    await db.insert(tareaLote).values({ otPiezaId, operacionId: operacionBase, tamano }).onConflictDoUpdate({ target: [tareaLote.otPiezaId, tareaLote.operacionId], set: { tamano } });
+    return tamano ? `Tarea partida en lotes de ${tamano}.` : "La tarea volvió a ser una sola.";
+  });
 }
 
 export async function moverTareaAction(fd: FormData) {
@@ -87,6 +99,7 @@ export async function moverTareaDirecto(clave: string, fecha: string): Promise<{
     .onConflictDoUpdate({ target: [planAjuste.otPiezaId, planAjuste.operacionId], set: { fecha, usuarioId: u.id, updatedAt: new Date() } });
   revalidatePath("/planificacion", "layout");
   revalidatePath("/inicio");
+  revalidateTag("contadores", { expire: 0 });
   return { ok: true };
 }
 
@@ -137,6 +150,7 @@ export async function confirmarSemanaAction(fd: FormData) {
           tareas.map((x) => ({ otPiezaId: x.otPiezaId, operacionId: x.operacionId, operarioId: x.operarioId!, fecha: x.fechaPlan!, asignadoPorId: u.id, dePlanConfirmado: true })),
         );
     });
+    await db.insert(semanaConfirmada).values({ lunes, usuarioId: u.id, tareas: tareas.length }).onConflictDoUpdate({ target: semanaConfirmada.lunes, set: { usuarioId: u.id, confirmadaAt: new Date(), tareas: tareas.length } });
     return `Semana confirmada: ${plural(tareas.length, "tarea")} publicada${tareas.length === 1 ? "" : "s"} en "Mi próxima tarea" de cada operario.`;
   });
 }
