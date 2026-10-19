@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { buscarPiezasParaRemitoAction, generarRemitoAction } from "@/app/actions/remitos";
 import { HojaRemito } from "./HojaRemito";
+import { Icono } from "@/components/ui/Icono";
 
 type ResultadoPieza = { id: string; codigo: string; nombre: string };
 type ItemCarrito = {
@@ -27,7 +28,14 @@ export type PiezaParaMandar = {
   piezaNombre: string;
   procesoNombre: string;
   cantidad: number;
+  /** v2 — último día para mandarla y que vuelva a tiempo (del plan). */
+  mandarAntes?: string | null;
+  mandarAntesTexto?: string | null;
+  atrasada?: boolean;
 };
+
+/** v2 — por proceso: proveedor habitual (se propone solo como destino) y cuántas piezas más llegan en 3 días. */
+export type SugerenciaProceso = { proveedor?: string | null; plazo?: number | null; proximas: number };
 
 /**
  * Armar un remito con varias piezas antes de finalizarlo — pedido
@@ -39,7 +47,7 @@ export type PiezaParaMandar = {
  * sin número todavía); recién "Confirmar e imprimir" lo registra —con su
  * número y los egresos— y abre la impresión.
  */
-export function ArmadoRemito({ paraMandar = [], usuarioNombre }: { paraMandar?: PiezaParaMandar[]; usuarioNombre: string }) {
+export function ArmadoRemito({ paraMandar = [], usuarioNombre, sugerencias = {} }: { paraMandar?: PiezaParaMandar[]; usuarioNombre: string; sugerencias?: Record<string, SugerenciaProceso> }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
@@ -90,8 +98,10 @@ export function ArmadoRemito({ paraMandar = [], usuarioNombre }: { paraMandar?: 
     ]);
   }
 
-  // Lo pendiente de tercerizar, agrupado por operación: para juntar y mandar todo junto.
-  const porOperacion = [...paraMandar.reduce((m, p) => m.set(p.procesoNombre, [...(m.get(p.procesoNombre) ?? []), p]), new Map<string, PiezaParaMandar[]>())];
+  // Lo pendiente de tercerizar, agrupado por operación y ordenado por "mandar antes del…": para juntar y mandar todo junto.
+  const porOperacion = [...paraMandar.reduce((m, p) => m.set(p.procesoNombre, [...(m.get(p.procesoNombre) ?? []), p]), new Map<string, PiezaParaMandar[]>())]
+    .map(([op, ps]) => [op, [...ps].sort((a, b) => (a.mandarAntes ?? "9999").localeCompare(b.mandarAntes ?? "9999"))] as const)
+    .sort(([, a], [, b]) => (a[0]?.mandarAntes ?? "9999").localeCompare(b[0]?.mandarAntes ?? "9999"));
 
   function quitar(clave: string) {
     setCarrito((prev) => prev.filter((it) => it.clave !== clave));
@@ -191,35 +201,47 @@ export function ArmadoRemito({ paraMandar = [], usuarioNombre }: { paraMandar?: 
     <div className="tarjeta p-4 space-y-4">
       {paraMandar.length > 0 && (
         <div>
-          <div className="text-xs font-medium text-foreground-muted mb-1.5">
-            Pendientes de tercerizar — llegaron a su paso tercerizado y todavía no salieron ({paraMandar.length})
-          </div>
-          <div className="space-y-2">
+          <div className="text-sm font-semibold mb-1">Para mandar ({paraMandar.length})</div>
+          <p className="text-xs text-foreground-muted mb-2">Ya terminaron el paso anterior. &ldquo;Mandar antes del&rdquo; es el último día para que vuelvan a tiempo.</p>
+          <div className="space-y-3">
             {porOperacion.map(([operacion, piezas]) => {
               const faltan = piezas.filter((p) => !carrito.some((it) => it.clave === p.otPiezaId));
               return (
-                <div key={operacion}>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-medium">
-                      {operacion} · {piezas.length} pieza{piezas.length === 1 ? "" : "s"}
+                <div key={operacion} className="rounded-lg border border-border p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <span className="text-sm">
+                      <strong>{operacion}</strong> · {piezas.length} pieza{piezas.length === 1 ? "" : "s"}
+                      {sugerencias[operacion]?.proveedor && <span className="text-foreground-muted"> · {sugerencias[operacion]!.proveedor}{sugerencias[operacion]!.plazo ? `, ${sugerencias[operacion]!.plazo} días` : ""}</span>}
                     </span>
                     <button
                       type="button"
                       disabled={faltan.length === 0}
-                      onClick={() => agregarParaMandar(...faltan)}
-                      className="text-accent hover:underline disabled:text-foreground-muted disabled:no-underline"
+                      onClick={() => {
+                        agregarParaMandar(...faltan);
+                        // El proveedor se propone solo según el habitual del proceso (se puede cambiar).
+                        if (!destino.trim() && sugerencias[operacion]?.proveedor) setDestino(sugerencias[operacion]!.proveedor!);
+                      }}
+                      className="btn btn-sm disabled:opacity-50"
                     >
-                      {faltan.length === 0 ? "Todas en el remito" : `+ Agregar todas (${faltan.length})`}
+                      {faltan.length === 0 ? "Todas en el remito" : `Armar remito con estas (${faltan.length})`}
                     </button>
                   </div>
+                  {(sugerencias[operacion]?.proximas ?? 0) > 0 && (
+                    <div className="flex items-center gap-2 rounded-md border border-accent-borde bg-accent-soft px-2.5 py-1.5 mb-2 text-xs text-accent-hover">
+                      <Icono nombre="idea" className="w-4 h-4 shrink-0" />
+                      En los próximos 3 días se suman {sugerencias[operacion]!.proximas} pieza{sugerencias[operacion]!.proximas === 1 ? "" : "s"} más a {operacion}: puede convenir esperar y mandar todo junto.
+                    </div>
+                  )}
                   <ul className="space-y-1">
                     {piezas.map((p) => {
                       const agregada = carrito.some((it) => it.clave === p.otPiezaId);
                       return (
                         <li key={p.otPiezaId} className="flex items-center gap-2 text-sm bg-surface-muted rounded-md px-2.5 py-1.5">
-                          <span className="font-mono text-xs text-foreground-muted">{p.otPiezaCodigo}</span>
-                          <span className="flex-1 truncate">{p.piezaNombre}</span>
+                          <span className="flex-1 min-w-0 truncate">
+                            {p.piezaNombre.charAt(0).toUpperCase() + p.piezaNombre.slice(1)} <span className="font-mono text-xs text-foreground-muted">{p.otPiezaCodigo}</span>
+                          </span>
                           <span className="text-xs text-foreground-muted shrink-0">{p.cantidad} u.</span>
+                          {p.mandarAntesTexto && <span className={`text-xs shrink-0 ${p.atrasada ? "text-rojo-fg font-semibold" : "text-foreground-muted"}`}>antes del {p.mandarAntesTexto}</span>}
                           <button
                             type="button"
                             disabled={agregada}

@@ -1,11 +1,15 @@
 import Link from "next/link";
 import type { MovimientoConDetalle } from "@/lib/data/logistica";
+import { Etiqueta, type Tono } from "@/components/ui/Etiqueta";
+import { Codigo } from "@/components/ui/Codigo";
+import { capitalizar } from "@/lib/formato";
 
-export const TIPO_MOVIMIENTO: Record<string, { label: string; clase: string; signo: "+" | "−" | "±" }> = {
-  ingreso: { label: "↓ Ingreso", clase: "badge-terminada", signo: "+" },
-  egreso: { label: "↑ Egreso", clase: "badge-alerta", signo: "−" },
-  retiro_ot: { label: "Retiro de stock", clase: "badge-en_curso", signo: "−" },
-  ajuste: { label: "Ajuste", clase: "badge-pendiente", signo: "±" },
+/** Tipo de movimiento con ícono y color (§2.7): ↑ egreso naranja, ↓ ingreso verde. */
+export const TIPO_MOVIMIENTO: Record<string, { label: string; tono: Tono; icono: string; signo: "+" | "−" | "±" }> = {
+  ingreso: { label: "Ingreso", tono: "verde", icono: "bajar", signo: "+" },
+  egreso: { label: "Egreso", tono: "naranja", icono: "subir", signo: "−" },
+  retiro_ot: { label: "Retiro de stock", tono: "azul", icono: "subir", signo: "−" },
+  ajuste: { label: "Ajuste", tono: "gris", icono: "configuracion", signo: "±" },
 };
 
 /** Ingreso y egreso bien distintos a simple vista (devolución del socio:
@@ -34,17 +38,19 @@ export function MovimientosTabla({ movimientos, mostrarPieza = true }: { movimie
           {movimientos.map((m) => {
             const tipo = TIPO_MOVIMIENTO[m.tipo];
             const signo = tipo.signo === "±" ? (m.cantidad >= 0 ? "+" : "−") : tipo.signo;
-            const colorCantidad = signo === "+" ? "text-verde-fg" : "text-rojo-fg";
+            const colorCantidad = signo === "+" ? "text-verde-fg" : "text-naranja-fg";
             return (
               <tr key={m.id} className="border-t border-border">
                 <td className="px-4 py-2.5 text-foreground-muted whitespace-nowrap">{new Date(m.fecha).toLocaleDateString("es-AR")}</td>
                 <td className="px-4 py-2.5 whitespace-nowrap">
-                  <span className={`badge-estado ${tipo.clase}`}>{tipo.label}</span>
+                  <Etiqueta tono={tipo.tono} icono={tipo.icono}>
+                    {tipo.label}
+                  </Etiqueta>
                 </td>
                 {mostrarPieza && (
                   <td className="px-4 py-2.5">
-                    <span className="font-mono text-xs text-foreground-muted mr-1">{m.piezaCodigo}</span>
-                    {m.piezaNombre}
+                    <div>{capitalizar(m.piezaNombre)}</div>
+                    <Codigo valor={m.piezaCodigo} />
                   </td>
                 )}
                 <td className={`px-4 py-2.5 text-right tabular-nums font-medium ${colorCantidad}`}>
@@ -54,9 +60,7 @@ export function MovimientosTabla({ movimientos, mostrarPieza = true }: { movimie
                 <td className="px-4 py-2.5 text-foreground-muted">{m.proveedorNombre ?? "—"}</td>
                 <td className="px-4 py-2.5">
                   {m.controlResultado ? (
-                    <span className={`badge-estado ${m.controlResultado === "ok" ? "badge-terminada" : "badge-alerta"}`}>
-                      {m.controlResultado === "ok" ? "OK" : "NO OK"}
-                    </span>
+                    <Etiqueta tono={m.controlResultado === "ok" ? "verde" : "rojo"}>{m.controlResultado === "ok" ? "OK" : "NO OK"}</Etiqueta>
                   ) : (
                     "—"
                   )}

@@ -30,7 +30,7 @@ export function FiltrosStock({
   return (
     <div className="flex flex-wrap gap-2">
       <select
-        className="input text-sm"
+        className="input text-sm w-auto"
         value={searchParams.get("conjunto") ?? ""}
         onChange={(e) => actualizar("conjunto", e.target.value)}
       >
@@ -42,7 +42,7 @@ export function FiltrosStock({
         ))}
       </select>
       <select
-        className="input text-sm"
+        className="input text-sm w-auto"
         value={searchParams.get("maquina") ?? ""}
         onChange={(e) => actualizar("maquina", e.target.value)}
       >
@@ -53,7 +53,7 @@ export function FiltrosStock({
           </option>
         ))}
       </select>
-      <select className="input text-sm" value={searchParams.get("tipo") ?? ""} onChange={(e) => actualizar("tipo", e.target.value)}>
+      <select className="input text-sm w-auto" value={searchParams.get("tipo") ?? ""} onChange={(e) => actualizar("tipo", e.target.value)}>
         <option value="">Compradas y fabricadas</option>
         <option value="fabricada">Sólo fabricadas</option>
         <option value="comprada">Sólo compradas</option>

@@ -1,208 +1,111 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PestanasStock } from "@/components/ui/PestanasSecciones";
-import Link from "next/link";
-import {
-  getResumenWipEnCursoPorProceso,
-  getStockDisponible,
-  getComprometido,
-  getWipEnCursoDePieza,
-  getResumenStockGeneral,
-  getPiezasStockBajo,
-} from "@/lib/data/stock";
-import { getPiezasCompraPendientes } from "@/lib/data/produccion";
-import { getPedidosPendientes, getOtPiezaIdsConPedidoAbierto } from "@/lib/data/compras";
-import { buscarPiezas, getPiezas } from "@/lib/data/maestros";
-import { MetricCard } from "@/components/MetricCard";
-import { PiezaSelect } from "@/components/PiezaSelect";
+import { BuscadorPiezas } from "@/components/ui/BuscadorPiezas";
+import { Vacio } from "@/components/ui/Aviso";
+import { Etiqueta } from "@/components/ui/Etiqueta";
+import { getResumenWipEnCursoPorProceso, getResumenStockGeneral, getPiezasStockBajo } from "@/lib/data/stock";
+import { getPedidosPendientes } from "@/lib/data/compras";
+import { getPiezas } from "@/lib/data/maestros";
+import { Codigo } from "@/components/ui/Codigo";
+import { capitalizar, numero, plural } from "@/lib/formato";
 
 // Datos en vivo (stock/producción cambian todo el tiempo) — nunca prerenderizar en build.
 export const dynamic = "force-dynamic";
 
 /**
- * Stock separado en los cuatro grupos que pidió el cliente (2ª ronda, pregunta
- * 5) y el socio ("no sabés cuáles son existencias reales en el almacén,
- * cuáles están en proceso de compra o ya compradas esperando que lleguen"):
- * almacén libre, comprometido para una máquina vendida, stock futuro (en
- * fabricación) y compras. Cada pieza abre su ficha de stock (no Maestros),
- * desde donde se retira registrando quién y para qué.
+ * Stock (mejoras de usabilidad §2.6): resumen con tarjetas que llevan a la
+ * lista filtrada, buscador con autocompletado, lo que está en fabricación como
+ * barra por etapa, y lo que quedó por debajo del mínimo.
  */
-export default async function StockPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams;
-  const [wip, resumen, stockBajo, compraPendiente, pedidos, todasLasPiezas] = await Promise.all([
-    getResumenWipEnCursoPorProceso(),
-    getResumenStockGeneral(),
-    getPiezasStockBajo(),
-    getPiezasCompraPendientes(),
-    getPedidosPendientes(),
-    getPiezas(),
-  ]);
-  const conPedido = await getOtPiezaIdsConPedidoAbierto(compraPendiente.map((c) => c.otPiezaId));
-  const porPedir = compraPendiente.filter((c) => !conPedido.has(c.otPiezaId)).length;
-  const unidadesFuturo = wip.reduce((sum, w) => sum + w.unidades, 0);
+export default async function StockPage() {
+  const [wip, resumen, stockBajo, pedidos, todasLasPiezas] = await Promise.all([getResumenWipEnCursoPorProceso(), getResumenStockGeneral(), getPiezasStockBajo(), getPedidosPendientes(), getPiezas()]);
+  const enFabricacion = wip.reduce((sum, w) => sum + w.unidades, 0);
   const libre = resumen.unidadesFinalizadas - resumen.unidadesComprometidas;
   const wipOrdenado = [...wip].sort((a, b) => b.unidades - a.unidades);
+  const maxEtapa = Math.max(1, ...wipOrdenado.map((w) => w.unidades));
 
-  const piezasParaSelect = [...todasLasPiezas]
-    .sort((a, b) => a.nombre.localeCompare(b.nombre))
-    .map((p) => ({ codigo: p.codigo, nombre: p.nombre }));
-
-  const query = (q ?? "").trim();
-  const piezasEncontradas = query ? await buscarPiezas(query) : [];
-  const resultados = await Promise.all(
-    piezasEncontradas.map(async (p) => ({
-      pieza: p,
-      almacen: await getStockDisponible(p.id),
-      comprometido: await getComprometido(p.id),
-      enProceso: await getWipEnCursoDePieza(p.id),
-    })),
-  );
+  const tarjetas = [
+    { label: "libres para usar", n: libre, href: "/stock/finalizado?estado=libre", tono: "verde" as const },
+    { label: "asignadas a una orden", n: resumen.unidadesComprometidas, href: "/stock/finalizado?estado=asignada", tono: "azul" as const },
+    { label: "en fabricación", n: enFabricacion, href: "/stock/en-proceso", tono: "naranja" as const },
+    { label: "pedidas, por llegar", n: pedidos.length, href: "/pedir?vista=llegar", tono: "gris" as const },
+  ];
 
   return (
     <div className="space-y-8">
       <PageHeader
         titulo="Stock"
-        descripcion={
-          <>
-            Cada unidad está en uno de estos lugares: en el <strong>almacén</strong> (libre, o reservada para una máquina vendida),{" "}
-            <strong>en fabricación</strong> (entra al almacén cuando termina su hoja de ruta) o en <strong>compras</strong> (por pedir o
-            pedida, esperando que llegue).
-          </>
-        }
+        descripcion="Cada unidad está libre (para cualquier orden), asignada a una orden, en fabricación o pedida al proveedor. Las etiquetas tienen el mismo color en todo el sistema."
       >
         <PestanasStock actual="/stock" />
       </PageHeader>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <MetricCard label="En almacén, libres para usar" value={libre} href="/stock/finalizado" />
-        <MetricCard label="En almacén, comprometidas para máquinas vendidas" value={resumen.unidadesComprometidas} href="/stock/finalizado" />
-        <MetricCard label="Stock futuro — en fabricación" value={unidadesFuturo} href="/stock/en-proceso" />
-        <MetricCard label={`Compras pedidas esperando llegar · ${porPedir} por pedir`} value={pedidos.length} href="/stock/compras" />
+      <BuscadorPiezas piezas={todasLasPiezas.map((p) => ({ codigo: p.codigo, nombre: p.nombre }))} destino="/stock/pieza/" />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {tarjetas.map((t) => (
+          <Link key={t.label} href={t.href} className="tarjeta p-4 hover:border-accent transition-colors">
+            <div className="text-[32px] font-bold tabular-nums leading-none">{numero(t.n)}</div>
+            <div className="mt-2">
+              <Etiqueta tono={t.tono} sinIcono>
+                {t.label}
+              </Etiqueta>
+            </div>
+          </Link>
+        ))}
       </div>
 
-      <div id="minimo">
-        <h2 className="text-sm font-semibold mb-2">Por debajo del mínimo</h2>
+      <section id="minimo">
+        <h2 className="text-lg font-semibold mb-2">Por debajo del mínimo</h2>
         {stockBajo.length === 0 ? (
-          <p className="text-sm text-foreground-muted">Ninguna pieza está por debajo de su mínimo en este momento.</p>
+          <Vacio>Ninguna pieza está por debajo del mínimo.</Vacio>
         ) : (
-          <div className="tarjeta overflow-hidden overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs">
-                <tr>
-                  <th className="text-left px-4 py-2 font-medium">Pieza</th>
-                  <th className="text-right px-4 py-2 font-medium">En almacén</th>
-                  <th className="text-right px-4 py-2 font-medium">Mínimo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stockBajo.map((p) => (
-                  <tr key={p.piezaId} className="border-t border-border">
-                    <td className="px-4 py-2.5">
-                      <Link href={`/stock/pieza/${p.piezaId}`} className="font-mono text-xs text-accent hover:underline mr-1">
-                        {p.piezaCodigo}
-                      </Link>
-                      {p.piezaNombre}
-                    </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-rojo-fg">{p.disponible}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">{p.minimo}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="tarjeta divide-y divide-border">
+            {stockBajo.map((p) => (
+              <li key={p.piezaId} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+                <div className="flex-1 min-w-48">
+                  <Link href={`/stock/pieza/${p.piezaId}`} className="font-medium hover:text-accent hover:underline">
+                    {capitalizar(p.piezaNombre)}
+                  </Link>
+                  <div>
+                    <Codigo valor={p.piezaCodigo} />
+                  </div>
+                </div>
+                <span className="text-sm tabular-nums">
+                  <span className="text-rojo-fg font-semibold">{numero(p.disponible)}</span> de {numero(p.minimo)} mínimo
+                </span>
+                <Link href={`/ot/nueva?tipo=suelta&destino=stock&pieza=${encodeURIComponent(p.piezaId)}&cantidad=${Math.max(1, p.minimo - p.disponible)}`} className="btn-secundario btn-sm">
+                  Fabricar para stock
+                </Link>
+              </li>
+            ))}
+          </ul>
         )}
-      </div>
+      </section>
 
-      <div id="etapas">
-        <h2 className="text-sm font-semibold mb-2">Stock futuro — en qué etapa de fabricación está</h2>
+      <section id="etapas">
+        <h2 className="text-lg font-semibold mb-2">En fabricación, por etapa</h2>
         {wipOrdenado.length === 0 ? (
-          <p className="text-sm text-foreground-muted">No hay piezas en fabricación en este momento.</p>
+          <Vacio neutro>No hay piezas en fabricación en este momento.</Vacio>
         ) : (
-          <div className="tarjeta overflow-hidden overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs">
-                <tr>
-                  <th className="text-left px-4 py-2 font-medium">Etapa</th>
-                  <th className="text-right px-4 py-2 font-medium">Piezas distintas</th>
-                  <th className="text-right px-4 py-2 font-medium">Unidades</th>
-                </tr>
-              </thead>
-              <tbody>
-                {wipOrdenado.map((w) => (
-                  <tr key={w.procesoId} className="border-t border-border hover:bg-surface-muted/50">
-                    <td className="px-4 py-2.5">
-                      <Link href={`/stock/etapa/${w.procesoId}`} className="text-accent hover:underline">
-                        {w.procesoNombre}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{w.piezas}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums font-medium">{w.unidades}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="tarjeta p-4 space-y-2.5">
+            {wipOrdenado.map((w) => (
+              <li key={w.procesoId}>
+                <Link href={`/stock/etapa/${w.procesoId}`} className="grid grid-cols-[10rem_1fr_auto] items-center gap-3 text-sm hover:text-accent">
+                  <span className="truncate">{w.procesoNombre}</span>
+                  <span className="h-3 rounded-full bg-surface-muted overflow-hidden">
+                    <span className="block h-full rounded-full bg-naranja" style={{ width: `${(w.unidades / maxEtapa) * 100}%` }} />
+                  </span>
+                  <span className="tabular-nums text-right w-28">
+                    {numero(w.unidades)} u. · {plural(w.piezas, "pieza")}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         )}
-      </div>
-
-      <div>
-        <h2 className="text-sm font-semibold mb-2">Buscar una pieza puntual</h2>
-        <div className="max-w-md mb-3 grid sm:grid-cols-2 gap-2">
-          <form>
-            <input type="search" name="q" defaultValue={q ?? ""} placeholder="Buscar pieza por código o nombre…" className="input" />
-          </form>
-          <PiezaSelect basePath="/stock" piezas={piezasParaSelect} />
-        </div>
-
-        {query && (
-          <div className="tarjeta overflow-hidden overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs">
-                <tr>
-                  <th className="text-left px-4 py-2 font-medium">Pieza</th>
-                  <th className="text-right px-4 py-2 font-medium">En almacén</th>
-                  <th className="text-right px-4 py-2 font-medium">Comprometido</th>
-                  <th className="text-left px-4 py-2 font-medium">En fabricación</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resultados.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-foreground-muted">
-                      Sin resultados para &ldquo;{q}&rdquo;
-                    </td>
-                  </tr>
-                ) : (
-                  resultados.map(({ pieza, almacen, comprometido, enProceso }) => (
-                    <tr key={pieza.id} className="border-t border-border hover:bg-surface-muted/50">
-                      <td className="px-4 py-2.5">
-                        <Link href={`/stock/pieza/${pieza.id}`} className="font-mono text-xs text-accent hover:underline mr-1">
-                          {pieza.codigo}
-                        </Link>
-                        {pieza.nombre}
-                      </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">{almacen}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">{comprometido || "—"}</td>
-                      <td className="px-4 py-2.5">
-                        {enProceso.length === 0 ? (
-                          <span className="text-foreground-muted">—</span>
-                        ) : (
-                          <div className="flex flex-wrap gap-1">
-                            {enProceso.map((e) => (
-                              <span key={e.procesoNombre} className="badge-estado badge-en_curso">
-                                {e.cantidad} en {e.procesoNombre}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      </section>
     </div>
   );
 }

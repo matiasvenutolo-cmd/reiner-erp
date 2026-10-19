@@ -25,9 +25,12 @@ function Celda({ s }: { s: PasoGrilla }) {
         <div className="text-[11px] text-foreground-muted">{s.tipo === "tercerizado" ? "Tercerizado" : "Compra"} · {s.plazo != null ? plural(s.plazo, "día") : "plazo sin cargar"}</div>
       </div>
     );
+  // Color según el origen (§2.9): estimado amarillo suave, definido por REINER blanco, medido verde suave.
   const propio = s.minPorUnidad != null;
+  const origen = !propio ? "estimado" : s.origen === "medido" ? "medido" : "definido";
+  const fondo = origen === "estimado" ? "border-estimado-borde bg-estimado-bg" : origen === "medido" ? "border-verde-medio bg-verde-tenue" : "border-border bg-surface";
   return (
-    <div className={`rounded-md border px-2 py-1.5 min-w-32 ${propio ? "border-verde-medio bg-verde-tenue" : "border-border"}`}>
+    <div className={`rounded-md border px-2 py-1.5 min-w-32 ${fondo}`} title={origen === "estimado" ? "Usa el tiempo estimado del proceso" : origen === "medido" ? "Tiempo medido en planta" : "Definido por REINER"}>
       <div className="text-[11px] font-medium truncate" title={s.proceso}>
         {s.secuencia}. {s.proceso}
       </div>
@@ -199,7 +202,7 @@ export default async function GrillaTiemposPage({ searchParams }: { searchParams
           </div>
           <div className="sticky bottom-0 flex items-center justify-between gap-3 bg-surface/95 backdrop-blur border border-border rounded-lg px-4 py-2.5">
             <span className="text-xs text-foreground-muted">
-              {plural(filas.length, "pieza")} · verde = tiempo propio cargado · gris = usa el del proceso
+              {plural(filas.length, "pieza")} · <span className="rounded px-1 bg-estimado-bg text-estimado-fg">amarillo</span> estimado · blanco definido por REINER · <span className="rounded px-1 bg-verde-tenue text-verde-fg">verde</span> medido
             </span>
             <button className="btn">Guardar tiempos</button>
           </div>

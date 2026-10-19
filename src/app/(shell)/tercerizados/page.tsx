@@ -9,7 +9,11 @@ import { getPiezasAfueraTercerizado } from "@/lib/data/produccion";
 import { registrarIngresoAction, registrarVueltaAction } from "@/app/actions/logistica";
 import { TipoMovimientoSelect } from "@/components/TipoMovimientoSelect";
 import { MovimientosTabla } from "@/components/MovimientosTabla";
-import { ArmadoRemito } from "@/components/logistica/ArmadoRemito";
+import { ArmadoRemito, type SugerenciaProceso } from "@/components/logistica/ArmadoRemito";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { proceso, proveedor, proveedorServicio } from "@/lib/db/schema";
+import { Icono } from "@/components/ui/Icono";
 import type { MovimientoStock, Proveedor } from "@/lib/db/schema";
 import { getUsuarioActual } from "@/lib/session";
 import { getPlan } from "@/lib/planning/datos";
@@ -28,9 +32,9 @@ export const dynamic = "force-dynamic";
 export default async function TercerizadosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tipo?: string; error?: string }>;
+  searchParams: Promise<{ q?: string; tipo?: string; error?: string; desde?: string }>;
 }) {
-  const { q, tipo, error } = await searchParams;
+  const { q, tipo, error, desde } = await searchParams;
   const query = (q ?? "").trim();
   const tipoFiltro = (tipo ?? "") as MovimientoStock["tipo"] | "";
 
@@ -57,10 +61,20 @@ export default async function TercerizadosPage({
   // Para mandar, según el plan: paso anterior terminado, ordenadas por "mandar antes del…".
   const enTresDias = sumarHabiles(hoy, 3, entrada.calendario);
   const terc = r.tareas.filter((t) => t.tipo === "tercerizado" && !afuera.some((a) => a.otPiezaId === t.otPiezaId && a.operacionId === t.operacionId));
-  const listas = terc.filter((t) => t.estado === "lista").sort((a, b) => a.inicioMasTardio.localeCompare(b.inicioMasTardio));
   const pronto = terc.filter((t) => t.estado === "liberada" && t.fechaPlan && t.fechaPlan <= enTresDias);
-  const porProceso = [...Map.groupBy(listas, (t) => t.paso).entries()];
+  // El proveedor habitual de cada proceso se propone solo al armar el remito; y cuántas piezas más llegan en 3 días.
+  const habituales = await db
+    .select({ proceso: proceso.nombre, proveedor: proveedor.razonSocial, plazo: proveedorServicio.plazoDias })
+    .from(proveedorServicio)
+    .innerJoin(proceso, eq(proceso.id, proveedorServicio.procesoId))
+    .innerJoin(proveedor, eq(proveedor.id, proveedorServicio.proveedorId))
+    .where(eq(proveedorServicio.habitual, true));
   const paraMandar = enPasoTercerizado.filter((a) => !a.remito);
+  const sugerencias: Record<string, SugerenciaProceso> = {};
+  for (const a of paraMandar) {
+    const h = habituales.find((x) => x.proceso === a.procesoNombre);
+    sugerencias[a.procesoNombre] = { proveedor: h?.proveedor ?? null, plazo: h?.plazo ?? null, proximas: pronto.filter((t) => t.paso === a.procesoNombre).length };
+  }
   const resultados = await Promise.all(
     piezasEncontradas.map(async (p) => ({ pieza: p, stock: await getStockDisponible(p.id) })),
   );
@@ -75,41 +89,6 @@ export default async function TercerizadosPage({
       </PageHeader>
 
       {error && <Aviso tipo="error">{error}</Aviso>}
-
-      <section>
-        <h2 className="text-sm font-semibold mb-1">Para mandar ({listas.length})</h2>
-        <p className="text-xs text-foreground-muted mb-2">Piezas que ya terminaron el paso anterior. &ldquo;Mandar antes del&rdquo; es el último día para que vuelvan a tiempo (fecha límite − plazo del proveedor − 1 día de logística).</p>
-        {porProceso.length === 0 ? (
-          <p className="text-sm text-foreground-muted">Nada listo para mandar.</p>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-3">
-            {porProceso.map(([proceso, ts]) => {
-              const proximas = pronto.filter((t) => t.paso === proceso).length;
-              return (
-                <div key={proceso} className="tarjeta p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="font-semibold">{proceso}</div>
-                    <span className="text-xs text-foreground-muted">{ts.length} pieza{ts.length === 1 ? "" : "s"}</span>
-                  </div>
-                  <ul className="text-sm mt-2 space-y-1">
-                    {ts.slice(0, 8).map((t) => (
-                      <li key={t.clave} className="flex items-center justify-between gap-2">
-                        <span className="truncate">
-                          {t.piezaNombre} × {t.cantidad} <span className="text-xs text-foreground-muted">· {t.proyectoCodigo}</span>
-                        </span>
-                        <span className="whitespace-nowrap text-xs">
-                          antes del <strong className={t.inicioMasTardio < hoy ? "text-rojo-fg" : ""}>{fechaCorta(t.inicioMasTardio)}</strong>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  {proximas > 0 && <p className="text-xs text-demo-fg mt-2">En los próximos 3 días se suman {proximas} pieza{proximas === 1 ? "" : "s"} más a {proceso}: puede convenir esperar y mandar todo junto.</p>}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
 
       <div id="esperando">
         <h2 className="text-sm font-semibold mb-1">Afuera, esperando que vuelvan ({afuera.length})</h2>
@@ -160,11 +139,34 @@ export default async function TercerizadosPage({
                       )}
                     </td>
                     <td className="px-4 py-2.5 whitespace-nowrap">
-                      {a.vuelta ? fechaCorta(a.vuelta) : "—"}
-                      {a.atraso > 0 && <div className="text-xs font-semibold text-rojo-fg">{a.atraso} día{a.atraso === 1 ? "" : "s"} de atraso</div>}
+                      {a.vuelta ? fechaCorta(a.vuelta, hoy) : "—"}
+                      {a.vuelta && (() => {
+                        const faltan = a.atraso > 0 ? -a.atraso : habilesEntre(hoy, a.vuelta, entrada.calendario);
+                        return (
+                          <div className={`text-xs font-semibold ${faltan < 0 ? "text-rojo-fg" : faltan <= 1 ? "text-naranja-fg" : "text-verde-fg"}`}>
+                            {faltan < 0 ? `${-faltan} día${faltan === -1 ? "" : "s"} de atraso` : faltan === 0 ? "vuelve hoy" : `faltan ${faltan} día${faltan === 1 ? "" : "s"}`}
+                          </div>
+                        );
+                      })()}
                       {a.t?.tarde && <div className="text-xs font-semibold text-rojo-fg">vuelve después de su fecha límite</div>}
-                      {a.atraso > 0 && a.prov && (a.prov.contacto || a.prov.telefono) && (
-                        <div className="text-xs text-foreground-muted">Reclamar: {[a.prov.contacto, a.prov.telefono].filter(Boolean).join(" · ")}</div>
+                      {a.prov && (a.prov.telefono || a.prov.email) && (
+                        <div className="flex gap-2 mt-1">
+                          {a.prov.telefono && (
+                            <a href={`https://wa.me/${a.prov.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="text-accent" aria-label={`WhatsApp a ${a.prov.razonSocial}`} title="WhatsApp">
+                              <Icono nombre="whatsapp" className="w-4 h-4" />
+                            </a>
+                          )}
+                          {a.prov.telefono && (
+                            <a href={`tel:${a.prov.telefono}`} className="text-accent" aria-label={`Llamar a ${a.prov.razonSocial}`} title="Llamar">
+                              <Icono nombre="telefono" className="w-4 h-4" />
+                            </a>
+                          )}
+                          {a.prov.email && (
+                            <a href={`mailto:${a.prov.email}`} className="text-accent" aria-label={`Mail a ${a.prov.razonSocial}`} title="Mail">
+                              <Icono nombre="mail" className="w-4 h-4" />
+                            </a>
+                          )}
+                        </div>
                       )}
                     </td>
                     <td className="px-4 py-2.5">
@@ -195,13 +197,15 @@ export default async function TercerizadosPage({
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold mb-1">Mandar piezas afuera — armar remito</h2>
-        <p className="text-xs text-foreground-muted mb-2">
-          Primero se ve la vista previa; al confirmar la impresión el remito se guarda y registra solo el egreso de cada pieza.
-        </p>
+        <h2 className="text-lg font-semibold mb-1">Para mandar — armar remito</h2>
+        <p className="text-sm text-foreground-muted mb-2">Tildá un grupo con &ldquo;Armar remito con estas&rdquo;: el proveedor habitual se propone solo. Primero se ve la vista previa; al confirmar se guarda y registra el egreso de cada pieza.</p>
         <ArmadoRemito
           usuarioNombre={usuario.nombre}
+          sugerencias={sugerencias}
           paraMandar={paraMandar.map((a) => ({
+            mandarAntes: tareaDe.get(`${a.otPiezaId}::${a.operacionId}`)?.inicioMasTardio ?? null,
+            mandarAntesTexto: tareaDe.get(`${a.otPiezaId}::${a.operacionId}`) ? fechaCorta(tareaDe.get(`${a.otPiezaId}::${a.operacionId}`)!.inicioMasTardio, hoy) : null,
+            atrasada: (tareaDe.get(`${a.otPiezaId}::${a.operacionId}`)?.inicioMasTardio ?? "9999") < hoy,
             otPiezaId: a.otPiezaId,
             otPiezaCodigo: a.otPiezaCodigo,
             piezaId: a.piezaId,
@@ -214,14 +218,19 @@ export default async function TercerizadosPage({
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold">Movimientos recientes</h2>
-          <form className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <h2 className="text-lg font-semibold">Movimientos</h2>
+          <form className="flex items-center gap-2">
             {q && <input type="hidden" name="q" value={q} />}
+            <label className="text-xs text-foreground-muted flex items-center gap-1">
+              Desde
+              <input type="date" name="desde" defaultValue={desde ?? ""} className="input text-xs py-1 w-36" />
+            </label>
             <TipoMovimientoSelect valorActual={tipo ?? ""} />
+            <button className="btn-secundario btn-sm">Filtrar</button>
           </form>
         </div>
-        <MovimientosTabla movimientos={movimientos} />
+        <MovimientosTabla movimientos={desde ? movimientos.filter((m) => new Date(m.fecha).toISOString().slice(0, 10) >= desde) : movimientos} />
       </div>
 
       <details open={!!query} className="tarjeta p-4">

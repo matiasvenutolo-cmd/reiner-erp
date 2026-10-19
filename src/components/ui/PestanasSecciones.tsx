@@ -1,3 +1,5 @@
+import { sql } from "drizzle-orm";
+import { db } from "@/lib/db/client";
 import { Pestanas } from "./Pestanas";
 
 /** Vistas de cada sección del menú (Fase 3.2): una sola entrada por área y las vistas relacionadas como pestañas. */
@@ -28,18 +30,27 @@ export function PestanasPlanificacion({ actual }: { actual: string }) {
   );
 }
 
-export function PestanasStock({ actual }: { actual: string }) {
+/** Pestañas de Stock con el número de ítems de cada una (§2.6). */
+export async function PestanasStock({ actual }: { actual: string }) {
+  const [c] = await db.execute<{ mp: number; cons: number; insumos: number; terminados: number; proceso: number; maquinas: number }>(sql`
+    select
+      (select count(*) from articulo_stock where tipo = 'materia_prima')::int mp,
+      (select count(*) from articulo_stock where tipo = 'consumible')::int cons,
+      (select count(*) from stock_pieza s join pieza p on p.id = s.pieza_id where s.cantidad_disponible > 0 and (p.tipo = 'comprada' or p.clase <> 'fabricada'))::int insumos,
+      (select count(*) from stock_pieza s join pieza p on p.id = s.pieza_id where s.cantidad_disponible > 0 and p.tipo = 'fabricada' and p.clase = 'fabricada')::int terminados,
+      (select count(*) from ot_pieza where fecha_inicio is not null and fecha_fin is null)::int proceso,
+      (select count(*) from ot_maquina where destino = 'maquina' and estado_proyecto in ('en_montaje','terminado','entregado'))::int maquinas`);
   return (
     <Pestanas
       actual={actual}
       items={[
         { href: "/stock", label: "Resumen" },
-        { href: "/stock/materia-prima", label: "Materia prima" },
-        { href: "/stock/finalizado?tipo=comprada", label: "Insumos comprados" },
-        { href: "/stock/consumibles", label: "Consumibles" },
-        { href: "/stock/en-proceso", label: "En proceso" },
-        { href: "/stock/finalizado?tipo=fabricada", label: "Terminados" },
-        { href: "/stock/maquinas", label: "Máquinas" },
+        { href: "/stock/materia-prima", label: "Materia prima", contador: c.mp },
+        { href: "/stock/finalizado?tipo=comprada", label: "Insumos comprados", contador: c.insumos },
+        { href: "/stock/consumibles", label: "Consumibles", contador: c.cons },
+        { href: "/stock/en-proceso", label: "En fabricación", contador: c.proceso },
+        { href: "/stock/finalizado?tipo=fabricada", label: "Terminados", contador: c.terminados },
+        { href: "/stock/maquinas", label: "Máquinas", contador: c.maquinas },
         { href: "/stock/movimientos", label: "Movimientos" },
       ]}
     />

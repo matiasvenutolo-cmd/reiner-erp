@@ -4,6 +4,9 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Aviso, Vacio } from "@/components/ui/Aviso";
 import { Holgura, fechaCorta } from "@/components/v2/Plan";
 import { liberarAction } from "@/app/actions/v2";
+import { avisarAction } from "@/app/actions/operario";
+import { Codigo } from "@/components/ui/Codigo";
+import { capitalizar, plural } from "@/lib/formato";
 import type { Tarea } from "@/lib/planning/motor";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +68,12 @@ export default async function LiberacionPage({ searchParams }: { searchParams: P
             {tanda.length > 0 ? (
               <form action={liberarAction}>
                 <input type="hidden" name="volver" value={`/liberacion#${p.id}`} />
+                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-accent-soft/60 border-b border-border">
+                  <span className="text-sm">El sistema sugiere liberar {plural(tanda.length, "pieza")}: las que tienen que empezar en los próximos {horizonte} días hábiles.</span>
+                  <button className="btn">Liberar las {tanda.length}</button>
+                </div>
+                <details className="group">
+                  <summary className="px-4 py-2 text-sm text-accent cursor-pointer list-none hover:underline">Ver la lista para destildar excepciones</summary>
                 <table className="w-full text-sm">
                   <tbody>
                     {tanda.map((t) => (
@@ -74,10 +83,10 @@ export default async function LiberacionPage({ searchParams }: { searchParams: P
                         </td>
                         <td className="px-2 py-2">
                           <div className="font-medium">
-                            {t.piezaNombre} × {t.cantidad}
+                            {capitalizar(t.piezaNombre)} × {t.cantidad}
                           </div>
-                          <div className="text-xs text-foreground-muted">
-                            <span className="font-mono">{t.piezaCodigo}</span> · arranca por {t.paso}
+                          <div className="text-xs text-foreground-muted flex flex-wrap gap-2 items-center">
+                            <Codigo valor={t.piezaCodigo} /> · arranca por {t.paso}
                           </div>
                         </td>
                         <td className="px-2 py-2 whitespace-nowrap">
@@ -91,17 +100,30 @@ export default async function LiberacionPage({ searchParams }: { searchParams: P
                     ))}
                   </tbody>
                 </table>
-                <div className="flex justify-end px-4 py-3 border-t border-border bg-surface-muted/50">
-                  <button className="btn">Liberar las piezas tildadas</button>
-                </div>
+                </details>
               </form>
             ) : (
               <p className="px-4 py-3 text-sm text-foreground-muted">Nada que liberar en este horizonte.</p>
             )}
             {sinPlano.length > 0 && (
-              <div className="px-4 py-3 border-t border-border bg-naranja-tenue text-sm">
-                <strong className="text-naranja-fg">Sin plano ({sinPlano.length}):</strong> no se pueden liberar hasta que ingeniería cargue el plano{exigirPlano ? "" : " (regla desactivada en Admin)"}.
-                <div className="text-xs text-foreground-muted mt-1">{sinPlano.map((t) => t.piezaCodigo).join(", ")}</div>
+              <div className="px-4 py-3 border-t border-border bg-naranja-tenue text-sm space-y-2">
+                <div className="font-semibold text-naranja-fg">No se pueden liberar todavía ({sinPlano.length}): les falta el plano o la revisión{exigirPlano ? "" : " (regla desactivada en Admin)"}.</div>
+                <ul className="space-y-1.5">
+                  {sinPlano.map((t) => (
+                    <li key={t.otPiezaId} className="flex flex-wrap items-center justify-between gap-2">
+                      <span>
+                        {capitalizar(t.piezaNombre)} <Codigo valor={t.piezaCodigo} />
+                      </span>
+                      <form action={avisarAction}>
+                        <input type="hidden" name="tipo" value="falta_plano" />
+                        <input type="hidden" name="otPiezaId" value={t.otPiezaId} />
+                        <input type="hidden" name="texto" value={`Falta el plano o la revisión de ${t.piezaNombre} (${t.piezaCodigo}) para poder liberarla`} />
+                        <input type="hidden" name="volver" value={`/liberacion#${p.id}`} />
+                        <button className="btn-secundario btn-sm">Avisar a ingeniería</button>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
             {despues.length > 0 && (

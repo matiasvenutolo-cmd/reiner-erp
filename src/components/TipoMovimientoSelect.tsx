@@ -14,7 +14,7 @@ export function TipoMovimientoSelect({ valorActual }: { valorActual: string }) {
       name="tipo"
       defaultValue={valorActual}
       onChange={(e) => e.currentTarget.form?.requestSubmit()}
-      className="input text-xs py-1"
+      className="input text-xs py-1 w-40"
     >
       <option value="">Todos los tipos</option>
       {Object.entries(TIPO_LABEL).map(([value, label]) => (

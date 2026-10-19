@@ -98,6 +98,24 @@ export async function FichaPlanificacion({ piezaId, editable }: { piezaId: strin
       </form>
 
       {pasos.length > 0 && (
+        <ol className="flex flex-wrap items-start gap-x-1 gap-y-3" aria-label="Hoja de ruta">
+          {pasos.map(({ o, nombre, tipo, ds, dm }, i) => {
+            return (
+              <li key={o.id} className="flex items-start gap-1">
+                {i > 0 && <span className="text-foreground-muted mt-1.5" aria-hidden>→</span>}
+                <span className={`rounded-lg border px-2.5 py-1.5 text-center ${o.minPorUnidad != null ? "border-border bg-surface" : tipo === "interno" ? "border-estimado-borde bg-estimado-bg" : "border-border bg-surface-muted"}`}>
+                  <span className="block text-sm font-medium whitespace-nowrap">
+                    <span className="text-foreground-muted">{i + 1}</span> {nombre}
+                  </span>
+                  <span className="block text-[11px] text-foreground-muted whitespace-nowrap">{tipo === "interno" ? `${o.setupMin ?? ds ?? 0} min + ${String(o.minPorUnidad ?? dm ?? 0).replace(".", ",")} min/u` : tipo === "tercerizado" ? "tercerizado" : "compra"}</span>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      {pasos.length > 0 && (
         <div>
           <h3 className="text-xs font-semibold text-foreground-muted mb-1">Tiempos de cada paso</h3>
           <table className="w-full text-sm">
