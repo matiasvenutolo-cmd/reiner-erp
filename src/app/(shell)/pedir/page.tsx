@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { pieza, proveedor, pedidoCompra, otPieza, proceso, proveedorServicio } from "@/lib/db/schema";
 import { getPlan } from "@/lib/planning/datos";
@@ -7,8 +7,13 @@ import { lunesDe } from "@/lib/planning/calendario";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { Aviso, Vacio } from "@/components/ui/Aviso";
+import { AvisoFlotante } from "@/components/ui/AvisoFlotante";
+import { Etiqueta } from "@/components/ui/Etiqueta";
+import { Icono } from "@/components/ui/Icono";
 import { fechaCorta } from "@/components/v2/Plan";
-import { marcarPedidoGrupoAction, recibirPedidoAction, agregarServicioAction } from "@/app/actions/v2";
+import { FormAtenuar } from "@/components/v2/FormAtenuar";
+import { marcarPedidoGrupoAction, recibirPedidoAction, agregarServicioAction, deshacerPedidosAction, confirmarProveedorHabitualAction } from "@/app/actions/v2";
+import { capitalizar, fechaRelativa, numero, plural } from "@/lib/formato";
 import type { Compra } from "@/lib/planning/motor";
 
 export const dynamic = "force-dynamic";
@@ -19,15 +24,16 @@ const corridos = (f: string, n: number) => {
   return d.toISOString().slice(0, 10);
 };
 
+type Linea = { clave: string; titulo: string; detalle: string; cantidad: string; valor: string; pedirAntes: string; llegada: string; piezas: number };
+
 /**
- * Pedir esta semana (compras): el motor calcula, para cada material y cada
- * artículo comprado, el último día para pedirlo sin atrasar la máquina. Acá
- * se ve agrupado por urgencia y por proveedor, y se marca como pedido con la
- * fecha que promete el proveedor. "Por llegar" muestra lo pedido y avisa si
- * la fecha prometida no alcanza.
+ * Pedir esta semana (mejoras de usabilidad §2.5): primero una tarjeta por
+ * proveedor con "Marcar todo pedido"; el detalle, al desplegar. El mismo
+ * material se suma en una línea. Lo que ya venía tarde al crearse el proyecto
+ * dice "Pedir ya" (naranja), no "Vencida" (§1.4).
  */
-export default async function PedirPage({ searchParams }: { searchParams: Promise<{ vista?: string; ok?: string; error?: string }> }) {
-  const { vista = "pedir", ok, error } = await searchParams;
+export default async function PedirPage({ searchParams }: { searchParams: Promise<{ vista?: string; ok?: string; error?: string; deshacer?: string }> }) {
+  const { vista = "pedir", ok, error, deshacer } = await searchParams;
   const plan = await getPlan();
   const r = plan.resultado;
   const hoy = plan.entrada.hoy;
@@ -36,10 +42,12 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
 
   const codigos = [...new Set(r.compras.map((c) => c.piezaCodigo))];
   const [piezas, proveedores, abiertos, procesos, servicios] = await Promise.all([
-    codigos.length ? db.select({ id: pieza.id, material: pieza.material, proveedorId: pieza.proveedorHabitualId }).from(pieza).where(inArray(pieza.id, codigos)) : [],
+    codigos.length
+      ? db.select({ id: pieza.id, material: pieza.material, proveedorId: pieza.proveedorHabitualId, materialCantidad: pieza.materialCantidad, materialUnidad: pieza.materialUnidad }).from(pieza).where(inArray(pieza.id, codigos))
+      : [],
     db.select().from(proveedor).orderBy(proveedor.razonSocial),
     db
-      .select({ p: pedidoCompra, piezaNombre: pieza.nombre, piezaCodigo: pieza.codigo, otPiezaCodigo: otPieza.codigo, proveedor: proveedor.razonSocial })
+      .select({ p: pedidoCompra, piezaNombre: pieza.nombre, piezaCodigo: pieza.codigo, otPiezaCodigo: otPieza.codigo, proveedor: proveedor.razonSocial, telefono: proveedor.telefono, email: proveedor.email })
       .from(pedidoCompra)
       .innerJoin(otPieza, eq(otPieza.id, pedidoCompra.otPiezaId))
       .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
@@ -57,12 +65,6 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
   const infoPieza = new Map(piezas.map((p) => [p.id, p]));
   const nombreProv = new Map(proveedores.map((p) => [p.id, p.razonSocial]));
   const compraDe = new Map(r.compras.map((c) => [c.otPiezaId, c]));
-  // Por llegar: primero lo atrasado (prometida vencida o que no llega a tiempo), después por fecha prometida.
-  const atrasoDe = (p: (typeof abiertos)[number]["p"]) => {
-    const c = compraDe.get(p.otPiezaId);
-    return (p.fechaPrometida && p.fechaPrometida < hoy) || (c && p.fechaPrometida && p.fechaPrometida > c.llegadaNecesaria) ? 0 : 1;
-  };
-  abiertos.sort((a, b) => atrasoDe(a.p) - atrasoDe(b.p) || (a.p.fechaPrometida ?? "9999").localeCompare(b.p.fechaPrometida ?? "9999"));
   // Sin proveedor habitual cargado, se sugiere el único proveedor activo de ese tipo (si hay uno solo).
   const unicoDe = (tipo: string) => {
     const xs = proveedores.filter((p) => p.tipoProveedor === tipo && p.estadoProveedor === "activo");
@@ -71,18 +73,67 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
   const sugeridoMaterial = unicoDe("materia_prima"), sugeridoComercial = unicoDe("comercial");
   const proveedorDe = (c: Compra) => infoPieza.get(c.piezaCodigo)?.proveedorId ?? "";
   const grupoDe = (c: Compra) => proveedorDe(c) || (c.esMaterial ? sugeridoMaterial : sugeridoComercial);
+  // Por llegar: primero lo atrasado (prometida vencida o que no llega a tiempo), después por fecha prometida.
+  const atrasoDe = (p: (typeof abiertos)[number]["p"]) => {
+    const c = compraDe.get(p.otPiezaId);
+    return (p.fechaPrometida && p.fechaPrometida < hoy) || (c && p.fechaPrometida && p.fechaPrometida > c.llegadaNecesaria) ? 0 : 1;
+  };
+  abiertos.sort((a, b) => atrasoDe(a.p) - atrasoDe(b.p) || (a.p.fechaPrometida ?? "9999").localeCompare(b.p.fechaPrometida ?? "9999"));
 
   const sinPedir = r.compras.filter((c) => !c.pedido).sort((a, b) => a.pedirAntes.localeCompare(b.pedirAntes));
-  const grupos: { id: string; titulo: string; ayuda: string; tono: string; items: Compra[] }[] = [
-    { id: "vencidas", titulo: "Vencidas", ayuda: "Ya se pasó el día para pedirlas: cada día de demora atrasa la máquina.", tono: "text-rojo-fg", items: sinPedir.filter((c) => c.pedirAntes < hoy) },
-    { id: "semana", titulo: "Esta semana", ayuda: `Hay que pedirlas antes del ${fechaCorta(viernes)}.`, tono: "text-naranja-fg", items: sinPedir.filter((c) => c.pedirAntes >= hoy && c.pedirAntes <= viernes) },
-    { id: "proximas", titulo: "Próximas 2 semanas", ayuda: "Para ir cotizando.", tono: "text-foreground", items: sinPedir.filter((c) => c.pedirAntes > viernes && c.pedirAntes <= dosSemanas) },
+  const grupos: { id: string; titulo: string; ayuda: string; tono: "naranja" | "rojo" | "azul" | "gris"; items: Compra[] }[] = [
+    { id: "ya", titulo: "Pedir ya", ayuda: "Cuando se creó el proyecto ya había pasado el día para pedirlas: cuanto antes, mejor.", tono: "naranja", items: sinPedir.filter((c) => c.pedirYa) },
+    { id: "vencidas", titulo: "Vencidas", ayuda: "Tenían fecha y no se pidieron a tiempo: cada día de demora atrasa la máquina.", tono: "rojo", items: sinPedir.filter((c) => !c.pedirYa && c.pedirAntes < hoy) },
+    { id: "semana", titulo: "Esta semana", ayuda: `Hay que pedirlas antes del ${fechaCorta(viernes, hoy)}.`, tono: "azul", items: sinPedir.filter((c) => !c.pedirYa && c.pedirAntes >= hoy && c.pedirAntes <= viernes) },
+    { id: "proximas", titulo: "Próximas 2 semanas", ayuda: "Para ir cotizando.", tono: "gris", items: sinPedir.filter((c) => !c.pedirYa && c.pedirAntes > viernes && c.pedirAntes <= dosSemanas) },
   ];
-  const masAdelante = sinPedir.filter((c) => c.pedirAntes > dosSemanas).length;
-  const completar = sinPedir.filter((c) => c.pedirAntes <= dosSemanas && (!proveedorDe(c) || c.plazoSupuesto));
+  const masAdelante = sinPedir.filter((c) => !c.pedirYa && c.pedirAntes > dosSemanas).length;
+  const faltanDatos = sinPedir.filter((c) => c.pedirAntes <= dosSemanas && (!proveedorDe(c) || c.plazoSupuesto)).length;
+
+  // El mismo material se suma en una línea (§2.5): "SAE 1045 Ø40 · 3,2 m (para 4 piezas)".
+  const lineasDe = (lista: Compra[]): Linea[] => {
+    const porClave = new Map<string, Compra[]>();
+    for (const c of lista) {
+      const pz = infoPieza.get(c.piezaCodigo);
+      const k = c.esMaterial && pz?.material ? `mat:${pz.material.trim().toLowerCase()}` : `pz:${c.otPiezaId}`;
+      porClave.set(k, [...(porClave.get(k) ?? []), c]);
+    }
+    return [...porClave.entries()].map(([k, cs]) => {
+      const pz = infoPieza.get(cs[0].piezaCodigo);
+      const pedirAntes = cs.map((c) => c.pedirAntes).sort()[0];
+      const llegada = cs.map((c) => c.llegadaNecesaria).sort()[0];
+      const valor = cs.map((c) => `${c.otPiezaId}|${c.cantidad}`).join(",");
+      if (k.startsWith("mat:") && pz?.material) {
+        const total = cs.reduce((s, c) => s + (infoPieza.get(c.piezaCodigo)?.materialCantidad ?? 0) * c.cantidad, 0);
+        const unidad = pz.materialUnidad ?? "";
+        const piezasTot = cs.reduce((s, c) => s + c.cantidad, 0);
+        return {
+          clave: k,
+          titulo: pz.material,
+          detalle: `para ${cs.map((c) => capitalizar(c.piezaNombre)).slice(0, 3).join(", ")}${cs.length > 3 ? ` y ${cs.length - 3} más` : ""} · ${[...new Set(cs.map((c) => c.proyectoCodigo))].join(", ")}`,
+          cantidad: total ? `${numero(total, 2)} ${unidad} (para ${plural(piezasTot, "pieza")})` : `para ${plural(piezasTot, "pieza")}`,
+          valor,
+          pedirAntes,
+          llegada,
+          piezas: piezasTot,
+        };
+      }
+      const c = cs[0];
+      return {
+        clave: k,
+        titulo: c.esMaterial ? `Material para ${capitalizar(c.piezaNombre)}` : capitalizar(c.piezaNombre),
+        detalle: `${c.piezaCodigo} · ${c.proyectoCodigo}`,
+        cantidad: `${numero(c.cantidad)} u.`,
+        valor,
+        pedirAntes,
+        llegada,
+        piezas: c.cantidad,
+      };
+    });
+  };
 
   const items = [
-    { href: "/pedir", label: "Para pedir", contador: grupos[0].items.length + grupos[1].items.length },
+    { href: "/pedir", label: "Para pedir", contador: grupos[0].items.length + grupos[1].items.length + grupos[2].items.length },
     { href: "/pedir?vista=llegar", label: "Por llegar", contador: abiertos.length },
     { href: "/pedir?vista=servicios", label: "Servicios de tercerizados" },
   ];
@@ -96,97 +147,126 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
       >
         <Pestanas items={items} actual={actual} />
       </PageHeader>
-      {ok && <Aviso tipo="ok">{ok}</Aviso>}
+      {ok &&
+        (deshacer ? (
+          <AvisoFlotante
+            deshacer={
+              <form action={deshacerPedidosAction}>
+                <input type="hidden" name="ids" value={deshacer} />
+                <button className="font-semibold underline">
+                  <Icono nombre="deshacer" className="w-4 h-4 inline -mt-0.5" /> Deshacer
+                </button>
+              </form>
+            }
+          >
+            {ok}
+          </AvisoFlotante>
+        ) : (
+          <Aviso tipo="ok">{ok}</Aviso>
+        ))}
       {error && <Aviso tipo="error">{error}</Aviso>}
 
       {vista === "pedir" && (
         <>
-          <p className="text-sm">
-            <strong className="text-rojo-fg">{grupos[0].items.length} vencidas</strong> · <strong>{grupos[1].items.length} para esta semana</strong> · {grupos[2].items.length} en las próximas 2 semanas
-            {masAdelante > 0 && <span className="text-foreground-muted"> · {masAdelante} más adelante</span>}
+          <p className="text-sm flex flex-wrap gap-x-2 gap-y-1">
+            {grupos.map((g) => (
+              <a key={g.id} href={`#${g.id}`} className={`hover:underline ${g.tono === "rojo" && g.items.length ? "text-rojo-fg font-semibold" : g.tono === "naranja" && g.items.length ? "text-naranja-fg font-semibold" : ""}`}>
+                {g.items.length} {g.titulo.toLowerCase()}
+              </a>
+            ))}
+            {masAdelante > 0 && <span className="text-foreground-muted">· {masAdelante} más adelante</span>}
           </p>
-          {completar.length > 0 && (
-            <Aviso tipo="atencion">
-              {completar.length} artículo{completar.length === 1 ? "" : "s"} sin proveedor o con plazo supuesto: la fecha para pedir puede no ser exacta. Cargá el proveedor habitual y su plazo en la ficha de la pieza o del proveedor.
-            </Aviso>
+          {faltanDatos > 0 && (
+            <p className="text-sm text-foreground-muted">
+              {plural(faltanDatos, "artículo")} sin proveedor o con plazo supuesto.{" "}
+              <Link href="/admin/configuracion#compras" className="text-accent hover:underline">
+                Completar datos para poder calcular →
+              </Link>
+            </p>
           )}
           {grupos.map((g) =>
             g.items.length === 0 ? null : (
-              <section key={g.id} className="space-y-3">
-                <div>
-                  <h2 className={`text-lg font-semibold ${g.tono}`}>
-                    {g.titulo} ({g.items.length})
-                  </h2>
-                  <p className="text-sm text-foreground-muted">{g.ayuda}</p>
+              <section key={g.id} id={g.id} className="space-y-3 scroll-mt-24">
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <h2 className="text-lg font-semibold">{g.titulo}</h2>
+                  <Etiqueta tono={g.tono} sinIcono>
+                    {plural(g.items.length, "artículo")}
+                  </Etiqueta>
+                  <span className="text-sm text-foreground-muted">{g.ayuda}</span>
                 </div>
                 {[...Map.groupBy(g.items, grupoDe).entries()]
-                  .sort(([a], [b]) => (a ? nombreProv.get(a) ?? "" : "~").localeCompare(b ? nombreProv.get(b) ?? "" : "~"))
-                  .map(([provId, lista]) => (
-                    <form key={provId} action={marcarPedidoGrupoAction} className="tarjeta overflow-hidden">
-                      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-surface-muted/60 border-b border-border">
-                        <div>
-                          <div className="font-semibold">
-                            {provId ? nombreProv.get(provId) : "Sin proveedor asignado"}
-                            {provId && lista.some((c) => !proveedorDe(c)) && <span className="badge-estado bg-demo-bg text-demo-fg ml-2 font-normal">sugerido: falta cargar el proveedor habitual</span>}
+                  .sort(([a], [b]) => (a ? (nombreProv.get(a) ?? "") : "~").localeCompare(b ? (nombreProv.get(b) ?? "") : "~"))
+                  .map(([provId, lista]) => {
+                    const lineas = lineasDe(lista);
+                    const supuesto = lista.some((c) => c.plazoSupuesto);
+                    const sinHabitual = lista.filter((c) => !proveedorDe(c));
+                    const llegaAntes = lista.map((c) => c.llegadaNecesaria).sort()[0];
+                    return (
+                      <div key={provId || "sin"} className="tarjeta overflow-hidden">
+                        <FormAtenuar action={marcarPedidoGrupoAction}>
+                          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                            <div className="min-w-0">
+                              <div className="font-semibold">{provId ? nombreProv.get(provId) : "Sin proveedor asignado"}</div>
+                              <div className="text-sm text-foreground-muted">
+                                {plural(lista.length, "artículo")} · tiene que llegar antes del {fechaCorta(llegaAntes, hoy)}
+                                {supuesto && <span className="ml-1">· plazo supuesto de {lista.find((c) => c.plazoSupuesto)?.plazoDias} días</span>}
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-end gap-2">
+                              {!provId ? (
+                                <label className="text-xs text-foreground-muted">
+                                  Proveedor
+                                  <select name="proveedorId" className="input mt-0.5 w-44">
+                                    <option value="">—</option>
+                                    {proveedores.map((p) => (
+                                      <option key={p.id} value={p.id}>
+                                        {p.razonSocial}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                              ) : (
+                                <input type="hidden" name="proveedorId" value={provId} />
+                              )}
+                              <label className="text-xs text-foreground-muted">
+                                Fecha que promete
+                                <input type="date" name="fechaPrometida" className="input mt-0.5 w-40" />
+                              </label>
+                              <button className="btn">Marcar todo pedido</button>
+                            </div>
                           </div>
-                          <div className="text-xs text-foreground-muted">
-                            {lista.length} artículo{lista.length === 1 ? "" : "s"} · tiene que llegar antes del {fechaCorta(lista.reduce((m, c) => (c.llegadaNecesaria < m ? c.llegadaNecesaria : m), lista[0].llegadaNecesaria))}
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap items-end gap-2">
-                          {!provId && (
-                            <label className="text-xs">
-                              Proveedor
-                              <select name="proveedorId" className="input input-sm block mt-0.5">
-                                <option value="">—</option>
-                                {proveedores.map((p) => (
-                                  <option key={p.id} value={p.id}>
-                                    {p.razonSocial}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                          )}
-                          {provId && <input type="hidden" name="proveedorId" value={provId} />}
-                          <label className="text-xs">
-                            Fecha que promete
-                            <input type="date" name="fechaPrometida" className="input input-sm block mt-0.5" />
-                          </label>
-                          <button className="btn btn-sm">Marcar como pedido</button>
-                        </div>
+                          <details className="border-t border-border">
+                            <summary className="px-4 py-2 text-sm text-accent cursor-pointer list-none hover:underline">Ver el detalle línea por línea ({lineas.length})</summary>
+                            <ul className="divide-y divide-border">
+                              {lineas.map((l) => (
+                                <li key={l.clave} className="linea flex flex-wrap items-start gap-3 px-4 py-2.5 text-sm">
+                                  <input type="checkbox" name="linea" value={l.valor} defaultChecked className="mt-1" aria-label={`Pedir ${l.titulo}`} />
+                                  <div className="flex-1 min-w-48">
+                                    <div className="font-medium">{l.titulo}</div>
+                                    <div className="text-xs text-foreground-muted">{l.detalle}</div>
+                                  </div>
+                                  <div className="tabular-nums">{l.cantidad}</div>
+                                  <div className="text-xs text-right min-w-28">
+                                    <div className="text-foreground-muted">pedir antes del</div>
+                                    <div className={`font-semibold ${g.id === "vencidas" ? "text-rojo-fg" : ""}`}>{fechaCorta(l.pedirAntes, hoy)}</div>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </details>
+                        </FormAtenuar>
+                        {provId && sinHabitual.length > 0 && (
+                          <form action={confirmarProveedorHabitualAction} className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-t border-border bg-accent-soft text-sm text-accent-hover">
+                            <Icono nombre="idea" className="w-4 h-4" />
+                            <span className="flex-1">Se sugiere {nombreProv.get(provId)} porque es el único proveedor de ese tipo.</span>
+                            <input type="hidden" name="proveedorId" value={provId} />
+                            <input type="hidden" name="piezas" value={[...new Set(sinHabitual.map((c) => c.piezaCodigo))].join(",")} />
+                            <button className="btn-secundario btn-sm">Confirmar {nombreProv.get(provId)} como proveedor habitual</button>
+                          </form>
+                        )}
                       </div>
-                      <table className="w-full text-sm">
-                        <tbody>
-                          {lista.map((c) => (
-                            <tr key={c.clave} className="border-t border-border first:border-t-0">
-                              <td className="pl-4 py-2 w-8">
-                                <input type="checkbox" name="linea" value={`${c.otPiezaId}|${c.cantidad}`} defaultChecked aria-label={`Pedir ${c.piezaNombre}`} />
-                              </td>
-                              <td className="px-2 py-2">
-                                <div className="font-medium">
-                                  {c.esMaterial ? `Material para ${c.piezaNombre}` : c.piezaNombre}
-                                </div>
-                                <div className="text-xs text-foreground-muted">
-                                  <span className="font-mono">{c.piezaCodigo}</span>
-                                  {c.esMaterial && infoPieza.get(c.piezaCodigo)?.material ? ` · ${infoPieza.get(c.piezaCodigo)?.material}` : ""} · {c.proyectoCodigo}
-                                </div>
-                              </td>
-                              <td className="px-2 py-2 tabular-nums whitespace-nowrap">{c.cantidad} u.</td>
-                              <td className="px-2 py-2 whitespace-nowrap">
-                                <div className="text-xs text-foreground-muted">Pedir antes del</div>
-                                <div className={`font-semibold ${c.pedirAntes < hoy ? "text-rojo-fg" : ""}`}>{fechaCorta(c.pedirAntes)}</div>
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap text-xs text-foreground-muted">
-                                plazo {c.plazoDias} días{c.plazoSupuesto ? " (supuesto)" : ""}
-                                <br />
-                                llegada {fechaCorta(c.llegadaNecesaria)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </form>
-                  ))}
+                    );
+                  })}
               </section>
             ),
           )}
@@ -196,60 +276,51 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
 
       {vista === "llegar" &&
         (abiertos.length === 0 ? (
-          <Vacio>No hay pedidos esperando llegada.</Vacio>
+          <Vacio neutro>No hay pedidos esperando llegada.</Vacio>
         ) : (
-          <div className="tarjeta overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-xs text-foreground-muted">
-                <tr className="border-b border-border">
-                  <th className="text-left px-4 py-2 font-medium">Artículo</th>
-                  <th className="text-left px-3 py-2 font-medium">Proveedor</th>
-                  <th className="text-left px-3 py-2 font-medium">Prometida</th>
-                  <th className="text-left px-3 py-2 font-medium">La necesitamos</th>
-                  <th className="px-4 py-2 font-medium text-right">Llegó</th>
-                </tr>
-              </thead>
-              <tbody>
-                {abiertos.map(({ p, piezaNombre, piezaCodigo, otPiezaCodigo, proveedor: prov }) => {
-                  const c = compraDe.get(p.otPiezaId);
-                  const noAlcanza = !!(c && p.fechaPrometida && p.fechaPrometida > c.llegadaNecesaria);
-                  const atrasado = !!(p.fechaPrometida && p.fechaPrometida < hoy);
-                  return (
-                    <tr key={p.id} className={`border-t border-border first:border-t-0 ${noAlcanza ? "bg-rojo-tenue" : ""}`}>
-                      <td className="px-4 py-2">
-                        <div className="font-medium">
-                          {piezaNombre} × {p.cantidad}
-                        </div>
-                        <div className="text-xs text-foreground-muted font-mono">
-                          {piezaCodigo} · {otPiezaCodigo}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2">{prov ?? <span className="text-foreground-muted">—</span>}</td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        {p.fechaPrometida ? fechaCorta(p.fechaPrometida) : <span className="text-foreground-muted">sin fecha</span>}
-                        {atrasado && <div className="text-xs text-rojo-fg font-semibold">vencida</div>}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        {c ? fechaCorta(c.llegadaNecesaria) : "—"}
-                        {noAlcanza && <div className="text-xs text-rojo-fg font-semibold">llega tarde: atrasa la máquina</div>}
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        <form action={recibirPedidoAction} className="inline-flex gap-1">
-                          <input type="hidden" name="pedidoId" value={p.id} />
-                          <button name="controlResultado" value="ok" className="btn btn-sm">
-                            Llegó OK
-                          </button>
-                          <button name="controlResultado" value="no_ok" className="btn-secundario btn-sm">
-                            No OK
-                          </button>
-                        </form>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <ul className="space-y-2">
+            {abiertos.map(({ p, piezaNombre, piezaCodigo, otPiezaCodigo, proveedor: prov, telefono, email }) => {
+              const c = compraDe.get(p.otPiezaId);
+              const noAlcanza = !!(c && p.fechaPrometida && p.fechaPrometida > c.llegadaNecesaria);
+              const atrasado = !!(p.fechaPrometida && p.fechaPrometida < hoy);
+              return (
+                <li key={p.id} className={`tarjeta franja ${noAlcanza || atrasado ? "border-l-rojo" : "border-l-gris"} px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2`}>
+                  <div className="flex-1 min-w-48">
+                    <div className="font-semibold">
+                      {capitalizar(piezaNombre)} × {numero(p.cantidad)}
+                    </div>
+                    <div className="text-xs text-foreground-muted font-mono">
+                      {piezaCodigo} · {otPiezaCodigo}
+                    </div>
+                  </div>
+                  <div className="text-sm min-w-32">
+                    <div className="text-xs text-foreground-muted">Proveedor</div>
+                    {prov ?? "—"}
+                    {(telefono || email) && (noAlcanza || atrasado) && <div className="text-xs">{[telefono, email].filter(Boolean).join(" · ")}</div>}
+                  </div>
+                  <div className="text-sm min-w-28">
+                    <div className="text-xs text-foreground-muted">Prometida</div>
+                    {p.fechaPrometida ? fechaRelativa(p.fechaPrometida, hoy) : <span className="text-foreground-muted">sin fecha</span>}
+                    {atrasado && <div className="text-xs text-rojo-fg font-semibold">no llegó</div>}
+                  </div>
+                  <div className="text-sm min-w-32">
+                    <div className="text-xs text-foreground-muted">La necesitamos</div>
+                    {c ? fechaCorta(c.llegadaNecesaria, hoy) : "—"}
+                    {noAlcanza && <div className="text-xs text-rojo-fg font-semibold">llega tarde: atrasa {c?.proyectoCodigo}</div>}
+                  </div>
+                  <form action={recibirPedidoAction} className="flex gap-2">
+                    <input type="hidden" name="pedidoId" value={p.id} />
+                    <button name="controlResultado" value="ok" className="btn btn-sm">
+                      Recibir · control OK
+                    </button>
+                    <button name="controlResultado" value="no_ok" className="btn-secundario btn-sm">
+                      No OK
+                    </button>
+                  </form>
+                </li>
+              );
+            })}
+          </ul>
         ))}
 
       {vista === "servicios" && (
@@ -344,7 +415,11 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
         </div>
       )}
       <p className="text-xs text-foreground-muted">
-        Las solicitudes, cotizaciones y pagos siguen en <Link href="/compras" className="text-accent hover:underline">Compras</Link>.
+        Las solicitudes, cotizaciones y pagos siguen en{" "}
+        <Link href="/compras" className="text-accent hover:underline">
+          Compras
+        </Link>
+        .
       </p>
     </div>
   );

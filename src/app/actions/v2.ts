@@ -224,20 +224,51 @@ export async function pausarProyectoAction(fd: FormData) {
 export async function marcarPedidoGrupoAction(fd: FormData) {
   const u = await getUsuarioActual();
   if (u.rol === "operario") throw new Error("No autorizado.");
-  const lineas = fd.getAll("linea").map(String).filter(Boolean); // otPiezaId|cantidad
+  // Cada línea es "otPiezaId|cantidad"; una línea que suma el mismo material de varias piezas trae varias, separadas por coma.
+  const lineas = fd.getAll("linea").map(String).filter(Boolean).flatMap((l) => l.split(","));
   const proveedorId = t(fd, "proveedorId") || null;
   const prometida = t(fd, "fechaPrometida") || null;
+  if (!lineas.length) redirect(`/pedir?error=${encodeURIComponent("Tildá al menos un artículo.")}`);
+  const creados: string[] = [];
+  for (const l of lineas) {
+    const [otPiezaId, cant] = l.split("|");
+    const [abierto] = await db.select({ id: pedidoCompra.id }).from(pedidoCompra).where(and(eq(pedidoCompra.otPiezaId, otPiezaId), sql`${pedidoCompra.recibidoAt} is null`));
+    if (abierto) continue;
+    const [nuevo] = await db
+      .insert(pedidoCompra)
+      .values({ otPiezaId, cantidad: Math.max(1, Math.round(Number(cant) || 1)), proveedorId, fechaPrometida: prometida, usuarioId: u.id, observacion: "Pedido desde Pedir esta semana" })
+      .returning({ id: pedidoCompra.id });
+    creados.push(nuevo.id);
+  }
+  for (const r of ["/pedir", "/inicio", "/proyectos", "/llegamos", "/planificacion"]) revalidatePath(r, "layout");
+  revalidateTag("contadores", { expire: 0 });
+  const msg = `${plural(creados.length, "línea")} marcada${creados.length === 1 ? "" : "s"} como pedida${creados.length === 1 ? "" : "s"}${prometida ? `, llegada prometida ${prometida.split("-").reverse().join("/")}` : ""}.`;
+  // Con "Deshacer" unos segundos (§2.5), por si se tocó sin querer.
+  redirect(`/pedir?ok=${encodeURIComponent(msg)}&deshacer=${creados.join(",")}`);
+}
+
+/** Deshacer "Marcar pedido" en los segundos siguientes: borra sólo esos pedidos, si siguen sin recibir. */
+export async function deshacerPedidosAction(fd: FormData) {
+  const u = await getUsuarioActual();
+  if (u.rol === "operario") throw new Error("No autorizado.");
+  const ids = t(fd, "ids").split(",").filter(Boolean);
   await correr("/pedir", async () => {
-    if (!lineas.length) throw new Error("Tildá al menos un artículo.");
-    let hechos = 0;
-    for (const l of lineas) {
-      const [otPiezaId, cant] = l.split("|");
-      const [abierto] = await db.select({ id: pedidoCompra.id }).from(pedidoCompra).where(and(eq(pedidoCompra.otPiezaId, otPiezaId), sql`${pedidoCompra.recibidoAt} is null`));
-      if (abierto) continue;
-      await db.insert(pedidoCompra).values({ otPiezaId, cantidad: Math.max(1, Math.round(Number(cant) || 1)), proveedorId, fechaPrometida: prometida, usuarioId: u.id, observacion: "Pedido desde Pedir esta semana" });
-      hechos++;
-    }
-    return `${hechos} línea${hechos === 1 ? "" : "s"} marcada${hechos === 1 ? "" : "s"} como pedida${hechos === 1 ? "" : "s"}${prometida ? `, llegada prometida ${prometida}` : ""}.`;
+    if (ids.length) await db.delete(pedidoCompra).where(and(inArray(pedidoCompra.id, ids), sql`${pedidoCompra.recibidoAt} is null`, sql`${pedidoCompra.fechaPedido} > now() - interval '10 minutes'`));
+    return "Listo, se deshizo: vuelven a la lista para pedir.";
+  });
+}
+
+/** "Confirmar Aceros SA como proveedor habitual" (§2.5): lo guarda para todos esos artículos de una vez. */
+export async function confirmarProveedorHabitualAction(fd: FormData) {
+  const u = await getUsuarioActual();
+  if (u.rol === "operario") throw new Error("No autorizado.");
+  const proveedorId = t(fd, "proveedorId");
+  const piezas = t(fd, "piezas").split(",").filter(Boolean);
+  await correr("/pedir", async () => {
+    if (!proveedorId || !piezas.length) throw new Error("Faltan datos.");
+    await db.update(pieza).set({ proveedorHabitualId: proveedorId }).where(and(inArray(pieza.id, piezas), sql`${pieza.proveedorHabitualId} is null`));
+    const [p] = await db.select({ n: proveedor.razonSocial }).from(proveedor).where(eq(proveedor.id, proveedorId));
+    return `${p?.n ?? "El proveedor"} quedó como proveedor habitual de ${plural(piezas.length, "artículo")}.`;
   });
 }
 
