@@ -29,7 +29,7 @@ export default async function LoginPage({
           </div>
         )}
 
-        <div className="bg-surface border border-border rounded-lg p-5 space-y-4">
+        <div className="tarjeta p-5 space-y-4">
           <h2 className="text-sm font-semibold">Oficina — ingeniería, dirección, taller y compras</h2>
           <form action={iniciarSesionStaffAction} className="space-y-3">
             <input
@@ -63,7 +63,7 @@ export default async function LoginPage({
           <div className="flex-1 border-t border-border" />
         </div>
 
-        <div className="bg-surface border border-border rounded-lg p-5 space-y-4">
+        <div className="tarjeta p-5 space-y-4">
           <h2 className="text-sm font-semibold">Operario — taller</h2>
           <form action={iniciarSesionOperarioAction} className="space-y-3">
             <select name="usuarioId" required className="input" defaultValue="">

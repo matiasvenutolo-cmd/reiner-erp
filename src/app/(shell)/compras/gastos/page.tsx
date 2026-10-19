@@ -106,7 +106,7 @@ export default async function GastosFuturosPage() {
             return (
               <section key={clave}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
-                  <h2 className={`text-base font-semibold capitalize ${vencido ? "text-[var(--estado-alerta-fg)]" : ""}`}>
+                  <h2 className={`text-base font-semibold capitalize ${vencido ? "text-rojo-fg" : ""}`}>
                     {clave === "sin-fecha" ? "Sin fecha de pago prevista" : nombreMes(clave)}
                     {vencido && <span className="normal-case text-sm font-normal"> · fecha de pago ya pasada</span>}
                   </h2>

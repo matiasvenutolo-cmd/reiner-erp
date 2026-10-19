@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { plural } from "@/lib/formato";
 import { useRouter } from "next/navigation";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import type { EstadoCalculado } from "@/lib/data/ot";
@@ -54,7 +55,7 @@ export function MaquinaCard({
       role="link"
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && router.push(`/ot/${otId}`)}
-      className="bg-surface border border-border rounded-lg p-4 space-y-3 cursor-pointer hover:border-accent transition-colors"
+      className="tarjeta p-4 space-y-3 cursor-pointer hover:border-accent transition-colors"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -69,7 +70,7 @@ export function MaquinaCard({
           <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${pct}%` }} />
         </div>
         <div className="text-xs text-foreground-muted mt-1.5 tabular-nums">
-          {piezasTerminadas} / {totalPiezasAFabricar} piezas terminadas
+          {piezasTerminadas} de {plural(totalPiezasAFabricar, "pieza")} terminada{piezasTerminadas === 1 ? "" : "s"}
           {plazoEntrega ? ` · plazo: ${plazoEntrega}` : ""}
         </div>
       </div>

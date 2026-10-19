@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { plural } from "@/lib/formato";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { configuracion, conjunto, pieza, piezaConfiguracion } from "@/lib/db/schema";
@@ -21,12 +22,12 @@ function Celda({ s }: { s: PasoGrilla }) {
     return (
       <div className="rounded-md bg-surface-muted/60 px-2 py-1.5 min-w-32">
         <div className="text-[11px] font-medium truncate">{s.secuencia}. {s.proceso}</div>
-        <div className="text-[11px] text-foreground-muted">{s.tipo === "tercerizado" ? "Tercerizado" : "Compra"} · {s.plazo ?? "?"} días</div>
+        <div className="text-[11px] text-foreground-muted">{s.tipo === "tercerizado" ? "Tercerizado" : "Compra"} · {s.plazo != null ? plural(s.plazo, "día") : "plazo sin cargar"}</div>
       </div>
     );
   const propio = s.minPorUnidad != null;
   return (
-    <div className={`rounded-md border px-2 py-1.5 min-w-32 ${propio ? "border-[#bbf7d0] bg-[#f0fdf4]" : "border-border"}`}>
+    <div className={`rounded-md border px-2 py-1.5 min-w-32 ${propio ? "border-verde-medio bg-verde-tenue" : "border-border"}`}>
       <div className="text-[11px] font-medium truncate" title={s.proceso}>
         {s.secuencia}. {s.proceso}
       </div>
@@ -115,7 +116,7 @@ export default async function GrillaTiemposPage({ searchParams }: { searchParams
           </div>
         </div>
         <div className="flex items-center gap-3 text-sm">
-          <span className={`font-semibold ${pctPropio >= 90 ? "text-[#00755d]" : pctPropio >= 50 ? "text-[#9a3412]" : "text-[#991b1b]"}`}>{pctPropio}% con tiempo propio</span>
+          <span className={`font-semibold ${pctPropio >= 90 ? "text-verde-fg" : pctPropio >= 50 ? "text-naranja-fg" : "text-rojo-fg"}`}>{pctPropio}% con tiempo propio</span>
           <a href={`/maestros/tiempos/csv?config=${config.id}${conj ? `&conjunto=${conj.id}` : ""}`} className="btn-secundario btn-sm">
             Exportar CSV
           </a>
@@ -139,7 +140,7 @@ export default async function GrillaTiemposPage({ searchParams }: { searchParams
                 <select name="origen" required className="input block w-full mt-0.5">
                   {conRuta.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.codigo} · {p.nombre} ({p.pasos.length} pasos)
+                      {p.codigo} · {p.nombre} ({plural(p.pasos.length, "paso")})
                     </option>
                   ))}
                 </select>
@@ -198,7 +199,7 @@ export default async function GrillaTiemposPage({ searchParams }: { searchParams
           </div>
           <div className="sticky bottom-0 flex items-center justify-between gap-3 bg-surface/95 backdrop-blur border border-border rounded-lg px-4 py-2.5">
             <span className="text-xs text-foreground-muted">
-              {filas.length} piezas · verde = tiempo propio cargado · gris = usa el del proceso
+              {plural(filas.length, "pieza")} · verde = tiempo propio cargado · gris = usa el del proceso
             </span>
             <button className="btn">Guardar tiempos</button>
           </div>

@@ -99,8 +99,8 @@ export default async function LiberacionPage({ searchParams }: { searchParams: P
               <p className="px-4 py-3 text-sm text-foreground-muted">Nada que liberar en este horizonte.</p>
             )}
             {sinPlano.length > 0 && (
-              <div className="px-4 py-3 border-t border-border bg-[#fffbeb] text-sm">
-                <strong className="text-[#92400e]">Sin plano ({sinPlano.length}):</strong> no se pueden liberar hasta que ingeniería cargue el plano{exigirPlano ? "" : " (regla desactivada en Admin)"}.
+              <div className="px-4 py-3 border-t border-border bg-naranja-tenue text-sm">
+                <strong className="text-naranja-fg">Sin plano ({sinPlano.length}):</strong> no se pueden liberar hasta que ingeniería cargue el plano{exigirPlano ? "" : " (regla desactivada en Admin)"}.
                 <div className="text-xs text-foreground-muted mt-1">{sinPlano.map((t) => t.piezaCodigo).join(", ")}</div>
               </div>
             )}

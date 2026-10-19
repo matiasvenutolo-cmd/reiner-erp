@@ -135,9 +135,9 @@ function Seccion({
 
 function Tabla({ columnas, children }: { columnas: string[]; children: React.ReactNode }) {
   return (
-    <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+    <div className="tarjeta overflow-hidden overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+        <thead className="bg-surface-muted text-foreground-muted text-xs">
           <tr>
             {columnas.map((c) => (
               <th key={c} className="text-left px-4 py-2 font-medium">

@@ -87,7 +87,7 @@ function Fila({ x, p }: { x: FilaProyecto; p?: ProyectoPlan }) {
       </td>
       <td className="px-3 py-3">
         <span className="badge-estado bg-surface-muted text-foreground">{TIPO[x.m.destino as keyof typeof TIPO] ?? x.m.destino}</span>
-        {x.m.esDemo && <span className="badge-estado bg-[#efe9fb] text-[#5b3aa8] ml-1">demo</span>}
+        {x.m.esDemo && <span className="badge-estado bg-demo-bg text-demo-fg ml-1">demo</span>}
       </td>
       <td className="px-3 py-3">
         <span className={`badge-estado ${cls}`}>{estado}</span>
@@ -96,7 +96,7 @@ function Fila({ x, p }: { x: FilaProyecto; p?: ProyectoPlan }) {
       <td className="px-3 py-3 whitespace-nowrap">{p ? fechaCorta(p.finEstimado) : "—"}</td>
       <td className="px-3 py-3 whitespace-nowrap">
         {p ? (
-          <span className={`font-semibold ${p.diferenciaDias > 0 ? "text-[#991b1b]" : p.diferenciaDias >= -3 ? "text-[#9a3412]" : "text-[#00755d]"}`}>
+          <span className={`font-semibold ${p.diferenciaDias > 0 ? "text-rojo-fg" : p.diferenciaDias >= -3 ? "text-naranja-fg" : "text-verde-fg"}`}>
             {p.diferenciaDias > 0 ? `${p.diferenciaDias} día${p.diferenciaDias === 1 ? "" : "s"} tarde` : p.diferenciaDias === 0 ? "justo" : `${-p.diferenciaDias} día${p.diferenciaDias === -1 ? "" : "s"} antes`}
           </span>
         ) : (

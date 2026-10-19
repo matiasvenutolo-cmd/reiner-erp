@@ -27,7 +27,7 @@ export default async function StockFinalizadoPage({
     <div className="space-y-6">
       <PageHeader
         titulo="Stock"
-        descripcion={`Almacén: existencias físicas reales. ${piezas.length} pieza${piezas.length === 1 ? "" : "s"} distinta${piezas.length === 1 ? "" : "s"} · ${totalUnidades} unidades, ${totalComprometido} ya reservadas para una máquina vendida.`}
+        descripcion={`Almacén: existencias físicas reales. ${piezas.length} pieza${piezas.length === 1 ? "" : "s"} distinta${piezas.length === 1 ? "" : "s"} · ${totalUnidades} unidades, ${totalComprometido} asignadas a una orden.`}
       >
         <PestanasStock actual={tipoFiltro ? `/stock/finalizado?tipo=${tipoFiltro}` : "/stock/finalizado"} />
       </PageHeader>
@@ -42,15 +42,15 @@ export default async function StockFinalizadoPage({
           No hay piezas con stock finalizado que coincidan con el filtro.
         </div>
       ) : (
-        <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+        <div className="tarjeta overflow-hidden overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+            <thead className="bg-surface-muted text-foreground-muted text-xs">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Pieza</th>
                 <th className="text-left px-4 py-2 font-medium">Conjunto</th>
                 <th className="text-left px-4 py-2 font-medium">Tipo</th>
                 <th className="text-right px-4 py-2 font-medium">En almacén</th>
-                <th className="text-right px-4 py-2 font-medium">Comprometido</th>
+                <th className="text-right px-4 py-2 font-medium">Asignado</th>
                 <th className="text-right px-4 py-2 font-medium">Libre</th>
               </tr>
             </thead>

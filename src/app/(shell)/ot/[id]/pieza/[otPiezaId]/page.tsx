@@ -1,3 +1,4 @@
+import { Icono } from "@/components/ui/Icono";
 import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import Link from "next/link";
@@ -97,7 +98,7 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
       </div>
 
       {(revisionPendiente.length > 0 || revisionResuelta.length > 0) && (
-        <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
+        <div className="tarjeta p-4 space-y-3">
           <h2 className="text-sm font-semibold">Revisión / retrabajo</h2>
           {revisionPendiente.map((t) => {
             const items = itemsPorTarea.get(t.id) ?? [];
@@ -151,14 +152,14 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
                                 disabled={!!itemAbierto}
                                 className="text-xs text-accent hover:underline disabled:opacity-40 disabled:no-underline shrink-0"
                               >
-                                ▶ Iniciar
+                                <Icono nombre="empezar" className="w-3.5 h-3.5" /> Iniciar
                               </button>
                             </form>
                             <form action={eliminarItemTareaRevisionAction}>
                               <input type="hidden" name="id" value={it.id} />
                               <input type="hidden" name="otMaquinaId" value={id} />
                               <input type="hidden" name="otPiezaId" value={otPieza.id} />
-                              <button type="submit" className="text-xs text-red-700 hover:underline shrink-0">
+                              <button type="submit" className="text-xs text-rojo-fg hover:underline shrink-0">
                                 Eliminar
                               </button>
                             </form>
@@ -221,9 +222,9 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
         {sinRouting ? (
           <div className="badge-estado badge-alerta">Sin operaciones definidas para esta pieza</div>
         ) : (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+          <div className="tarjeta overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+              <thead className="bg-surface-muted text-foreground-muted text-xs">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium w-10">#</th>
                   <th className="text-left px-4 py-2 font-medium">Proceso</th>

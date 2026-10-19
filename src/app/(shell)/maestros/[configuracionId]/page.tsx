@@ -19,9 +19,9 @@ export default async function ConfiguracionPage({ params }: { params: Promise<{ 
         descripcion={`${configuracion.codigo} · elegí un conjunto para ver sus piezas.`}
       />
 
-      <div className="bg-surface border border-border rounded-lg overflow-hidden">
+      <div className="tarjeta overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+          <thead className="bg-surface-muted text-foreground-muted text-xs">
             <tr>
               <th className="text-left px-4 py-2 font-medium">Conjunto</th>
               <th className="text-left px-4 py-2 font-medium">Código</th>

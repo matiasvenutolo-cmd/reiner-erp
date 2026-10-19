@@ -69,7 +69,7 @@ export default function LandingPage() {
 
         <ol className="space-y-3">
           {FASES.map((fase) => (
-            <li key={fase.titulo} className="bg-surface border border-border rounded-lg p-4">
+            <li key={fase.titulo} className="tarjeta p-4">
               <div className="flex items-start justify-between gap-3 mb-2.5">
                 <h2 className="text-sm font-semibold">{fase.titulo}</h2>
                 <span className={`badge-estado badge-${fase.estado} shrink-0`}>{ESTADO_LABEL[fase.estado]}</span>

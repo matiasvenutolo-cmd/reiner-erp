@@ -64,8 +64,8 @@ export default async function MiProximaTareaPage({ searchParams }: { searchParam
       {error && <Aviso tipo="error">{error}</Aviso>}
 
       {pausadas.map((p) => (
-        <Link key={p.id} href={`/taller/${p.otPiezaId}`} className="block tarjeta border-[#f5dfa0] bg-[#fffbeb] p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[#92400e]">En pausa</div>
+        <Link key={p.id} href={`/taller/${p.otPiezaId}`} className="block tarjeta border-naranja-borde bg-naranja-tenue p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-naranja-fg">En pausa</div>
           <div className="text-lg font-semibold">{p.piezaNombre}</div>
           <div className="text-sm text-foreground-muted">Tocá para retomarla</div>
         </Link>
@@ -111,8 +111,8 @@ export default async function MiProximaTareaPage({ searchParams }: { searchParam
               <div className="text-sm text-foreground-muted">Sin plano cargado.</div>
             )}
             {extra.notas.length > 0 && (
-              <div className="rounded-lg bg-[#fffbeb] border border-[#f5dfa0] p-3 text-sm">
-                <div className="text-xs font-semibold text-[#92400e] mb-1">Observaciones</div>
+              <div className="rounded-lg bg-naranja-tenue border border-naranja-borde p-3 text-sm">
+                <div className="text-xs font-semibold text-naranja-fg mb-1">Observaciones</div>
                 {extra.notas.map((n, i) => (
                   <p key={i}>{n}</p>
                 ))}

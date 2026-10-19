@@ -88,7 +88,7 @@ export default async function PiezaPage({
       </div>
 
       {editable ? (
-        <div className="bg-surface border border-border rounded-lg p-3 flex flex-wrap items-end gap-3">
+        <div className="tarjeta p-3 flex flex-wrap items-end gap-3">
           <form action={actualizarMaterialAction} className="flex items-end gap-2">
             <input type="hidden" name="piezaId" value={pieza.id} />
             <label className="block">
@@ -135,7 +135,7 @@ export default async function PiezaPage({
           </form>
         </div>
       ) : (
-        <div className="bg-surface border border-border rounded-lg p-3 grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="tarjeta p-3 grid grid-cols-2 sm:grid-cols-5 gap-3">
           <Dato label="Material" value={pieza.material} />
           <Dato label="Revisión" value={pieza.revision} />
           <Dato label="Nº de plano" value={pieza.numeroPlano} />
@@ -167,7 +167,7 @@ export default async function PiezaPage({
         {routing.length > 0 && (
           <div className="bg-surface border border-border rounded-lg overflow-hidden mb-3">
             <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+              <thead className="bg-surface-muted text-foreground-muted text-xs">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium w-12">#</th>
                   <th className="text-left px-4 py-2 font-medium">Proceso</th>
@@ -263,7 +263,7 @@ export default async function PiezaPage({
                           <form action={eliminarOperacionAction}>
                             <input type="hidden" name="operacionId" value={op.id} />
                             <input type="hidden" name="piezaId" value={pieza.id} />
-                            <button type="submit" className="text-xs text-red-700 hover:underline px-1" title="Eliminar">
+                            <button type="submit" className="text-xs text-rojo-fg hover:underline px-1" title="Eliminar">
                               Eliminar
                             </button>
                           </form>
@@ -302,7 +302,7 @@ export default async function PiezaPage({
 
       <div>
         <h2 className="text-sm font-semibold mb-2">Adjuntos de ingeniería — planos y fotos</h2>
-        <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+        <div className="tarjeta p-4 space-y-4">
           {editable && (
             <form action={subirAdjuntoPiezaAction} className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="piezaId" value={pieza.id} />
@@ -353,7 +353,7 @@ export default async function PiezaPage({
                     <form action={eliminarAdjuntoPiezaAction}>
                       <input type="hidden" name="id" value={a.id} />
                       <input type="hidden" name="piezaId" value={pieza.id} />
-                      <button type="submit" className="text-xs text-red-700 hover:underline shrink-0">
+                      <button type="submit" className="text-xs text-rojo-fg hover:underline shrink-0">
                         Eliminar
                       </button>
                     </form>
@@ -369,7 +369,7 @@ export default async function PiezaPage({
         <h2 className="text-sm font-semibold mb-2">
           Bitácora — versiones, cambios de diseño y observaciones de producción
         </h2>
-        <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+        <div className="tarjeta p-4 space-y-4">
           <form action={crearNotaPiezaAction} className="space-y-2">
             <input type="hidden" name="piezaId" value={pieza.id} />
             <div className="flex gap-3">

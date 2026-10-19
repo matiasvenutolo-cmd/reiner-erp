@@ -15,10 +15,11 @@ import {
   eliminarPagoAction,
 } from "@/app/actions/gestion-compras";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Etiqueta } from "@/components/ui/Etiqueta";
 import { Aviso } from "@/components/ui/Aviso";
 import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
 import { EstadoCompra, OrigenCompra, ImporteDoble, CantidadCompra } from "@/components/compras/Partes";
-import { formatearFecha, formatearImporte, formatearNumero } from "@/lib/formato";
+import { formatearFecha, formatearImporte, formatearNumero, plural } from "@/lib/formato";
 import { fechaISO, hoyISO, sumarDias } from "@/lib/fecha";
 import { getPlan } from "@/lib/planning/datos";
 
@@ -154,7 +155,7 @@ export default async function CompraPage({
             <input type="hidden" name="id" value={s.id} />
             <Fecha nombre="fechaNecesidad" titulo="Se necesita el material" valor={s.fechaNecesidad} habilitado={abierta}>
               {compraPlan ? (
-                <span className={compraPlan.pedirAntes < hoy ? "text-[#991b1b] font-semibold" : ""}>
+                <span className={compraPlan.pedirAntes < hoy ? "text-rojo-fg font-semibold" : ""}>
                   Según el plan de {compraPlan.proyectoCodigo}: tiene que llegar el {formatearFecha(compraPlan.llegadaNecesaria)} · pedir antes del {formatearFecha(compraPlan.pedirAntes)}.
                 </span>
               ) : s.origen === "orden_trabajo" &&
@@ -217,7 +218,7 @@ export default async function CompraPage({
                 {s.cotizaciones.map((c) => {
                   const esElegida = c.id === s.cotizacionElegidaId;
                   return (
-                    <tr key={c.id} className={`border-t border-border align-top ${esElegida ? "bg-[var(--estado-terminada-bg)]" : ""}`}>
+                    <tr key={c.id} className={`border-t border-border align-top ${esElegida ? "bg-verde-bg" : ""}`}>
                       <td className="px-4 py-2.5">
                         <Link href={`/proveedores/${c.proveedorId}`} className="font-medium hover:text-accent hover:underline">
                           {c.proveedorNombre}
@@ -241,17 +242,17 @@ export default async function CompraPage({
                         {s.cotizaciones.length > 1 && c.importe.enPesos === minPesos && <div className="text-[11px] text-foreground-muted">la más baja</div>}
                       </td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
-                        {c.tiempoEntregaDias != null ? `${c.tiempoEntregaDias} días` : "—"}
+                        {c.tiempoEntregaDias != null ? plural(c.tiempoEntregaDias, "día") : "—"}
                         {(() => {
                           if (c.tiempoEntregaDias == null || !necesidad) return null;
                           const llega = sumarDias(c.fechaConfirmacionPosible ?? hoy, c.tiempoEntregaDias);
                           const tarde = diasTarde(llega, necesidad);
                           return tarde > 0 ? (
-                            <div className="text-xs font-semibold text-[#991b1b]">
+                            <div className="text-xs font-semibold text-rojo-fg">
                               Llega {tarde} día{tarde === 1 ? "" : "s"} tarde{compraPlan ? ` para ${compraPlan.proyectoCodigo}` : ""}
                             </div>
                           ) : (
-                            <div className="text-xs text-[#00755d]">llega a tiempo ({formatearFecha(llega)})</div>
+                            <div className="text-xs text-verde-fg">llega a tiempo ({formatearFecha(llega)})</div>
                           );
                         })()}
                       </td>
@@ -260,7 +261,7 @@ export default async function CompraPage({
                       <td className="px-4 py-2.5 text-right whitespace-nowrap">
                         {esElegida ? (
                           <div className="space-y-1">
-                            <span className="badge-estado badge-terminada">✓ Elegida</span>
+                            <Etiqueta tono="verde">Elegida</Etiqueta>
                             {!s.confirmadaAt && s.pagado === 0 && abierta && (
                               <form action={elegirCotizacionAction}>
                                 <input type="hidden" name="solicitudId" value={s.id} />
@@ -288,7 +289,7 @@ export default async function CompraPage({
                           <form action={eliminarCotizacionAction} className="mt-1">
                             <input type="hidden" name="solicitudId" value={s.id} />
                             <input type="hidden" name="cotizacionId" value={c.id} />
-                            <ConfirmarBoton mensaje={`¿Quitar la cotización de ${c.proveedorNombre}?`} className="text-xs text-[var(--estado-alerta-fg)] hover:underline">
+                            <ConfirmarBoton mensaje={`¿Quitar la cotización de ${c.proveedorNombre}?`} className="text-xs text-rojo-fg hover:underline">
                               Quitar
                             </ConfirmarBoton>
                           </form>
@@ -483,7 +484,7 @@ export default async function CompraPage({
                       <form action={eliminarPagoAction}>
                         <input type="hidden" name="solicitudId" value={s.id} />
                         <input type="hidden" name="pagoId" value={p.id} />
-                        <ConfirmarBoton mensaje="¿Eliminar este pago? Vuelve a contar como gasto futuro." className="text-xs text-[var(--estado-alerta-fg)] hover:underline">
+                        <ConfirmarBoton mensaje="¿Eliminar este pago? Vuelve a contar como gasto futuro." className="text-xs text-rojo-fg hover:underline">
                           Eliminar
                         </ConfirmarBoton>
                       </form>
@@ -546,7 +547,7 @@ function Dato({ titulo, valor, nota, alerta }: { titulo: string; valor: string; 
   return (
     <div>
       <dt className="text-xs text-foreground-muted">{titulo}</dt>
-      <dd className={`font-medium ${alerta ? "text-[var(--estado-alerta-fg)]" : ""}`}>
+      <dd className={`font-medium ${alerta ? "text-rojo-fg" : ""}`}>
         {valor}
         {alerta && " · atrasada"}
       </dd>

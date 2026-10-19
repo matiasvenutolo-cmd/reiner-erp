@@ -49,7 +49,7 @@ export function OrdenSueltaForm({
   );
 
   return (
-    <form action={crearOrdenSueltaAction} className="bg-surface border border-border rounded-lg p-5 space-y-4">
+    <form action={crearOrdenSueltaAction} className="tarjeta p-5 space-y-4">
       <Field label="¿Para quién es?">
         <div className="grid grid-cols-2 gap-2 text-sm">
           {(
@@ -173,7 +173,7 @@ export function OrdenSueltaForm({
             <input name="cantidad" type="number" min={1} required defaultValue={inicial.cantidad ?? 1} className="input w-24" />
           </Field>
           {destino === "repuesto" && libre > 0 && (
-            <p className="text-sm rounded-md border border-[#bbf7d0] bg-[#f0fdf4] px-3 py-2">
+            <p className="text-sm rounded-md border border-verde-medio bg-verde-tenue px-3 py-2">
               Hay <strong>{libre}</strong> libre{libre === 1 ? "" : "s"} en stock.{" "}
               <a href={`/stock/pieza/${encodeURIComponent(piezaId)}`} className="text-accent underline">
                 Usar stock

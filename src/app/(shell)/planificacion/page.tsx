@@ -114,7 +114,7 @@ export default async function PlanSemanaPage({ searchParams }: { searchParams: P
     <div className="space-y-5">
       <PageHeader
         titulo="Plan de la semana"
-        descripcion="El sistema propone qué se hace en cada centro y cada día, según la holgura de cada tarea y la capacidad. Arrastrá una tarjeta a otro día, cambiá el operario o fijala con el candado."
+        descripcion="El sistema propone qué se hace en cada centro y cada día, según el margen de cada tarea y la capacidad. Arrastrá una tarjeta a otro día, cambiá el operario o fijala con el candado."
         acciones={
           <>
             <form action={recalcularAction}>
@@ -175,10 +175,10 @@ export default async function PlanSemanaPage({ searchParams }: { searchParams: P
       </div>
 
       <div className="flex flex-wrap gap-3 text-xs text-foreground-muted items-center">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 border-l-4 border-l-[#dc2626] border border-border rounded-sm" /> atrasada</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 border-l-4 border-l-[#ea580c] border border-border rounded-sm" /> urgente (0 a 3 días de margen)</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 border-l-4 border-l-[#16a34a] border border-border rounded-sm" /> en plazo</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 border-l-4 border-l-[#9ca3af] border border-border rounded-sm" /> con mucho margen</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 border-l-4 border-l-rojo border border-border rounded-sm" /> atrasada</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 border-l-4 border-l-naranja border border-border rounded-sm" /> urgente (0 a 3 días de margen)</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 border-l-4 border-l-verde border border-border rounded-sm" /> en plazo</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 border-l-4 border-l-gris border border-border rounded-sm" /> con mucho margen</span>
         <Estimado pct={pctEst} />
       </div>
 
@@ -188,7 +188,7 @@ export default async function PlanSemanaPage({ searchParams }: { searchParams: P
           <h2 className="font-semibold text-sm">Sin lugar esta semana ({sinLugar.length})</h2>
           <p className="text-xs text-foreground-muted mb-2">Deberían empezar antes del {fechaCorta(viernes)} y no entraron por capacidad. Ordenadas por margen.</p>
           {sinLugar.length === 0 ? (
-            <p className="text-sm text-[var(--estado-terminada-fg)] font-medium">✓ Todo entra en la semana.</p>
+            <p className="text-sm text-verde-fg font-medium">✓ Todo entra en la semana.</p>
           ) : (
             <ul className="space-y-1.5 max-h-[32rem] overflow-y-auto">
               {sinLugar.slice(0, 40).map((t) => (

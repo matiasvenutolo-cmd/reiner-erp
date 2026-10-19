@@ -102,7 +102,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                     <td className="px-4 py-2.5 text-xs">
                       {compraDe.get(n.otPiezaId) ? (
                         <>
-                          <div className={`text-sm font-semibold ${compraDe.get(n.otPiezaId)!.pedirAntes < hoy ? "text-[#991b1b]" : ""}`}>
+                          <div className={`text-sm font-semibold ${compraDe.get(n.otPiezaId)!.pedirAntes < hoy ? "text-rojo-fg" : ""}`}>
                             {formatearFecha(compraDe.get(n.otPiezaId)!.pedirAntes)}
                             {compraDe.get(n.otPiezaId)!.pedirAntes < hoy && " · vencida"}
                           </div>
@@ -199,12 +199,12 @@ function Lista({ solicitudes, hoy, siguiente }: { solicitudes: SolicitudDetalle[
                   </div>
                 </td>
                 <td className="px-4 py-2.5 text-xs whitespace-nowrap space-y-0.5">
-                  <div className={necesidadVencida ? "text-[var(--estado-alerta-fg)] font-semibold" : ""}>
+                  <div className={necesidadVencida ? "text-rojo-fg font-semibold" : ""}>
                     Se necesita: {s.fechaNecesidad ? formatearFecha(s.fechaNecesidad) : <span className="text-foreground-muted">sin fecha</span>}
                   </div>
                   {s.estado === "a_confirmar" && <div>Compra prevista: {formatearFecha(s.fechaCompraPrevista)}</div>}
                   {s.estado === "en_camino" && (
-                    <div className={entregaAtrasada ? "text-[var(--estado-alerta-fg)] font-semibold" : ""}>
+                    <div className={entregaAtrasada ? "text-rojo-fg font-semibold" : ""}>
                       Entrega prevista: {formatearFecha(s.entregaPrevista)}
                       {entregaAtrasada && " · atrasada"}
                     </div>

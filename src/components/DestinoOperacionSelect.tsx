@@ -20,7 +20,7 @@ export function DestinoOperacionSelect({
         name="destino"
         defaultValue={valor}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}
-        className={`input text-sm py-1 w-auto ${valor === "" ? "border-amber-400 text-amber-800" : ""}`}
+        className={`input text-sm py-1 w-auto ${valor === "" ? "border-naranja text-naranja-fg" : ""}`}
       >
         <option value="">Asignar centro de trabajo…</option>
         <optgroup label="Centros de trabajo">

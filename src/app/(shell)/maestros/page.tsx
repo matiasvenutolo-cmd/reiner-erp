@@ -30,9 +30,9 @@ export default async function MaestrosPage() {
         {modelos.map((m) => (
           <div key={m.id}>
             <h2 className="text-sm font-semibold mb-2">{m.nombre}</h2>
-            <div className="bg-surface border border-border rounded-lg overflow-hidden">
+            <div className="tarjeta overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+                <thead className="bg-surface-muted text-foreground-muted text-xs">
                   <tr>
                     <th className="text-left px-4 py-2 font-medium">Máquina</th>
                     <th className="text-left px-4 py-2 font-medium">Código</th>

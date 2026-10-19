@@ -66,9 +66,9 @@ function TablaPiezas({ titulo, filas }: { titulo: string; filas: Fila[] }) {
       {filas.length === 0 ? (
         <p className="text-sm text-foreground-muted">Ninguna pieza de este conjunto es &ldquo;{titulo.toLowerCase()}&rdquo;.</p>
       ) : (
-        <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+        <div className="tarjeta overflow-hidden overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+            <thead className="bg-surface-muted text-foreground-muted text-xs">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Código</th>
                 <th className="text-left px-4 py-2 font-medium">Nombre</th>
@@ -91,7 +91,7 @@ function TablaPiezas({ titulo, filas }: { titulo: string; filas: Fila[] }) {
                   <td className="px-4 py-2.5 text-right tabular-nums">{stock}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">{wip || "—"}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">
-                    {routing.length || <span className="text-red-700">sin datos</span>}
+                    {routing.length || <span className="text-rojo-fg">sin datos</span>}
                   </td>
                 </tr>
               ))}

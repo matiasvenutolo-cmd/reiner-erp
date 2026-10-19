@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Ayuda } from "./Ayuda";
 
 export type Miga = { href?: string; label: string };
 
@@ -38,10 +39,11 @@ export function PageHeader({
           ))}
         </nav>
       )}
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      {/* Encabezado fijo al hacer scroll (§4.8): el título y la acción principal quedan a la vista. */}
+      <div className="sticky top-0 z-20 -mx-4 px-4 md:-mx-8 md:px-8 py-2 bg-background/95 backdrop-blur flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">{titulo}</h1>
-          {descripcion && <p className="text-sm text-foreground-muted mt-1 max-w-3xl">{descripcion}</p>}
+          <h1 className="text-2xl font-bold tracking-tight">{titulo}</h1>
+          {descripcion && <Ayuda clave={typeof titulo === "string" ? titulo : "pantalla"}>{descripcion}</Ayuda>}
         </div>
         {acciones && <div className="flex flex-wrap items-center gap-2">{acciones}</div>}
       </div>

@@ -1,4 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
+import { plural } from "@/lib/formato";
 import { db } from "@/lib/db/client";
 import { articuloStock, proveedor } from "@/lib/db/schema";
 import { retirarArticuloAction } from "@/app/actions/v2";
@@ -19,8 +20,8 @@ export async function TablaArticulos({ tipo }: { tipo: "materia_prima" | "consum
   return (
     <div className="space-y-3">
       <p className="text-sm">
-        <strong>{filas.length} artículos</strong>
-        {bajo > 0 && <span className="text-[#991b1b] font-semibold"> · {bajo} debajo del mínimo</span>}
+        <strong>{plural(filas.length, "artículo")}</strong>
+        {bajo > 0 && <span className="text-rojo-fg font-semibold"> · {bajo} debajo del mínimo</span>}
         {!esMP && <span className="text-foreground-muted"> · los consumibles no se asignan a proyectos: sólo se registra el retiro.</span>}
       </p>
       <div className="tarjeta overflow-x-auto">
@@ -44,11 +45,11 @@ export async function TablaArticulos({ tipo }: { tipo: "materia_prima" | "consum
               {filas.map(({ a, proveedor: prov }) => {
                 const debajo = a.cantidad < a.minimo;
                 return (
-                  <tr key={a.id} className={`border-t border-border ${debajo ? "bg-[#fef2f2]" : ""}`}>
+                  <tr key={a.id} className={`border-t border-border ${debajo ? "bg-rojo-tenue" : ""}`}>
                     <td className="px-4 py-2 font-medium">
                       {a.nombre}
-                      {a.esDemo && <span className="badge-estado bg-[#efe9fb] text-[#5b3aa8] ml-2">demo</span>}
-                      {debajo && <div className="text-xs text-[#991b1b] font-semibold">debajo del mínimo</div>}
+                      {a.esDemo && <span className="badge-estado bg-demo-bg text-demo-fg ml-2">demo</span>}
+                      {debajo && <div className="text-xs text-rojo-fg font-semibold">debajo del mínimo</div>}
                     </td>
                     {esMP && <td className="px-3 py-2 text-foreground-muted">{a.medida ?? "—"}</td>}
                     <td className="px-3 py-2 text-right tabular-nums">
@@ -56,7 +57,7 @@ export async function TablaArticulos({ tipo }: { tipo: "materia_prima" | "consum
                     </td>
                     {esMP && (
                       <td className="px-3 py-2 text-right">
-                        <span className="badge-estado bg-[#d9f0ea] text-[#00755d] tabular-nums">{num(a.cantidad - a.asignada)}</span>
+                        <span className="badge-estado bg-verde-bg text-verde-fg tabular-nums">{num(a.cantidad - a.asignada)}</span>
                       </td>
                     )}
                     {esMP && (

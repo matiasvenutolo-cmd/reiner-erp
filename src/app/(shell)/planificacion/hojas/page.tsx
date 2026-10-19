@@ -38,7 +38,7 @@ export default async function HojasDelDiaPage({ searchParams }: { searchParams: 
           <p className="text-sm text-foreground-muted mt-2">No tiene trabajo asignado ese día.</p>
         ) : (
           <table className="w-full text-sm mt-3 border-collapse">
-            <thead className="text-xs uppercase text-foreground-muted">
+            <thead className="text-xs text-foreground-muted">
               <tr>
                 <th className="text-left py-1.5 border-b border-border">OT pieza</th>
                 <th className="text-left py-1.5 border-b border-border">Pieza</th>

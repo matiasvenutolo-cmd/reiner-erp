@@ -37,9 +37,9 @@ export default async function IndicadoresPage() {
           {paradasPorTipo.length === 0 ? (
             <p className="text-sm text-foreground-muted">Todavía no hay paradas cerradas registradas.</p>
           ) : (
-            <div className="bg-surface border border-border rounded-lg overflow-hidden">
+            <div className="tarjeta overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+                <thead className="bg-surface-muted text-foreground-muted text-xs">
                   <tr>
                     <th className="text-left px-4 py-2 font-medium">Tipo</th>
                     <th className="text-right px-4 py-2 font-medium">Cantidad</th>
@@ -65,9 +65,9 @@ export default async function IndicadoresPage() {
           {tiempoPorOperario.length === 0 ? (
             <p className="text-sm text-foreground-muted">Todavía no hay tiempos cerrados registrados.</p>
           ) : (
-            <div className="bg-surface border border-border rounded-lg overflow-hidden">
+            <div className="tarjeta overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+                <thead className="bg-surface-muted text-foreground-muted text-xs">
                   <tr>
                     <th className="text-left px-4 py-2 font-medium">Operario</th>
                     <th className="text-right px-4 py-2 font-medium">Setup</th>
@@ -94,9 +94,9 @@ export default async function IndicadoresPage() {
         {tiempoPorProceso.length === 0 ? (
           <p className="text-sm text-foreground-muted">Todavía no hay tiempos cerrados registrados.</p>
         ) : (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+          <div className="tarjeta overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+              <thead className="bg-surface-muted text-foreground-muted text-xs">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Proceso</th>
                   <th className="text-right px-4 py-2 font-medium">Setup</th>

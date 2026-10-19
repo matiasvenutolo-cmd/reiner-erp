@@ -47,9 +47,9 @@ export default async function OperacionesPage({ searchParams }: { searchParams: 
 
       <section>
         <h2 className="text-base font-semibold mb-2">Centros de trabajo</h2>
-        <div className="bg-surface border border-border rounded-lg overflow-hidden">
+        <div className="tarjeta overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+            <thead className="bg-surface-muted text-foreground-muted text-xs">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Centro</th>
                 <th className="text-right px-4 py-2 font-medium">Operaciones por defecto</th>
@@ -87,7 +87,7 @@ export default async function OperacionesPage({ searchParams }: { searchParams: 
                             type="submit"
                             disabled={enUso}
                             title={enUso ? "Se usa: primero reasigná sus operaciones y operarios" : undefined}
-                            className="text-xs text-red-700 hover:underline disabled:text-foreground-muted disabled:no-underline"
+                            className="text-xs text-rojo-fg hover:underline disabled:text-foreground-muted disabled:no-underline"
                           >
                             Eliminar
                           </button>
@@ -118,9 +118,9 @@ export default async function OperacionesPage({ searchParams }: { searchParams: 
           trabajo&rdquo;. Si es tercerizada, va a Tercerizados para juntarla y mandarla con remito.
           {sinAsignar.length > 0 && ` Hoy hay ${sinAsignar.length} con piezas cargadas y sin asignar.`}
         </p>
-        <div className="bg-surface border border-border rounded-lg overflow-hidden">
+        <div className="tarjeta overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+            <thead className="bg-surface-muted text-foreground-muted text-xs">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Operación</th>
                 <th className="text-right px-4 py-2 font-medium">En hojas de ruta</th>
@@ -146,7 +146,7 @@ export default async function OperacionesPage({ searchParams }: { searchParams: 
                       t.tipo === "tercerizado" ? (
                         "Tercerizado"
                       ) : (
-                        (centros.find((c) => c.id === t.centroTrabajoId)?.nombre ?? <span className="text-amber-800">Sin centro asignado</span>)
+                        (centros.find((c) => c.id === t.centroTrabajoId)?.nombre ?? <span className="text-naranja-fg">Sin centro asignado</span>)
                       )
                     ) : (
                       <DestinoOperacionSelect

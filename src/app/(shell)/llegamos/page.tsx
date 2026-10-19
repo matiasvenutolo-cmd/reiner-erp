@@ -13,10 +13,10 @@ const TIPO = { maquina: "Máquina", repuesto: "Repuesto", stock: "Stock" } as co
 function Diferencia({ dias }: { dias: number }) {
   const [txt, cls] =
     dias > 0
-      ? [`${dias} día${dias === 1 ? "" : "s"} tarde`, "bg-[#fde2e2] text-[#991b1b]"]
+      ? [`${dias} día${dias === 1 ? "" : "s"} tarde`, "bg-rojo-bg text-rojo-fg"]
       : dias >= -3
-        ? [dias === 0 ? "justo a tiempo" : `${-dias} día${dias === -1 ? "" : "s"} antes`, "bg-[#ffedd5] text-[#9a3412]"]
-        : [`${-dias} días antes`, "bg-[#d9f0ea] text-[#00755d]"];
+        ? [dias === 0 ? "justo a tiempo" : `${-dias} día${dias === -1 ? "" : "s"} antes`, "bg-naranja-bg text-naranja-fg"]
+        : [`${-dias} días antes`, "bg-verde-bg text-verde-fg"];
   return <span className={`inline-block rounded-lg px-3 py-1.5 text-lg font-semibold ${cls}`}>{txt}</span>;
 }
 
@@ -60,7 +60,7 @@ export default async function LlegamosPage() {
                       <span className="font-mono font-semibold">{p.codigo}</span>
                       <span className="badge-estado bg-surface-muted text-foreground">{TIPO[p.tipo]}</span>
                       {p.prioridad === "alta" && <span className="badge-estado badge-alerta">Prioridad alta</span>}
-                      {info?.esDemo && <span className="badge-estado bg-[#efe9fb] text-[#5b3aa8]">demo</span>}
+                      {info?.esDemo && <span className="badge-estado bg-demo-bg text-demo-fg">demo</span>}
                     </div>
                     <div className="text-sm text-foreground-muted mt-0.5">
                       {[info?.cliente, info?.configuracion].filter(Boolean).join(" · ")}
@@ -96,7 +96,7 @@ export default async function LlegamosPage() {
                           {c.codigo} {c.nombre}
                         </span>
                         <span className="text-xs text-foreground-muted">
-                          {c.motivoAtraso} · <span className="text-[#991b1b] font-semibold">+{c.atrasoDias} días</span>
+                          {c.motivoAtraso} · <span className="text-rojo-fg font-semibold">+{c.atrasoDias} días</span>
                         </span>
                       </li>
                     ))}
@@ -134,7 +134,7 @@ export default async function LlegamosPage() {
                     const usado = r.carga.get(c.id)?.get(d) ?? 0;
                     const cap = r.capacidad.get(c.id)?.get(d) ?? 0;
                     const pct = cap ? usado / cap : 0;
-                    const bg = !cap ? "bg-surface-muted" : pct >= 0.99 ? "bg-[#fca5a5]" : pct > 0.75 ? "bg-[#fed7aa]" : pct > 0.3 ? "bg-[#bbf7d0]" : pct > 0 ? "bg-[#dcfce7]" : "";
+                    const bg = !cap ? "bg-surface-muted" : pct >= 0.99 ? "bg-rojo-medio" : pct > 0.75 ? "bg-naranja-medio" : pct > 0.3 ? "bg-verde-medio" : pct > 0 ? "bg-verde-tenue" : "";
                     return (
                       <td key={d} className={`px-1 py-1.5 text-center tabular-nums ${bg}`} title={`${c.nombre} ${fechaCorta(d)}: ${Math.round(usado * 10) / 10} de ${Math.round(cap * 10) / 10} h`}>
                         {usado ? Math.round((pct || 0) * 100) : ""}

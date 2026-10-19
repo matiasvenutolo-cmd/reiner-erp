@@ -1,52 +1,76 @@
 import type { Nivel, EstadoTarea } from "@/lib/planning/motor";
+import { TONO, Etiqueta, type Tono } from "@/components/ui/Etiqueta";
 
-/** Color de holgura (especificación): rojo atrasada, naranja urgente, verde en plazo, gris futura. */
-export const NIVEL: Record<Nivel, { label: string; chip: string; borde: string; punto: string }> = {
-  atrasada: { label: "Atrasada", chip: "bg-[#fde2e2] text-[#991b1b]", borde: "border-l-[#dc2626]", punto: "bg-[#dc2626]" },
-  urgente: { label: "Urgente", chip: "bg-[#ffedd5] text-[#9a3412]", borde: "border-l-[#ea580c]", punto: "bg-[#ea580c]" },
-  en_plazo: { label: "En plazo", chip: "bg-[#d9f0ea] text-[#00755d]", borde: "border-l-[#16a34a]", punto: "bg-[#16a34a]" },
-  futura: { label: "Futura", chip: "bg-surface-muted text-foreground-muted", borde: "border-l-[#9ca3af]", punto: "bg-[#9ca3af]" },
-};
+/**
+ * Margen de cada tarea (en el código, "holgura"). Colores con significado fijo
+ * (§4.1): rojo atrasada, naranja urgente o "arranca tarde", verde en plazo,
+ * gris futura. En la interfaz se dice "margen", nunca "holgura" (§4.6).
+ */
+const TONO_NIVEL: Record<Nivel, Tono> = { atrasada: "rojo", arranca_tarde: "naranja", urgente: "naranja", en_plazo: "verde", futura: "gris" };
+const LABEL_NIVEL: Record<Nivel, string> = { atrasada: "Atrasada", arranca_tarde: "Arranca tarde", urgente: "Urgente", en_plazo: "En plazo", futura: "Con margen" };
 
-export function Holgura({ nivel, dias, corto }: { nivel: Nivel; dias: number; corto?: boolean }) {
+export const NIVEL: Record<Nivel, { label: string; chip: string; borde: string; punto: string; tono: Tono }> = Object.fromEntries(
+  (Object.keys(TONO_NIVEL) as Nivel[]).map((n) => [n, { label: LABEL_NIVEL[n], chip: TONO[TONO_NIVEL[n]].chip, borde: TONO[TONO_NIVEL[n]].franja, punto: TONO[TONO_NIVEL[n]].punto, tono: TONO_NIVEL[n] }]),
+) as Record<Nivel, { label: string; chip: string; borde: string; punto: string; tono: Tono }>;
+
+/** Texto del margen: "3 días de margen", "vence hoy", "2 días atrasada". */
+export function textoMargen(dias: number): string {
+  return dias < 0 ? `${-dias} día${dias === -1 ? "" : "s"} atrasada` : dias === 0 ? "vence hoy" : `${dias} día${dias === 1 ? "" : "s"} de margen`;
+}
+
+/**
+ * Etiqueta de margen. Lo que está en plazo es silencioso (§ principios): con
+ * `soloExcepcion`, si hay más de 3 días de margen no se muestra nada.
+ */
+export function Holgura({ nivel, dias, corto, soloExcepcion }: { nivel: Nivel; dias: number; corto?: boolean; soloExcepcion?: boolean }) {
+  if (soloExcepcion && (nivel === "en_plazo" || nivel === "futura")) return null;
   const n = NIVEL[nivel];
-  const texto = dias < 0 ? `${-dias} día${dias === -1 ? "" : "s"} tarde` : dias === 0 ? "vence hoy" : `${dias} día${dias === 1 ? "" : "s"} de margen`;
+  const texto = nivel === "arranca_tarde" ? "arranca tarde" : textoMargen(dias);
   return (
-    <span className={`badge-estado ${n.chip}`} title={`${n.label}: ${texto}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${n.punto}`} />
+    <Etiqueta tono={n.tono} title={`${n.label}: ${texto}`}>
       {corto ? texto : `${n.label} · ${texto}`}
-    </span>
+    </Etiqueta>
   );
 }
 
-const ESTADO: Record<EstadoTarea, [string, string]> = {
-  futura: ["Futura", "badge-pendiente"],
-  liberada: ["Liberada", "bg-accent-soft text-accent"],
-  lista: ["Lista para hacer", "badge-terminada"],
-  en_curso: ["En curso", "badge-en_curso"],
-  pausada: ["Pausada", "badge-en_curso"],
-  terminada: ["Terminada", "badge-terminada"],
-  trabada: ["Trabada", "badge-alerta"],
+const ESTADO: Record<EstadoTarea, [string, Tono, string]> = {
+  futura: ["Sin liberar", "gris", "reloj"],
+  liberada: ["Esperando el paso anterior", "gris", "reloj"],
+  lista: ["Lista", "verde", "okCirculo"],
+  en_curso: ["En curso", "naranja", "empezar"],
+  pausada: ["Parada", "naranja", "pausa"],
+  terminada: ["Terminada", "verde", "ok"],
+  trabada: ["Trabada", "rojo", "bloqueo"],
 };
 
-export function EstadoTareaChip({ estado }: { estado: EstadoTarea }) {
-  const [l, c] = ESTADO[estado];
-  return <span className={`badge-estado ${c}`}>{l}</span>;
+/** Estado de una tarea. "Lista" es el estado normal: con `soloExcepcion` no se muestra. */
+export function EstadoTareaChip({ estado, soloExcepcion }: { estado: EstadoTarea; soloExcepcion?: boolean }) {
+  if (soloExcepcion && estado === "lista") return null;
+  const [l, tono, icono] = ESTADO[estado];
+  return (
+    <Etiqueta tono={tono} icono={icono}>
+      {l}
+    </Etiqueta>
+  );
 }
 
-const DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
-/** "2026-10-20" → "mar 20/10". */
-export function fechaCorta(f: string | null | undefined): string {
-  if (!f) return "—";
-  const d = new Date(`${f}T12:00:00Z`);
-  return `${DIAS[d.getUTCDay()]} ${f.slice(8, 10)}/${f.slice(5, 7)}`;
-}
+/** Formato de fecha único: vive en src/lib/formato.ts (se re-exporta para no tocar los imports existentes). */
+export { fechaCorta } from "@/lib/formato";
 
+/** Aviso discreto mientras haya tiempos estimados (amarillo suave = dato estimado). */
 export function Estimado({ pct }: { pct: number }) {
   if (pct <= 0) return null;
   return (
-    <span className="text-xs text-foreground-muted" title="Los tiempos que todavía no cargó REINER salen de la tabla de estimados; se ajustan desde Admin.">
-      Plan calculado con {pct}% de tiempos estimados
+    <span title="Los tiempos que todavía no cargó REINER salen de la tabla de estimados; se ajustan desde Admin.">
+      <Etiqueta tono="estimado">Plan con {pct}% de tiempos estimados</Etiqueta>
     </span>
   );
+}
+
+/** Color fijo por proyecto (paleta aparte de los estados): el mismo proyecto, el mismo color en todas las pantallas. */
+const PALETA = ["bg-proy-1", "bg-proy-2", "bg-proy-3", "bg-proy-4"];
+const BORDE_PALETA = ["border-proy-1", "border-proy-2", "border-proy-3", "border-proy-4"];
+export function colorProyecto(orden: number, tipo?: string): { fondo: string; borde: string } {
+  if (tipo === "stock") return { fondo: "bg-proy-stock", borde: "border-proy-stock" };
+  return { fondo: PALETA[orden % PALETA.length], borde: BORDE_PALETA[orden % PALETA.length] };
 }

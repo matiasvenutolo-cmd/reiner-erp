@@ -31,7 +31,7 @@ export function CentroOperacionSelect({
         name="centroTrabajoId"
         defaultValue={centroElegido ?? ""}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}
-        className={`input text-sm py-1 ${sinCentro ? "border-amber-400 text-amber-800" : ""}`}
+        className={`input text-sm py-1 ${sinCentro ? "border-naranja text-naranja-fg" : ""}`}
       >
         <option value="">{centroPorDefecto ? `${centroPorDefecto.nombre} (por defecto)` : "Asignar centro de trabajo…"}</option>
         {centros

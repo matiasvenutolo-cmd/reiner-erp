@@ -50,9 +50,9 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
         {pedidos.length === 0 ? (
           <p className="text-sm text-foreground-muted">No hay compras pedidas pendientes de llegar.</p>
         ) : (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+          <div className="tarjeta overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+              <thead className="bg-surface-muted text-foreground-muted text-xs">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Pieza</th>
                   <th className="text-left px-4 py-2 font-medium">OT</th>
@@ -95,7 +95,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                       </form>
                       <form action={cancelarPedidoAction} className="mt-1">
                         <input type="hidden" name="pedidoId" value={p.id} />
-                        <ConfirmarBoton mensaje="¿Cancelar este pedido? Vuelve a quedar como pendiente de pedir." className="text-xs text-foreground-muted hover:text-red-700 hover:underline">
+                        <ConfirmarBoton mensaje="¿Cancelar este pedido? Vuelve a quedar como pendiente de pedir." className="text-xs text-foreground-muted hover:text-rojo-fg hover:underline">
                           Cancelar pedido
                         </ConfirmarBoton>
                       </form>
@@ -128,9 +128,9 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
         {porPedirFiltrado.length === 0 ? (
           <p className="text-sm text-foreground-muted">No hay nada pendiente de pedir.</p>
         ) : (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+          <div className="tarjeta overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+              <thead className="bg-surface-muted text-foreground-muted text-xs">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Pieza</th>
                   <th className="text-left px-4 py-2 font-medium">OT</th>

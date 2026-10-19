@@ -75,8 +75,8 @@ export default async function ProveedoresPage({ searchParams }: { searchParams: 
                     <td className="px-3 py-2.5 text-xs whitespace-nowrap">
                       {e ? (
                         <>
-                          <span className="text-[var(--estado-terminada-fg)] font-semibold">{e.ok} OK</span> ·{" "}
-                          <span className={e.noOk ? "text-[var(--estado-alerta-fg)] font-semibold" : "text-foreground-muted"}>{e.noOk} NO OK</span>
+                          <span className="text-verde-fg font-semibold">{e.ok} OK</span> ·{" "}
+                          <span className={e.noOk ? "text-rojo-fg font-semibold" : "text-foreground-muted"}>{e.noOk} NO OK</span>
                         </>
                       ) : (
                         <span className="text-foreground-muted">sin entregas registradas</span>

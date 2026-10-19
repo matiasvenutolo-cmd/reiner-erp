@@ -56,7 +56,7 @@ export async function FichaPlanificacion({ piezaId, editable }: { piezaId: strin
               </label>
             ))}
           </div>
-          {p.claseSugerida && <p className="text-xs text-[#5b3aa8]">El sistema sugiere marcarla como {p.claseSugerida === "comercial" ? "Comercial" : p.claseSugerida}.</p>}
+          {p.claseSugerida && <p className="text-xs text-demo-fg">El sistema sugiere marcarla como {p.claseSugerida === "comercial" ? "Comercial" : p.claseSugerida}.</p>}
           <div className="grid sm:grid-cols-4 gap-2 items-end">
             <label className="sm:col-span-2">
               Materia prima
@@ -125,7 +125,7 @@ export async function FichaPlanificacion({ piezaId, editable }: { piezaId: strin
                       ) : (
                         <>
                           {o.setupMin ?? ds ?? 0} min + {o.minPorUnidad ?? dm ?? 0} min/u{" "}
-                          <span className={`text-xs ${propio ? "text-[#00755d]" : "text-[#5b3aa8]"}`}>{propio ? (o.tiempoOrigen === "medido" ? "medido" : "propio") : "del proceso (estimado)"}</span>
+                          <span className={`text-xs ${propio ? "text-verde-fg" : "text-demo-fg"}`}>{propio ? (o.tiempoOrigen === "medido" ? "medido" : "propio") : "del proceso (estimado)"}</span>
                         </>
                       )}
                     </td>

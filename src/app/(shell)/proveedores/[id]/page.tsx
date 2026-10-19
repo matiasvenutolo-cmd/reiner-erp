@@ -5,7 +5,7 @@ import { actualizarProveedorAction } from "@/app/actions/proveedores";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Aviso } from "@/components/ui/Aviso";
 import { ProveedorCampos } from "@/components/ProveedorCampos";
-import { formatearFecha } from "@/lib/formato";
+import { formatearFecha, plural } from "@/lib/formato";
 import { guardarProveedorPlanAction } from "@/app/actions/v2";
 
 export const dynamic = "force-dynamic";
@@ -122,11 +122,11 @@ export default async function ProveedorPage({
               <>
                 <div className="flex gap-6 mb-3">
                   <div>
-                    <div className="text-2xl font-semibold text-[var(--estado-terminada-fg)] tabular-nums">{ok}</div>
+                    <div className="text-2xl font-semibold text-verde-fg tabular-nums">{ok}</div>
                     <div className="text-xs text-foreground-muted">entregas OK</div>
                   </div>
                   <div>
-                    <div className={`text-2xl font-semibold tabular-nums ${noOk ? "text-[var(--estado-alerta-fg)]" : ""}`}>{noOk}</div>
+                    <div className={`text-2xl font-semibold tabular-nums ${noOk ? "text-rojo-fg" : ""}`}>{noOk}</div>
                     <div className="text-xs text-foreground-muted">entregas NO OK</div>
                   </div>
                 </div>
@@ -163,7 +163,7 @@ export default async function ProveedorPage({
                     <div className="text-xs text-foreground-muted">llegaron en el plazo acordado</div>
                   </div>
                   <div>
-                    <div className={`text-2xl font-semibold tabular-nums ${promedio > 0 ? "text-[var(--estado-alerta-fg)]" : ""}`}>
+                    <div className={`text-2xl font-semibold tabular-nums ${promedio > 0 ? "text-rojo-fg" : ""}`}>
                       {promedio > 0 ? "+" : ""}
                       {promedio.toLocaleString("es-AR", { maximumFractionDigits: 1 })} días
                     </div>
@@ -187,11 +187,11 @@ export default async function ProveedorPage({
                           Nº {x.solicitudNumero} — {x.descripcion}
                         </td>
                         <td className="py-1.5 text-xs whitespace-nowrap">
-                          {x.acordadaDias} días · {formatearFecha(x.entregaAcordada)}
+                          {plural(x.acordadaDias, "día")} · {formatearFecha(x.entregaAcordada)}
                         </td>
                         <td className="py-1.5 text-xs whitespace-nowrap">{formatearFecha(x.recibida)}</td>
-                        <td className={`py-1.5 text-right tabular-nums ${x.diferenciaDias > 0 ? "text-[var(--estado-alerta-fg)] font-semibold" : ""}`}>
-                          {x.diferenciaDias > 0 ? `+${x.diferenciaDias} días` : x.diferenciaDias === 0 ? "a tiempo" : `${-x.diferenciaDias} días antes`}
+                        <td className={`py-1.5 text-right tabular-nums ${x.diferenciaDias > 0 ? "text-rojo-fg font-semibold" : ""}`}>
+                          {x.diferenciaDias > 0 ? `+${plural(x.diferenciaDias, "día")}` : x.diferenciaDias === 0 ? "a tiempo" : `${plural(-x.diferenciaDias, "día")} antes`}
                         </td>
                       </tr>
                     ))}

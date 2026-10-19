@@ -66,7 +66,7 @@ export function GrillaPlan({ dias, filas, feriados, nombresDia, volver }: { dias
           <tr className="text-xs text-foreground-muted">
             <th className="text-left font-medium px-3 py-2 w-48 sticky left-0 bg-surface">Centro</th>
             {dias.map((d, i) => (
-              <th key={d} className={`text-left font-medium px-2 py-2 ${feriados[d] ? "text-[#9a3412]" : ""}`}>
+              <th key={d} className={`text-left font-medium px-2 py-2 ${feriados[d] ? "text-naranja-fg" : ""}`}>
                 {nombresDia[i]} {d.slice(8, 10)}/{d.slice(5, 7)}
                 {feriados[d] && <span className="block font-normal">{feriados[d]}</span>}
               </th>
@@ -89,10 +89,10 @@ export function GrillaPlan({ dias, filas, feriados, nombresDia, volver }: { dias
                         {Math.round(f.usado)} h / {Math.round(f.disponible)} h planificadas
                       </div>
                       <div className="h-1.5 rounded-full bg-surface-muted mt-1 overflow-hidden">
-                        <div className={`h-full rounded-full ${pctDemanda > 100 ? "bg-[#dc2626]" : pct > 85 ? "bg-[#ea580c]" : "bg-accent"}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                        <div className={`h-full rounded-full ${pctDemanda > 100 ? "bg-rojo" : pct > 85 ? "bg-naranja" : "bg-accent"}`} style={{ width: `${Math.min(100, pct)}%` }} />
                       </div>
                       {pctDemanda > 100 && (
-                        <div className="text-xs text-[#991b1b] font-semibold mt-1" title="Horas de tareas que deberían empezar esta semana, contra las horas disponibles del centro">
+                        <div className="text-xs text-rojo-fg font-semibold mt-1" title="Horas de tareas que deberían empezar esta semana, contra las horas disponibles del centro">
                           Sobrecargado: {pctDemanda}% ({Math.round(f.demanda!)} h necesarias)
                         </div>
                       )}
@@ -107,7 +107,7 @@ export function GrillaPlan({ dias, filas, feriados, nombresDia, volver }: { dias
                   return (
                     <td
                       key={d}
-                      className={`px-1.5 py-1.5 min-w-[150px] ${feriados[d] ? "bg-[#fff7ed]" : ""} ${lleno ? "bg-[#fef2f2]" : ""} ${esDestino ? "outline outline-2 outline-accent -outline-offset-2" : ""}`}
+                      className={`px-1.5 py-1.5 min-w-[150px] ${feriados[d] ? "bg-naranja-tenue" : ""} ${lleno ? "bg-rojo-tenue" : ""} ${esDestino ? "outline outline-2 outline-accent -outline-offset-2" : ""}`}
                       onDragOver={(e) => {
                         if (arrastrando?.fila === f.id) {
                           e.preventDefault();
@@ -143,8 +143,8 @@ export function GrillaPlan({ dias, filas, feriados, nombresDia, volver }: { dias
                             <div className="text-foreground-muted mt-0.5">{t.sub}</div>
                             <div className="flex items-center gap-1 mt-1 flex-wrap">
                               {!f.sinLimite && <span className="tabular-nums">{Math.round(t.horas * 10) / 10} h{t.dias > 1 ? ` · ${t.dias} días` : ""}</span>}
-                              {t.tarde && <span className="text-[#991b1b] font-semibold">· tarde</span>}
-                              {t.enCurso && <span className="text-[#92400e] font-semibold">· en curso</span>}
+                              {t.tarde && <span className="text-rojo-fg font-semibold">· tarde</span>}
+                              {t.enCurso && <span className="text-naranja-fg font-semibold">· en curso</span>}
                               {t.movida && !t.fijada && <span className="text-foreground-muted">· movida</span>}
                               {t.futura && <span className="text-foreground-muted">· sin liberar</span>}
                             </div>
@@ -172,7 +172,7 @@ export function GrillaPlan({ dias, filas, feriados, nombresDia, volver }: { dias
                           </div>
                         ))}
                         {cap && !f.sinLimite && cap.disponible > 0 && (
-                          <div className={`text-[10px] tabular-nums ${lleno ? "text-[#991b1b] font-semibold" : "text-foreground-muted/70"}`}>
+                          <div className={`text-[10px] tabular-nums ${lleno ? "text-rojo-fg font-semibold" : "text-foreground-muted/70"}`}>
                             {Math.round(cap.usado * 10) / 10} / {Math.round(cap.disponible * 10) / 10} h
                           </div>
                         )}

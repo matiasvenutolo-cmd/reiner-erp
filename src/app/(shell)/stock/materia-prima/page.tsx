@@ -9,7 +9,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
   const { ok, error } = await searchParams;
   return (
     <div className="space-y-5">
-      <PageHeader titulo="Stock" descripcion="Barras, chapas, tubos y fundiciones en bruto. Entran por la recepción de Compras; lo asignado está reservado para una orden.">
+      <PageHeader titulo="Stock" descripcion="Barras, chapas, tubos y fundiciones en bruto. Entran por la recepción de Compras; lo asignado ya tiene orden.">
         <PestanasStock actual="/stock/materia-prima" />
       </PageHeader>
       {ok && <Aviso tipo="ok">{ok}</Aviso>}

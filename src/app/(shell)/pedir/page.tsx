@@ -74,8 +74,8 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
 
   const sinPedir = r.compras.filter((c) => !c.pedido).sort((a, b) => a.pedirAntes.localeCompare(b.pedirAntes));
   const grupos: { id: string; titulo: string; ayuda: string; tono: string; items: Compra[] }[] = [
-    { id: "vencidas", titulo: "Vencidas", ayuda: "Ya se pasó el día para pedirlas: cada día de demora atrasa la máquina.", tono: "text-[#991b1b]", items: sinPedir.filter((c) => c.pedirAntes < hoy) },
-    { id: "semana", titulo: "Esta semana", ayuda: `Hay que pedirlas antes del ${fechaCorta(viernes)}.`, tono: "text-[#9a3412]", items: sinPedir.filter((c) => c.pedirAntes >= hoy && c.pedirAntes <= viernes) },
+    { id: "vencidas", titulo: "Vencidas", ayuda: "Ya se pasó el día para pedirlas: cada día de demora atrasa la máquina.", tono: "text-rojo-fg", items: sinPedir.filter((c) => c.pedirAntes < hoy) },
+    { id: "semana", titulo: "Esta semana", ayuda: `Hay que pedirlas antes del ${fechaCorta(viernes)}.`, tono: "text-naranja-fg", items: sinPedir.filter((c) => c.pedirAntes >= hoy && c.pedirAntes <= viernes) },
     { id: "proximas", titulo: "Próximas 2 semanas", ayuda: "Para ir cotizando.", tono: "text-foreground", items: sinPedir.filter((c) => c.pedirAntes > viernes && c.pedirAntes <= dosSemanas) },
   ];
   const masAdelante = sinPedir.filter((c) => c.pedirAntes > dosSemanas).length;
@@ -102,7 +102,7 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
       {vista === "pedir" && (
         <>
           <p className="text-sm">
-            <strong className="text-[#991b1b]">{grupos[0].items.length} vencidas</strong> · <strong>{grupos[1].items.length} para esta semana</strong> · {grupos[2].items.length} en las próximas 2 semanas
+            <strong className="text-rojo-fg">{grupos[0].items.length} vencidas</strong> · <strong>{grupos[1].items.length} para esta semana</strong> · {grupos[2].items.length} en las próximas 2 semanas
             {masAdelante > 0 && <span className="text-foreground-muted"> · {masAdelante} más adelante</span>}
           </p>
           {completar.length > 0 && (
@@ -127,7 +127,7 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
                         <div>
                           <div className="font-semibold">
                             {provId ? nombreProv.get(provId) : "Sin proveedor asignado"}
-                            {provId && lista.some((c) => !proveedorDe(c)) && <span className="badge-estado bg-[#efe9fb] text-[#5b3aa8] ml-2 font-normal">sugerido: falta cargar el proveedor habitual</span>}
+                            {provId && lista.some((c) => !proveedorDe(c)) && <span className="badge-estado bg-demo-bg text-demo-fg ml-2 font-normal">sugerido: falta cargar el proveedor habitual</span>}
                           </div>
                           <div className="text-xs text-foreground-muted">
                             {lista.length} artículo{lista.length === 1 ? "" : "s"} · tiene que llegar antes del {fechaCorta(lista.reduce((m, c) => (c.llegadaNecesaria < m ? c.llegadaNecesaria : m), lista[0].llegadaNecesaria))}
@@ -174,7 +174,7 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
                               <td className="px-2 py-2 tabular-nums whitespace-nowrap">{c.cantidad} u.</td>
                               <td className="px-2 py-2 whitespace-nowrap">
                                 <div className="text-xs text-foreground-muted">Pedir antes del</div>
-                                <div className={`font-semibold ${c.pedirAntes < hoy ? "text-[#991b1b]" : ""}`}>{fechaCorta(c.pedirAntes)}</div>
+                                <div className={`font-semibold ${c.pedirAntes < hoy ? "text-rojo-fg" : ""}`}>{fechaCorta(c.pedirAntes)}</div>
                               </td>
                               <td className="px-4 py-2 whitespace-nowrap text-xs text-foreground-muted">
                                 plazo {c.plazoDias} días{c.plazoSupuesto ? " (supuesto)" : ""}
@@ -215,7 +215,7 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
                   const noAlcanza = !!(c && p.fechaPrometida && p.fechaPrometida > c.llegadaNecesaria);
                   const atrasado = !!(p.fechaPrometida && p.fechaPrometida < hoy);
                   return (
-                    <tr key={p.id} className={`border-t border-border first:border-t-0 ${noAlcanza ? "bg-[#fef2f2]" : ""}`}>
+                    <tr key={p.id} className={`border-t border-border first:border-t-0 ${noAlcanza ? "bg-rojo-tenue" : ""}`}>
                       <td className="px-4 py-2">
                         <div className="font-medium">
                           {piezaNombre} × {p.cantidad}
@@ -227,11 +227,11 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
                       <td className="px-3 py-2">{prov ?? <span className="text-foreground-muted">—</span>}</td>
                       <td className="px-3 py-2 whitespace-nowrap">
                         {p.fechaPrometida ? fechaCorta(p.fechaPrometida) : <span className="text-foreground-muted">sin fecha</span>}
-                        {atrasado && <div className="text-xs text-[#991b1b] font-semibold">vencida</div>}
+                        {atrasado && <div className="text-xs text-rojo-fg font-semibold">vencida</div>}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap">
                         {c ? fechaCorta(c.llegadaNecesaria) : "—"}
-                        {noAlcanza && <div className="text-xs text-[#991b1b] font-semibold">llega tarde: atrasa la máquina</div>}
+                        {noAlcanza && <div className="text-xs text-rojo-fg font-semibold">llega tarde: atrasa la máquina</div>}
                       </td>
                       <td className="px-4 py-2 text-right">
                         <form action={recibirPedidoAction} className="inline-flex gap-1">
@@ -280,7 +280,7 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
                       <td className="px-3 py-2 tabular-nums">{s.precio != null ? `${s.moneda} ${s.precio.toLocaleString("es-AR")} / ${s.unidadPrecio}` : "—"}</td>
                       <td className="px-3 py-2">{s.plazoDias != null ? `${s.plazoDias} días` : "—"}</td>
                       <td className="px-3 py-2">{s.loteMinimo ?? "—"}</td>
-                      <td className={`px-3 py-2 ${s.vigenteHasta && s.vigenteHasta < hoy ? "text-[#991b1b]" : ""}`}>{s.vigenteHasta ? fechaCorta(s.vigenteHasta) : "—"}</td>
+                      <td className={`px-3 py-2 ${s.vigenteHasta && s.vigenteHasta < hoy ? "text-rojo-fg" : ""}`}>{s.vigenteHasta ? fechaCorta(s.vigenteHasta) : "—"}</td>
                     </tr>
                   ))}
                 </tbody>

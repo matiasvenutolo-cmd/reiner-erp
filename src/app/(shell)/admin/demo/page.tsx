@@ -30,7 +30,7 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
           <li>Una orden para stock de 150 piezas.</li>
           <li>Vacaciones de un operario, precios de servicios de tercerizados y materias primas en stock.</li>
         </ul>
-        <p className="text-sm">Todo lo que carga queda marcado como <span className="badge-estado bg-[#efe9fb] text-[#5b3aa8]">demo</span> y se borra con un botón, sin tocar los datos reales.</p>
+        <p className="text-sm">Todo lo que carga queda marcado como <span className="badge-estado bg-demo-bg text-demo-fg">demo</span> y se borra con un botón, sin tocar los datos reales.</p>
         <div className="flex flex-wrap gap-2">
           <form action={demoAction}>
             <input type="hidden" name="que" value="cargar" />

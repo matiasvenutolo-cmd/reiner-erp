@@ -47,7 +47,7 @@ export default async function CentrosTrabajoPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {conTrabajo.map(({ centro, disponibleAhora, aFuturo }) => (
-            <div key={centro.id} className="bg-surface border border-border rounded-lg p-4 space-y-3">
+            <div key={centro.id} className="tarjeta p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="font-semibold">{centro.nombre}</h2>
                 <span className="badge-estado bg-surface-muted text-foreground-muted">
@@ -94,9 +94,9 @@ export default async function CentrosTrabajoPage() {
         {compraPendiente.length === 0 ? (
           <p className="text-sm text-foreground-muted">No hay piezas de compra pendientes en este momento.</p>
         ) : (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+          <div className="tarjeta overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+              <thead className="bg-surface-muted text-foreground-muted text-xs">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Pieza</th>
                   <th className="text-left px-4 py-2 font-medium">Conjunto</th>
@@ -117,7 +117,7 @@ export default async function CentrosTrabajoPage() {
                         {it.otMaquinaCodigo}
                       </Link>
                     </td>
-                    <td className="px-4 py-2.5 text-right text-red-700">{it.detalle}</td>
+                    <td className="px-4 py-2.5 text-right text-rojo-fg">{it.detalle}</td>
                   </tr>
                 ))}
               </tbody>

@@ -20,7 +20,7 @@ export function EstadoCompra({ estado }: { estado: EstadoSolicitud }) {
 export function OrigenCompra({ s }: { s: Pick<SolicitudDetalle, "origen" | "ot"> }) {
   if (s.origen === "general") return <span className="badge-estado bg-surface-muted text-foreground">Compra general</span>;
   return (
-    <span className="badge-estado bg-[#efe9fb] text-[#5b3aa8]" title={s.ot ? `${s.ot.otMaquinaCodigo} · ${s.ot.referencia}` : undefined}>
+    <span className="badge-estado bg-demo-bg text-demo-fg" title={s.ot ? `${s.ot.otMaquinaCodigo} · ${s.ot.referencia}` : undefined}>
       Producción{s.ot ? ` · ${s.ot.otPiezaCodigo}` : ""}
     </span>
   );
@@ -37,7 +37,7 @@ export function ImporteDoble({ importe, tc }: { importe: Importe; tc?: { valor: 
           {tc?.valor ? ` · TC ${formatearNumero(tc.valor)} (${formatearFecha(tc.fecha)})` : ""}
         </div>
       ) : (
-        <div className="text-xs text-[var(--estado-en-curso-fg)]">Sin conversión</div>
+        <div className="text-xs text-naranja-fg">Sin conversión</div>
       )}
     </div>
   );

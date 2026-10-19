@@ -51,7 +51,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
                 </span>
                 <form action={quitarFeriadoAction}>
                   <input type="hidden" name="fecha" value={d.fecha} />
-                  <button className="text-xs text-foreground-muted hover:text-[#991b1b]">Quitar</button>
+                  <button className="text-xs text-foreground-muted hover:text-rojo-fg">Quitar</button>
                 </form>
               </li>
             ))}
@@ -97,7 +97,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
                   </span>
                   <form action={quitarAusenciaAction}>
                     <input type="hidden" name="id" value={a.id} />
-                    <ConfirmarBoton mensaje="¿Quitar la ausencia?" className="text-xs text-foreground-muted hover:text-[#991b1b]">
+                    <ConfirmarBoton mensaje="¿Quitar la ausencia?" className="text-xs text-foreground-muted hover:text-rojo-fg">
                       Quitar
                     </ConfirmarBoton>
                   </form>

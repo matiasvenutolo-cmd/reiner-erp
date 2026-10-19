@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { plural } from "@/lib/formato";
 import { sql, isNotNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { pieza } from "@/lib/db/schema";
@@ -12,7 +13,7 @@ type Fila = { id: string; codigo: string; nombre: string; piezas: number; con_ru
 
 function Indicador({ titulo, valor, total, href }: { titulo: string; valor: number; total: number; href: string }) {
   const pct = total ? Math.round((valor / total) * 100) : 100;
-  const color = pct >= 90 ? "bg-[#16a34a]" : pct >= 50 ? "bg-[#ea580c]" : "bg-[#dc2626]";
+  const color = pct >= 90 ? "bg-verde" : pct >= 50 ? "bg-naranja" : "bg-rojo";
   return (
     <Link href={href} className="block rounded-lg border border-border p-3 hover:border-accent transition-colors">
       <div className="text-xs text-foreground-muted">{titulo}</div>
@@ -68,7 +69,7 @@ export default async function CompletitudPage({ searchParams }: { searchParams: 
         {filas.map((f) => (
           <div key={f.id} className="tarjeta p-4">
             <div className="font-semibold mb-3">
-              {f.codigo} <span className="text-foreground-muted font-normal">· {f.nombre} · {f.piezas} piezas</span>
+              {f.codigo} <span className="text-foreground-muted font-normal">· {f.nombre} · {plural(f.piezas, "pieza")}</span>
             </div>
             <div className="grid sm:grid-cols-3 gap-3">
               <Indicador titulo="Piezas con hoja de ruta" valor={f.con_ruta} total={f.piezas} href={`/maestros/tiempos?config=${f.id}&filtro=sin-ruta`} />

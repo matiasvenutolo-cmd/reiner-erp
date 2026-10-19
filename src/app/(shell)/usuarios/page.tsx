@@ -27,9 +27,9 @@ export default async function UsuariosPage() {
         descripcion="Quién entra al sistema y con qué perfil. Los operarios entran con su nombre y un PIN; el resto, con email y contraseña."
       />
 
-      <div className="bg-surface border border-border rounded-lg overflow-hidden">
+      <div className="tarjeta overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+          <thead className="bg-surface-muted text-foreground-muted text-xs">
             <tr>
               <th className="text-left px-4 py-2 font-medium">Nombre</th>
               <th className="text-left px-4 py-2 font-medium">Rol</th>
@@ -94,7 +94,7 @@ export default async function UsuariosPage() {
         </table>
       </div>
 
-      <div className="bg-surface border border-border rounded-lg p-5 space-y-4">
+      <div className="tarjeta p-5 space-y-4">
         <h2 className="text-sm font-semibold">Nuevo usuario</h2>
         <form action={crearUsuarioAction} className="grid grid-cols-2 gap-3">
           <input name="nombre" required placeholder="Nombre" className="input col-span-2" />

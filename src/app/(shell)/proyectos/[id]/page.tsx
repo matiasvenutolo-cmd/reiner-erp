@@ -67,7 +67,7 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
         <span className="flex flex-wrap items-center gap-2">
           {m.codigo}
           <span className="badge-estado bg-surface-muted text-foreground">{tipo}</span>
-          {m.esDemo && <span className="badge-estado bg-[#efe9fb] text-[#5b3aa8]">demo</span>}
+          {m.esDemo && <span className="badge-estado bg-demo-bg text-demo-fg">demo</span>}
           {m.prioridad === "alta" && <span className="badge-estado badge-alerta">Prioridad alta</span>}
         </span>
       }
@@ -141,7 +141,7 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
                       <div className="text-xs font-semibold text-foreground-muted mb-1">{c}</div>
                       {ps.map((x) => (
                         <label key={x.id} className="flex items-center gap-2 text-sm py-0.5">
-                          <input type="checkbox" name="quitarOtPiezaId" value={x.id} className="accent-[#dc2626]" />
+                          <input type="checkbox" name="quitarOtPiezaId" value={x.id} className="accent-rojo" />
                           <span>
                             {x.nombre} × {x.cant} <span className="text-xs text-foreground-muted">{x.codigo}</span>
                           </span>
@@ -183,7 +183,7 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
         <Dato
           titulo="Diferencia"
           valor={p.diferenciaDias > 0 ? `${p.diferenciaDias} día${p.diferenciaDias === 1 ? "" : "s"} tarde` : p.diferenciaDias === 0 ? "justo a tiempo" : `${-p.diferenciaDias} día${p.diferenciaDias === -1 ? "" : "s"} antes`}
-          color={p.diferenciaDias > 0 ? "text-[#991b1b]" : p.diferenciaDias >= -3 ? "text-[#9a3412]" : "text-[#00755d]"}
+          color={p.diferenciaDias > 0 ? "text-rojo-fg" : p.diferenciaDias >= -3 ? "text-naranja-fg" : "text-verde-fg"}
         />
         <Dato titulo="Avance en horas" valor={`${p.avancePct}%`} nota={`${Math.round(p.horasHechas)} de ${Math.round(p.horasTotales)} h`} />
         <Dato titulo="Estado" valor={m.estadoProyecto === "en_montaje" ? "En montaje" : "Activo"} nota={`${p.piezasCubiertasConStock} piezas cubiertas con stock`} />
@@ -237,17 +237,17 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
           <div className="flex gap-3 text-xs text-foreground-muted">
             <span className="flex items-center gap-1"><span className="w-4 h-2 rounded bg-accent/25" /> fabricación de sus piezas</span>
             <span className="flex items-center gap-1"><span className="w-4 h-2 rounded bg-accent" /> montaje estimado</span>
-            <span className="flex items-center gap-1"><span className="w-0.5 h-3 bg-[#111]" /> debería empezar el montaje</span>
+            <span className="flex items-center gap-1"><span className="w-0.5 h-3 bg-foreground" /> debería empezar el montaje</span>
           </div>
         </div>
         <div className="relative">
-          <div className="absolute inset-y-0 w-px bg-[#dc2626]/60" style={{ left: `calc(12rem + (100% - 12rem) * ${parseFloat(x(p.entrega)) / 100})` }} title={`Entrega ${fechaCorta(p.entrega)}`} />
+          <div className="absolute inset-y-0 w-px bg-rojo/60" style={{ left: `calc(12rem + (100% - 12rem) * ${parseFloat(x(p.entrega)) / 100})` }} title={`Entrega ${fechaCorta(p.entrega)}`} />
           <div className="absolute inset-y-0 w-px bg-accent/50" style={{ left: `calc(12rem + (100% - 12rem) * ${parseFloat(x(hoy)) / 100})` }} title="Hoy" />
           <div className="flex text-[11px] text-foreground-muted mb-1">
             <div className="w-48 shrink-0" />
             <div className="flex-1 flex justify-between">
               <span>{fechaCorta(inicioEje)}</span>
-              <span className="text-[#991b1b]">entrega {fechaCorta(p.entrega)}</span>
+              <span className="text-rojo-fg">entrega {fechaCorta(p.entrega)}</span>
               <span>{fechaCorta(finEje)}</span>
             </div>
           </div>
@@ -265,7 +265,7 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
                     <span className="font-medium">{c.codigo}</span> {c.nombre}
                     <div className="text-[11px] text-foreground-muted pl-3">
                       {c.piezas.total} piezas · {c.piezas.terminadas} hechas
-                      {c.atrasoDias > 0 && <span className="text-[#991b1b] font-semibold"> · +{c.atrasoDias} días ({c.motivoAtraso})</span>}
+                      {c.atrasoDias > 0 && <span className="text-rojo-fg font-semibold"> · +{c.atrasoDias} días ({c.motivoAtraso})</span>}
                     </div>
                   </div>
                   <div className="flex-1 relative h-6">
@@ -273,11 +273,11 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
                       <div className="absolute top-1.5 h-3 rounded bg-accent/25" style={{ left: x(c.fabricacionDesde), width: ancho(c.fabricacionDesde, c.piezasListas) }} />
                     )}
                     <div
-                      className={`absolute top-1 h-4 rounded ${c.atrasoDias > 0 ? "bg-[#dc2626]" : "bg-accent"}`}
+                      className={`absolute top-1 h-4 rounded ${c.atrasoDias > 0 ? "bg-rojo" : "bg-accent"}`}
                       style={{ left: x(c.montajeInicioEstimado), width: ancho(c.montajeInicioEstimado, c.montajeFinEstimado) }}
                       title={`Montaje ${fechaCorta(c.montajeInicioEstimado)} → ${fechaCorta(c.montajeFinEstimado)}`}
                     />
-                    <div className="absolute top-0 h-6 w-0.5 bg-[#111]" style={{ left: x(c.montajeInicioLimite) }} title={`Debería empezar el montaje el ${fechaCorta(c.montajeInicioLimite)}`} />
+                    <div className="absolute top-0 h-6 w-0.5 bg-foreground" style={{ left: x(c.montajeInicioLimite) }} title={`Debería empezar el montaje el ${fechaCorta(c.montajeInicioLimite)}`} />
                   </div>
                 </summary>
                 <div className="pl-48 pb-3 space-y-2">
@@ -304,7 +304,7 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
                                   </span>
                                   <EstadoTareaChip estado={actual.estado} />
                                   <Holgura nivel={actual.nivel} dias={actual.holgura} corto />
-                                  {actual.motivoTraba && <span className="text-[#991b1b]">{actual.motivoTraba}</span>}
+                                  {actual.motivoTraba && <span className="text-rojo-fg">{actual.motivoTraba}</span>}
                                 </>
                               )}
                             </li>
@@ -344,7 +344,7 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
                     {c.esMaterial ? "Material para " : ""}
                     {c.piezaNombre} × {c.cantidad}
                   </span>
-                  <span className={`text-xs ${c.pedirAntes < hoy ? "text-[#991b1b] font-semibold" : "text-foreground-muted"}`}>pedir antes del {fechaCorta(c.pedirAntes)}</span>
+                  <span className={`text-xs ${c.pedirAntes < hoy ? "text-rojo-fg font-semibold" : "text-foreground-muted"}`}>pedir antes del {fechaCorta(c.pedirAntes)}</span>
                 </li>
               ))}
           </ul>

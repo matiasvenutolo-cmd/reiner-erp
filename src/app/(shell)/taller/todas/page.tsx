@@ -43,7 +43,7 @@ export default async function TallerPage() {
             <Link
               key={p.id}
               href={`/taller/${p.otPiezaId}`}
-              className="block bg-surface border border-amber-300 rounded-xl p-4 hover:border-accent active:scale-[0.99] transition"
+              className="block bg-surface border border-naranja-borde rounded-xl p-4 hover:border-accent active:scale-[0.99] transition"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-xs text-foreground-muted">{p.otPiezaCodigo}</span>

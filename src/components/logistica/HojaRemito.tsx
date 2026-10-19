@@ -59,7 +59,7 @@ export function HojaRemito({
       </div>
 
       <table className="w-full text-sm">
-        <thead className="border-b border-border text-xs uppercase text-foreground-muted">
+        <thead className="border-b border-border text-xs text-foreground-muted">
           <tr>
             <th className="text-left py-2 font-medium">Código</th>
             <th className="text-left py-2 font-medium">Pieza</th>

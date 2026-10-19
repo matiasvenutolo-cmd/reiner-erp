@@ -16,9 +16,9 @@ export function MovimientosTabla({ movimientos, mostrarPieza = true }: { movimie
     return <p className="text-sm text-foreground-muted">Todavía no hay movimientos registrados.</p>;
   }
   return (
-    <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+    <div className="tarjeta overflow-hidden overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+        <thead className="bg-surface-muted text-foreground-muted text-xs">
           <tr>
             <th className="text-left px-4 py-2 font-medium">Fecha</th>
             <th className="text-left px-4 py-2 font-medium">Tipo</th>
@@ -34,7 +34,7 @@ export function MovimientosTabla({ movimientos, mostrarPieza = true }: { movimie
           {movimientos.map((m) => {
             const tipo = TIPO_MOVIMIENTO[m.tipo];
             const signo = tipo.signo === "±" ? (m.cantidad >= 0 ? "+" : "−") : tipo.signo;
-            const colorCantidad = signo === "+" ? "text-emerald-700" : "text-red-700";
+            const colorCantidad = signo === "+" ? "text-verde-fg" : "text-rojo-fg";
             return (
               <tr key={m.id} className="border-t border-border">
                 <td className="px-4 py-2.5 text-foreground-muted whitespace-nowrap">{new Date(m.fecha).toLocaleDateString("es-AR")}</td>

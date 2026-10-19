@@ -84,9 +84,9 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         {stockBajo.length === 0 ? (
           <p className="text-sm text-foreground-muted">Ninguna pieza está por debajo de su mínimo en este momento.</p>
         ) : (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+          <div className="tarjeta overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+              <thead className="bg-surface-muted text-foreground-muted text-xs">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Pieza</th>
                   <th className="text-right px-4 py-2 font-medium">En almacén</th>
@@ -102,7 +102,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                       </Link>
                       {p.piezaNombre}
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-red-700">{p.disponible}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-rojo-fg">{p.disponible}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">{p.minimo}</td>
                   </tr>
                 ))}
@@ -117,9 +117,9 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         {wipOrdenado.length === 0 ? (
           <p className="text-sm text-foreground-muted">No hay piezas en fabricación en este momento.</p>
         ) : (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+          <div className="tarjeta overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+              <thead className="bg-surface-muted text-foreground-muted text-xs">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Etapa</th>
                   <th className="text-right px-4 py-2 font-medium">Piezas distintas</th>
@@ -154,9 +154,9 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         </div>
 
         {query && (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+          <div className="tarjeta overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+              <thead className="bg-surface-muted text-foreground-muted text-xs">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Pieza</th>
                   <th className="text-right px-4 py-2 font-medium">En almacén</th>

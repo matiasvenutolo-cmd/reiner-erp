@@ -95,7 +95,7 @@ export type EntradaMotor = {
   exigirPlano: boolean;
 };
 
-export type Nivel = "atrasada" | "urgente" | "en_plazo" | "futura";
+export type Nivel = "atrasada" | "arranca_tarde" | "urgente" | "en_plazo" | "futura";
 export type EstadoTarea = "futura" | "liberada" | "lista" | "en_curso" | "pausada" | "terminada" | "trabada";
 
 export type Tarea = {

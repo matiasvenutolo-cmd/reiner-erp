@@ -4,7 +4,7 @@ import { proceso, centroTrabajo, usuarioCentroTrabajo } from "@/lib/db/schema";
 import { guardarProcesoAction, guardarCapacidadAction } from "@/app/actions/v2";
 
 const Origen = ({ o }: { o: string }) =>
-  o === "definido" ? <span className="badge-estado badge-terminada">definido</span> : <span className="badge-estado bg-[#efe9fb] text-[#5b3aa8]">estimado</span>;
+  o === "definido" ? <span className="badge-estado badge-terminada">definido</span> : <span className="badge-estado bg-demo-bg text-demo-fg">estimado</span>;
 
 /** Tiempos por proceso: los heredan todos los pasos que no tienen tiempo propio cargado en la ficha de la pieza. */
 export async function TiemposPorProceso({ editable }: { editable: boolean }) {
@@ -98,7 +98,7 @@ export async function Capacidad({ editable }: { editable: boolean }) {
                   </form>
                 </td>
                 <td className="px-3 py-2 tabular-nums font-semibold">{(Math.round(c.horasDia * c.maquinas * c.eficiencia * 10) / 10).toLocaleString("es-AR")} h</td>
-                <td className={`px-3 py-2 tabular-nums ${nOps.get(c.id) ? "" : "text-[#9a3412]"}`}>{nOps.get(c.id) ?? "ninguno"}</td>
+                <td className={`px-3 py-2 tabular-nums ${nOps.get(c.id) ? "" : "text-naranja-fg"}`}>{nOps.get(c.id) ?? "ninguno"}</td>
               </tr>
             ))}
           </tbody>

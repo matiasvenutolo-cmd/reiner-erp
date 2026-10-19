@@ -64,7 +64,7 @@ export default async function StockPiezaPage({
       <div className="flex flex-wrap items-center justify-between gap-3 tarjeta px-4 py-3">
         <div className="flex flex-wrap items-center gap-1.5 text-sm">
           <strong className="mr-1">{almacen} en total:</strong>
-          <span className="badge-estado bg-[#d9f0ea] text-[#00755d]">{libre} libres</span>
+          <span className="badge-estado bg-verde-bg text-verde-fg">{libre} libres</span>
           {reservas.map((r) => (
             <span key={r.id} className="badge-estado bg-accent-soft text-accent">
               {r.cantidad} {r.otMaquinaCodigo}
@@ -80,12 +80,12 @@ export default async function StockPiezaPage({
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <Dato label="En almacén" value={almacen} />
         <Dato label="Libre" value={libre} destacado />
-        <Dato label="Comprometido" value={comprometido} />
-        <Dato label="En fabricación (futuro)" value={enFabricacion} />
+        <Dato label="Asignado" value={comprometido} />
+        <Dato label="En fabricación" value={enFabricacion} />
         <Dato label="Pedido, por llegar" value={pedido} />
       </div>
 
-      <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
+      <div className="tarjeta p-4 space-y-3">
         <h2 className="text-sm font-semibold">Retirar del almacén</h2>
         <form action={retirarStockAction} className="flex flex-wrap items-end gap-2">
           <input type="hidden" name="piezaId" value={pieza.id} />
@@ -156,7 +156,7 @@ export default async function StockPiezaPage({
             </ul>
           )}
         </div>
-        <form action={moverReservaAction} className="bg-surface border border-border rounded-lg p-3 space-y-2 text-sm">
+        <form action={moverReservaAction} className="tarjeta p-3 space-y-2 text-sm">
           <h2 className="text-sm font-semibold">Asignar unidades libres</h2>
           <input type="hidden" name="piezaId" value={pieza.id} />
           <input type="hidden" name="accion" value="asignar" />

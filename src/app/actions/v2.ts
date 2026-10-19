@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { plural } from "@/lib/formato";
 import { revalidatePath } from "next/cache";
 import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
@@ -30,7 +31,7 @@ async function correr(volver: string, fn: () => Promise<string | void>) {
   try {
     ok = await fn();
   } catch (e) {
-    error = e instanceof Error ? e.message : "No se pudo guardar.";
+    error = e instanceof Error ? e.message : "No se pudo guardar. Revisá la conexión y probá de nuevo.";
   }
   const [base, ancla] = volver.split("#");
   const sep = base.includes("?") ? "&" : "?";
@@ -135,7 +136,7 @@ export async function confirmarSemanaAction(fd: FormData) {
           tareas.map((x) => ({ otPiezaId: x.otPiezaId, operacionId: x.operacionId, operarioId: x.operarioId!, fecha: x.fechaPlan!, asignadoPorId: u.id, dePlanConfirmado: true })),
         );
     });
-    return `Semana confirmada: ${tareas.length} tareas publicadas en "Mi próxima tarea" de cada operario.`;
+    return `Semana confirmada: ${plural(tareas.length, "tarea")} publicada${tareas.length === 1 ? "" : "s"} en "Mi próxima tarea" de cada operario.`;
   });
 }
 
@@ -153,7 +154,7 @@ export async function activarProyectoAction(fd: FormData) {
       .update(otMaquina)
       .set({ fechaEntrega: entrega, prioridad: t(fd, "prioridad") === "alta" ? "alta" : "normal", estadoProyecto: "activo", fechaInicioProyecto: hoyISO(), destino: (t(fd, "destino") as "maquina") || undefined })
       .where(eq(otMaquina.id, id));
-    await db.insert(proyectoEvento).values({ otMaquinaId: id, tipo: "activado", texto: `Activado con entrega ${entrega}${quitar.length ? ` · ${quitar.length} piezas destildadas (variantes)` : ""}`, usuarioId: u.id });
+    await db.insert(proyectoEvento).values({ otMaquinaId: id, tipo: "activado", texto: `Activado con entrega ${entrega}${quitar.length ? ` · ${plural(quitar.length, "pieza")} destildada${quitar.length === 1 ? "" : "s"} (variantes)` : ""}`, usuarioId: u.id });
     return "Proyecto activo: ya tiene tareas y compras con fecha.";
   });
 }
@@ -397,7 +398,7 @@ export async function importarTiemposCsvAction(fd: FormData) {
         .where(eq(operacion.id, opId));
       cambios++;
     }
-    return `${cambios} pasos actualizados desde el CSV.`;
+    return `${plural(cambios, "paso")} actualizado${cambios === 1 ? "" : "s"} desde el CSV.`;
   });
 }
 
@@ -508,7 +509,7 @@ export async function moverReservaAction(fd: FormData) {
         if (!t(fd, "motivo")) throw new Error("El traspaso entre órdenes pide un motivo.");
         await db.insert(reservaStock).values({ otMaquinaId: t(fd, "destinoOtMaquinaId"), piezaId, cantidad });
       }
-      return accion === "liberar" ? `${cantidad} unidades liberadas.` : `${cantidad} unidades traspasadas.`;
+      return accion === "liberar" ? `${plural(cantidad, "unidad", "unidades")} liberada${cantidad === 1 ? "" : "s"}.` : `${plural(cantidad, "unidad", "unidades")} traspasada${cantidad === 1 ? "" : "s"}.`;
     }
     const [{ libre }] = await db.execute<{ libre: number }>(
       sql`select coalesce((select cantidad_disponible from stock_pieza where pieza_id = ${piezaId}), 0) - coalesce((select sum(cantidad) from reserva_stock where pieza_id = ${piezaId}), 0) libre`,
@@ -516,7 +517,7 @@ export async function moverReservaAction(fd: FormData) {
     if (cantidad > Number(libre)) throw new Error(`Sólo hay ${libre} unidades libres.`);
     if (!t(fd, "destinoOtMaquinaId")) throw new Error("Elegí la orden.");
     await db.insert(reservaStock).values({ otMaquinaId: t(fd, "destinoOtMaquinaId"), piezaId, cantidad });
-    return `${cantidad} unidades asignadas.`;
+    return `${plural(cantidad, "unidad", "unidades")} asignada${cantidad === 1 ? "" : "s"}.`;
   });
 }
 

@@ -76,9 +76,9 @@ export default async function AvancePage() {
       {wip.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold mb-2">Piezas en proceso, por etapa</h2>
-          <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+          <div className="tarjeta overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+              <thead className="bg-surface-muted text-foreground-muted text-xs">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Etapa</th>
                   <th className="text-right px-4 py-2 font-medium">Piezas</th>

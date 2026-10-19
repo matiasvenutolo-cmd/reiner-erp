@@ -192,7 +192,7 @@ export default async function HoyPage() {
           {decisiones.map((d, i) => (
             <li key={i} className="px-4 py-3 flex flex-wrap items-center justify-between gap-3">
               <span className="text-sm flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${d.urgente ? "bg-[#dc2626]" : "bg-accent"}`} />
+                <span className={`w-2 h-2 rounded-full ${d.urgente ? "bg-rojo" : "bg-accent"}`} />
                 {d.texto}
               </span>
               <Link href={d.href} className={d.urgente ? "btn btn-sm" : "btn-secundario btn-sm"}>
@@ -217,7 +217,7 @@ function Bloque({ titulo, resumen, vacio, vacioVerde, hay, children }: { titulo:
         {resumen && <span className="text-sm text-foreground-muted">{resumen}</span>}
       </div>
       {!hay ? (
-        <p className={`text-sm ${vacioVerde ? "text-[var(--estado-terminada-fg)] font-medium" : "text-foreground-muted"}`}>
+        <p className={`text-sm ${vacioVerde ? "text-verde-fg font-medium" : "text-foreground-muted"}`}>
           {vacioVerde ? "✓ " : ""}
           {vacio}
         </p>

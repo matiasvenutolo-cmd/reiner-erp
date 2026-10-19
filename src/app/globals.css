@@ -1,30 +1,102 @@
 @import "tailwindcss";
 
 :root {
+  /* ── Tokens de diseño (v2, mejoras de usabilidad §4) ─────────────────────
+     Cada color significa UNA cosa en todo el sistema. Las pantallas no usan
+     colores sueltos: usan estas variables (o sus clases de Tailwind:
+     text-rojo-fg, bg-verde-bg, border-l-naranja…). Cambiar un valor acá lo
+     cambia en todas las pantallas. */
   --background: #f4f6f7;
   --surface: #ffffff;
   --surface-muted: #edf1f3;
   --foreground: #16232b;
-  --foreground-muted: #5c6b74;
+  --foreground-muted: #4f5e67; /* gris oscuro: datos secundarios legibles */
   --border: #dbe3e7;
 
-  /* Marca REINER (tomada de reiner-sa.com.ar): azul institucional + verde
-     azulado del hero. El azul es el interactivo (accent); el teal se usa
-     puntualmente para no competir con el semáforo de estados. */
+  /* Azul de la marca REINER: sólo acción principal y links. */
   --accent: #0075a4;
   --accent-hover: #006086;
   --accent-foreground: #ffffff;
   --accent-soft: #e2f1f7;
+  --accent-borde: #c5e3ef;
   --brand-teal: #00997b;
 
-  --estado-pendiente-bg: #edf1f3;
-  --estado-pendiente-fg: #5c6b74;
-  --estado-en-curso-bg: #fef3c7;
-  --estado-en-curso-fg: #92400e;
-  --estado-terminada-bg: #d9f0ea;
-  --estado-terminada-fg: #00755d;
-  --estado-alerta-bg: #fee2e2;
-  --estado-alerta-fg: #991b1b;
+  /* Rojo = atrasado: alguien tiene que actuar. */
+  --rojo: #dc2626;
+  --rojo-fg: #991b1b;
+  --rojo-bg: #fde2e2;
+  --rojo-tenue: #fef2f2;
+  --rojo-borde: #f3c4c4;
+  --rojo-medio: #fca5a5;
+  /* Naranja = urgente o en riesgo (0 a 3 días de margen, "Pedir ya", "Arranca tarde", parada en curso). */
+  --naranja: #ea580c;
+  --naranja-fg: #9a3412;
+  --naranja-bg: #ffedd5;
+  --naranja-tenue: #fff7ed;
+  --naranja-borde: #f5d0a8;
+  --naranja-medio: #fed7aa;
+  /* Verde = en plazo o resuelto. */
+  --verde: #16a34a;
+  --verde-fg: #00755d;
+  --verde-bg: #d9f0ea;
+  --verde-tenue: #f0fdf4;
+  --verde-borde: #b9e2d7;
+  --verde-medio: #bbf7d0;
+  /* Gris = futuro o sin acción. */
+  --gris: #9ca3af;
+  --gris-fg: #4f5e67;
+  --gris-bg: #edf1f3;
+  /* Amarillo suave = dato estimado (tiempos y plazos supuestos). */
+  --estimado-bg: #fef9c3;
+  --estimado-fg: #854d0e;
+  --estimado-borde: #fde68a;
+  /* Violeta = datos de demo (se borran con un botón). */
+  --demo-bg: #efe9fb;
+  --demo-fg: #5b3aa8;
+
+  /* Colores por proyecto: paleta aparte, sin rojo, naranja ni verde, para no confundirlos con estados. */
+  --proy-1: #2563eb;
+  --proy-2: #0891b2;
+  --proy-3: #92653a;
+  --proy-4: #4338ca;
+  --proy-stock: #64748b;
+
+  /* Compatibilidad con las clases de estado de Fase 3. */
+  --estado-pendiente-bg: var(--gris-bg);
+  --estado-pendiente-fg: var(--gris-fg);
+  --estado-en-curso-bg: var(--naranja-bg);
+  --estado-en-curso-fg: var(--naranja-fg);
+  --estado-terminada-bg: var(--verde-bg);
+  --estado-terminada-fg: var(--verde-fg);
+  --estado-alerta-bg: var(--rojo-bg);
+  --estado-alerta-fg: var(--rojo-fg);
+
+  /* Forma: radios y sombra únicos; espaciado en múltiplos de 4 px (la escala de Tailwind). */
+  --radio-tarjeta: 0.75rem;
+  --radio-control: 0.5rem;
+  --sombra-tarjeta: 0 1px 2px rgb(16 35 43 / 0.06);
+  --alto-boton: 2.5rem; /* 40 px en oficina */
+  --alto-boton-planta: 3.5rem; /* 56 px en planta */
+}
+
+/* Modo oscuro preparado en los tokens (no activo por defecto): data-theme="dark" en <html>. */
+:root[data-theme="dark"] {
+  --background: #0f171c;
+  --surface: #17232a;
+  --surface-muted: #1f2e36;
+  --foreground: #e7eef1;
+  --foreground-muted: #a7b6be;
+  --border: #2c3d46;
+  --accent-soft: #10303f;
+  --rojo-bg: #3b1515;
+  --rojo-tenue: #2a1414;
+  --naranja-bg: #3a2311;
+  --naranja-tenue: #2b1d12;
+  --verde-bg: #0f3229;
+  --verde-tenue: #11251f;
+  --gris-bg: #1f2e36;
+  --estimado-bg: #3a3311;
+  --demo-bg: #2a2140;
 }
 
 @theme inline {
@@ -38,15 +110,53 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-borde: var(--accent-borde);
   --color-brand-teal: var(--brand-teal);
   --color-estado-terminada-fg: var(--estado-terminada-fg);
+  --color-rojo: var(--rojo);
+  --color-rojo-fg: var(--rojo-fg);
+  --color-rojo-bg: var(--rojo-bg);
+  --color-rojo-tenue: var(--rojo-tenue);
+  --color-rojo-borde: var(--rojo-borde);
+  --color-rojo-medio: var(--rojo-medio);
+  --color-naranja: var(--naranja);
+  --color-naranja-fg: var(--naranja-fg);
+  --color-naranja-bg: var(--naranja-bg);
+  --color-naranja-tenue: var(--naranja-tenue);
+  --color-naranja-borde: var(--naranja-borde);
+  --color-naranja-medio: var(--naranja-medio);
+  --color-verde: var(--verde);
+  --color-verde-fg: var(--verde-fg);
+  --color-verde-bg: var(--verde-bg);
+  --color-verde-tenue: var(--verde-tenue);
+  --color-verde-borde: var(--verde-borde);
+  --color-verde-medio: var(--verde-medio);
+  --color-gris: var(--gris);
+  --color-gris-fg: var(--gris-fg);
+  --color-gris-bg: var(--gris-bg);
+  --color-estimado-bg: var(--estimado-bg);
+  --color-estimado-fg: var(--estimado-fg);
+  --color-estimado-borde: var(--estimado-borde);
+  --color-demo-bg: var(--demo-bg);
+  --color-demo-fg: var(--demo-fg);
+  --color-proy-1: var(--proy-1);
+  --color-proy-2: var(--proy-2);
+  --color-proy-3: var(--proy-3);
+  --color-proy-4: var(--proy-4);
+  --color-proy-stock: var(--proy-stock);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Tipografía de oficina (§4.2): texto base 15 px, datos secundarios 13 px. */
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.4rem;
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.15rem;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-size: 0.9375rem;
 }
 
 .badge-estado {
@@ -83,6 +193,7 @@ body {
 }
 
 .btn-lg {
+  min-height: var(--alto-boton-planta);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -93,32 +204,54 @@ body {
   font-weight: 600;
 }
 
-/* Fase 3.2 — botones y bloques comunes para que todas las pantallas se lean igual:
-   un solo estilo de acción principal, uno de secundaria y uno de acción peligrosa. */
+/* Botones (§4.3): tres tipos y sólo tres — principal (azul relleno), secundario
+   (borde) y de texto. Alto mínimo 40 px en oficina, 56 px en planta (.btn-lg).
+   Lo destructivo es un botón de texto en rojo (.btn-peligro), siempre con confirmación. */
 .btn,
 .btn-secundario,
+.btn-texto,
 .btn-peligro {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  border-radius: 0.5rem;
+  min-height: var(--alto-boton);
+  border-radius: var(--radio-control);
   padding: 0.5rem 0.95rem;
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.25rem;
   white-space: nowrap;
-  transition: background-color 0.15s, border-color 0.15s;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 .btn { background: var(--accent); color: var(--accent-foreground); }
 .btn:hover { background: var(--accent-hover); }
 .btn-secundario { background: var(--surface); color: var(--foreground); border: 1px solid var(--border); }
 .btn-secundario:hover { border-color: var(--foreground-muted); }
-.btn-peligro { background: var(--surface); color: var(--estado-alerta-fg); border: 1px solid #f3c4c4; }
-.btn-peligro:hover { background: var(--estado-alerta-bg); }
-.btn:disabled, .btn-secundario:disabled, .btn-peligro:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-sm { padding: 0.3rem 0.65rem; font-size: 0.8rem; }
+.btn-texto { background: transparent; color: var(--accent); padding-left: 0.4rem; padding-right: 0.4rem; }
+.btn-texto:hover { text-decoration: underline; }
+.btn-peligro { background: transparent; color: var(--rojo-fg); padding-left: 0.4rem; padding-right: 0.4rem; }
+.btn-peligro:hover { text-decoration: underline; }
+.btn:disabled, .btn-secundario:disabled, .btn-texto:disabled, .btn-peligro:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-sm { min-height: 2.25rem; padding: 0.3rem 0.7rem; font-size: 0.8125rem; }
 
-.tarjeta { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; }
+.tarjeta { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radio-tarjeta); box-shadow: var(--sombra-tarjeta); }
+
+/* Franja de estado de 4 px a la izquierda: el color de estado nunca pinta todo el fondo. */
+.franja { border-left-width: 4px; }
+
+/* Encabezados de tabla en un solo estilo (§4.8): sin mayúsculas, gris oscuro, 13 px. */
+thead th { font-size: 0.8125rem; font-weight: 500; color: var(--foreground-muted); text-transform: none; letter-spacing: normal; }
+
+/* Números en tablas: dígitos de ancho fijo para comparar en columna. */
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Esqueleto de carga. */
+.esqueleto { background: linear-gradient(90deg, var(--surface-muted) 25%, var(--border) 50%, var(--surface-muted) 75%); background-size: 200% 100%; animation: esqueleto 1.4s ease-in-out infinite; border-radius: var(--radio-control); }
+@keyframes esqueleto { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Planta (§3.8): texto base 18 px y botones de 56 px, alto contraste. */
+.planta { font-size: 1.125rem; color: var(--foreground); }
+.planta .btn, .planta .btn-secundario { min-height: var(--alto-boton-planta); font-size: 1.05rem; border-radius: 0.75rem; }
 
 .etiqueta { display: block; font-size: 0.75rem; font-weight: 600; color: var(--foreground-muted); margin-bottom: 0.25rem; }

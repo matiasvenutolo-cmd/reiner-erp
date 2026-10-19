@@ -164,7 +164,7 @@ export function ArmadoRemito({ paraMandar = [], usuarioNombre }: { paraMandar?: 
           observacion={observacion.trim() || null}
           items={carrito.map((it) => ({ clave: it.clave, codigo: it.codigo, nombre: it.nombre, tratamiento: it.tratamiento, cantidad: it.cantidad }))}
         />
-        {error && <p className="text-sm text-red-700">{error}</p>}
+        {error && <p className="text-sm text-rojo-fg">{error}</p>}
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -188,7 +188,7 @@ export function ArmadoRemito({ paraMandar = [], usuarioNombre }: { paraMandar?: 
   }
 
   return (
-    <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+    <div className="tarjeta p-4 space-y-4">
       {paraMandar.length > 0 && (
         <div>
           <div className="text-xs font-medium text-foreground-muted mb-1.5">
@@ -271,7 +271,7 @@ export function ArmadoRemito({ paraMandar = [], usuarioNombre }: { paraMandar?: 
       {carrito.length > 0 && (
         <div className="bg-surface-muted rounded-lg overflow-hidden overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-foreground-muted text-xs uppercase">
+            <thead className="text-foreground-muted text-xs">
               <tr>
                 <th className="text-left px-3 py-2 font-medium">Pieza</th>
                 <th className="text-left px-3 py-2 font-medium w-40">Tratamiento</th>
@@ -306,7 +306,7 @@ export function ArmadoRemito({ paraMandar = [], usuarioNombre }: { paraMandar?: 
                     />
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <button type="button" onClick={() => quitar(it.clave)} className="text-xs text-foreground-muted hover:text-red-700">
+                    <button type="button" onClick={() => quitar(it.clave)} className="text-xs text-foreground-muted hover:text-rojo-fg">
                       Quitar
                     </button>
                   </td>
@@ -328,7 +328,7 @@ export function ArmadoRemito({ paraMandar = [], usuarioNombre }: { paraMandar?: 
         />
       </div>
 
-      {error && <p className="text-sm text-red-700">{error}</p>}
+      {error && <p className="text-sm text-rojo-fg">{error}</p>}
 
       <button
         type="button"

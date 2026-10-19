@@ -98,12 +98,12 @@ export default async function TercerizadosPage({
                           {t.piezaNombre} × {t.cantidad} <span className="text-xs text-foreground-muted">· {t.proyectoCodigo}</span>
                         </span>
                         <span className="whitespace-nowrap text-xs">
-                          antes del <strong className={t.inicioMasTardio < hoy ? "text-[#991b1b]" : ""}>{fechaCorta(t.inicioMasTardio)}</strong>
+                          antes del <strong className={t.inicioMasTardio < hoy ? "text-rojo-fg" : ""}>{fechaCorta(t.inicioMasTardio)}</strong>
                         </span>
                       </li>
                     ))}
                   </ul>
-                  {proximas > 0 && <p className="text-xs text-[#5b3aa8] mt-2">En los próximos 3 días se suman {proximas} pieza{proximas === 1 ? "" : "s"} más a {proceso}: puede convenir esperar y mandar todo junto.</p>}
+                  {proximas > 0 && <p className="text-xs text-demo-fg mt-2">En los próximos 3 días se suman {proximas} pieza{proximas === 1 ? "" : "s"} más a {proceso}: puede convenir esperar y mandar todo junto.</p>}
                 </div>
               );
             })}
@@ -119,9 +119,9 @@ export default async function TercerizadosPage({
         {afuera.length === 0 ? (
           <p className="text-sm text-foreground-muted">No hay piezas afuera en este momento.</p>
         ) : (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+          <div className="tarjeta overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+              <thead className="bg-surface-muted text-foreground-muted text-xs">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Pieza</th>
                   <th className="text-left px-4 py-2 font-medium">OT</th>
@@ -133,7 +133,7 @@ export default async function TercerizadosPage({
               </thead>
               <tbody>
                 {afuera.map((a) => (
-                  <tr key={a.otPiezaId} className={`border-t border-border align-top ${a.atraso > 0 ? "bg-[#fef2f2]" : ""}`}>
+                  <tr key={a.otPiezaId} className={`border-t border-border align-top ${a.atraso > 0 ? "bg-rojo-tenue" : ""}`}>
                     <td className="px-4 py-2.5">
                       <div className="font-mono text-xs text-foreground-muted">{a.piezaCodigo}</div>
                       <div>{a.piezaNombre}</div>
@@ -161,8 +161,8 @@ export default async function TercerizadosPage({
                     </td>
                     <td className="px-4 py-2.5 whitespace-nowrap">
                       {a.vuelta ? fechaCorta(a.vuelta) : "—"}
-                      {a.atraso > 0 && <div className="text-xs font-semibold text-[#991b1b]">{a.atraso} día{a.atraso === 1 ? "" : "s"} de atraso</div>}
-                      {a.t?.tarde && <div className="text-xs font-semibold text-[#991b1b]">vuelve después de su fecha límite</div>}
+                      {a.atraso > 0 && <div className="text-xs font-semibold text-rojo-fg">{a.atraso} día{a.atraso === 1 ? "" : "s"} de atraso</div>}
+                      {a.t?.tarde && <div className="text-xs font-semibold text-rojo-fg">vuelve después de su fecha límite</div>}
                       {a.atraso > 0 && a.prov && (a.prov.contacto || a.prov.telefono) && (
                         <div className="text-xs text-foreground-muted">Reclamar: {[a.prov.contacto, a.prov.telefono].filter(Boolean).join(" · ")}</div>
                       )}
@@ -224,7 +224,7 @@ export default async function TercerizadosPage({
         <MovimientosTabla movimientos={movimientos} />
       </div>
 
-      <details open={!!query} className="bg-surface border border-border rounded-lg p-4">
+      <details open={!!query} className="tarjeta p-4">
         <summary className="cursor-pointer text-sm font-semibold">Registrar un ingreso sin pedido ni remito previo</summary>
         <p className="text-xs text-foreground-muted mt-2 mb-3">
           Para lo que llega sin haber salido con remito ni pedido (ej. una devolución). Buscá la pieza y cargá el ingreso con su control.

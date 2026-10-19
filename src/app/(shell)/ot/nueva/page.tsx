@@ -61,7 +61,7 @@ export default async function NuevaOtPage({
         Se explota automáticamente a OT de conjunto y OT de pieza, cruzando contra el stock
         disponible. La cantidad a fabricar propuesta queda editable en el detalle.
       </p>
-      <form action={crearOtMaquinaAction} className="bg-surface border border-border rounded-lg p-5 space-y-4">
+      <form action={crearOtMaquinaAction} className="tarjeta p-5 space-y-4">
         <Field label="Configuración de máquina">
           <select name="configuracionId" required className="input">
             <option value="">Seleccionar…</option>

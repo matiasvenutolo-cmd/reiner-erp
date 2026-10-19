@@ -17,9 +17,9 @@ export default async function RemitosPage() {
           Todavía no se generó ningún remito.
         </div>
       ) : (
-        <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+        <div className="tarjeta overflow-hidden overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+            <thead className="bg-surface-muted text-foreground-muted text-xs">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">N°</th>
                 <th className="text-left px-4 py-2 font-medium">Fecha</th>

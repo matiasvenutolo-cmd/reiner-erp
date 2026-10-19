@@ -196,7 +196,7 @@ export default async function PlanificacionPage({
                     </summary>
                     <div className="overflow-x-auto border-t border-border">
                       <table className="w-full text-sm">
-                        <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+                        <thead className="bg-surface-muted text-foreground-muted text-xs">
                           <tr>
                             <th className="text-left px-4 py-2 font-medium">Pieza</th>
                             <th className="text-left px-4 py-2 font-medium">Operación</th>
@@ -258,9 +258,9 @@ function Grilla({
   vacio: string;
 }) {
   return (
-    <div className="bg-surface border border-border rounded-lg overflow-hidden overflow-x-auto">
+    <div className="tarjeta overflow-hidden overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="bg-surface-muted text-foreground-muted text-xs uppercase">
+        <thead className="bg-surface-muted text-foreground-muted text-xs">
           <tr>
             <th className="text-left px-3 py-2 font-medium w-40">{titulo}</th>
             {dias.map((dia, i) => (

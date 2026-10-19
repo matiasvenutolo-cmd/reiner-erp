@@ -1,37 +1,73 @@
-/** Íconos de línea simples (24×24, trazo) para el menú y los accesos — sin dependencias. */
-const TRAZOS: Record<string, string> = {
-  inicio: "M3 11.5 12 4l9 7.5M5 10v10h5v-6h4v6h5V10",
-  ot: "M9 4h6v3H9zM7 5.5H5.5A1.5 1.5 0 0 0 4 7v12.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V7a1.5 1.5 0 0 0-1.5-1.5H17M8 12h8M8 16h5",
-  planificacion: "M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5zM4 10h16M8.5 3v4M15.5 3v4",
-  stock: "M3.5 8 12 4l8.5 4v8L12 20l-8.5-4zM3.5 8 12 12l8.5-4M12 12v8",
-  tercerizados: "M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z",
-  compras: "M4 5h2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.3h7.6a1.5 1.5 0 0 0 1.5-1.2L20 8H7M10 20.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM17 20.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2z",
-  indicadores: "M4 20h16M7 16v-5M12 16V7M17 16v-8",
-  maestros: "M12 3 4 7.5l8 4.5 8-4.5zM4 12l8 4.5 8-4.5M4 16.5 12 21l8-4.5",
-  operaciones: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.5-2-3.4-2.3.9a7.5 7.5 0 0 0-2.6-1.5L14 2.5h-4l-.5 2.5a7.5 7.5 0 0 0-2.6 1.5l-2.3-.9-2 3.4 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.4 2.3-.9a7.5 7.5 0 0 0 2.6 1.5l.5 2.5h4l.5-2.5a7.5 7.5 0 0 0 2.6-1.5l2.3.9 2-3.4z",
-  proveedores: "M4 20V9l8-5 8 5v11M9 20v-6h6v6M4 20h16",
-  usuarios: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14a6.5 6.5 0 0 1 3.5 6",
-  taller: "M14.5 6.5a4 4 0 0 0-5.3 5.3L4 17l3 3 5.2-5.2a4 4 0 0 0 5.3-5.3l-2.4 2.4-2.6-.6-.6-2.6z",
-  flecha: "M5 12h14M13 6l6 6-6 6",
-  alerta: "M12 4 2.5 20h19zM12 10v4.5M12 17.5v.5",
-  ok: "M5 12.5 10 17.5 19 7",
-  reloj: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2",
-  proyectos: "M3 7h18v13H3zM8 7V4h8v3M3 12h18",
-  llegamos: "M4 21V4M4 4h11l-2 4 2 4H4",
-  liberacion: "M12 3v12M7 8l5-5 5 5M5 21h14",
-  calendario: "M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5zM4 10h16M8.5 3v4M15.5 3v4M8 14h2M14 14h2",
-  montaje: "M4 20h16M6 20V10l6-6 6 6v10M10 20v-5h4v5",
-  completitud: "M5 12.5 9 16.5 19 6.5M4 4h16v16H4z",
-  demo: "M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3",
-  pedir: "M4 5h2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.3h7.6a1.5 1.5 0 0 0 1.5-1.2L20 8H7M14 3v5M11.5 5.5 14 8l2.5-2.5",
+import {
+  House, ClipboardList, CalendarDays, Package, Truck, ShoppingCart, ChartColumn, Layers, Settings, Building2, Users, Wrench,
+  ArrowRight, TriangleAlert, Check, Clock, FolderKanban, Flag, Upload, CalendarCog, Factory, ListChecks, FlaskConical, PackagePlus,
+  Lock, LockOpen, Play, Copy, Lightbulb, EllipsisVertical, Info, X, Undo2, Minus, Plus, Pause, Phone, Mail, MessageCircle,
+  CircleCheck, ChevronDown, ChevronRight, Search, Ban, FileText, Timer, CircleAlert, ArrowUp, ArrowDown, SlidersHorizontal,
+  type LucideIcon,
+} from "lucide-react";
+
+/**
+ * Íconos de UNA sola familia (Lucide, mismo trazo y tamaño) — mejoras de
+ * usabilidad §4.3: nada de emojis en la interfaz. Se piden por nombre para
+ * que las pantallas no importen íconos sueltos.
+ */
+const ICONOS: Record<string, LucideIcon> = {
+  inicio: House,
+  ot: ClipboardList,
+  planificacion: CalendarDays,
+  stock: Package,
+  tercerizados: Truck,
+  compras: ShoppingCart,
+  pedir: ShoppingCart,
+  indicadores: ChartColumn,
+  maestros: Layers,
+  operaciones: Settings,
+  proveedores: Building2,
+  usuarios: Users,
+  taller: Wrench,
+  flecha: ArrowRight,
+  alerta: TriangleAlert,
+  error: CircleAlert,
+  ok: Check,
+  okCirculo: CircleCheck,
+  reloj: Clock,
+  proyectos: FolderKanban,
+  llegamos: Flag,
+  liberacion: Upload,
+  calendario: CalendarCog,
+  montaje: Factory,
+  completitud: ListChecks,
+  configuracion: SlidersHorizontal,
+  demo: FlaskConical,
+  fabricar: PackagePlus,
+  candado: Lock,
+  candadoAbierto: LockOpen,
+  empezar: Play,
+  copiar: Copy,
+  idea: Lightbulb,
+  menu: EllipsisVertical,
+  info: Info,
+  cerrar: X,
+  deshacer: Undo2,
+  menos: Minus,
+  mas: Plus,
+  pausa: Pause,
+  telefono: Phone,
+  mail: Mail,
+  whatsapp: MessageCircle,
+  abajo: ChevronDown,
+  derecha: ChevronRight,
+  buscar: Search,
+  bloqueo: Ban,
+  plano: FileText,
+  cronometro: Timer,
+  subir: ArrowUp,
+  bajar: ArrowDown,
 };
 
 export function Icono({ nombre, className = "w-5 h-5" }: { nombre: string; className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
-      <path d={TRAZOS[nombre] ?? TRAZOS.flecha} />
-    </svg>
-  );
+  const C = ICONOS[nombre] ?? ArrowRight;
+  return <C className={className} strokeWidth={1.8} aria-hidden />;
 }
 
 /** Ícono de cada sección del menú, por su ruta. */
@@ -56,4 +92,5 @@ export const ICONO_RUTA: Record<string, string> = {
   "/admin/montaje": "montaje",
   "/admin/completitud": "completitud",
   "/admin/demo": "demo",
+  "/admin/configuracion": "configuracion",
 };
