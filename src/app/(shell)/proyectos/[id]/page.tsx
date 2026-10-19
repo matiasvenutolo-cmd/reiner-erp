@@ -8,9 +8,11 @@ import { habilesEntre } from "@/lib/planning/calendario";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Aviso } from "@/components/ui/Aviso";
 import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
-import { Holgura, EstadoTareaChip, fechaCorta, Estimado } from "@/components/v2/Plan";
+import { Holgura, EstadoTareaChip, fechaCorta, Estimado, CausaRaiz, textoCausa } from "@/components/v2/Plan";
+import { Etiqueta } from "@/components/ui/Etiqueta";
+import { capitalizar, diasHabiles, numero, plural } from "@/lib/formato";
 import { activarProyectoAction, cambiarEntregaAction, pausarProyectoAction, liberarAction } from "@/app/actions/v2";
-import type { Tarea } from "@/lib/planning/motor";
+import type { Tarea, Causa } from "@/lib/planning/motor";
 
 export const dynamic = "force-dynamic";
 
@@ -40,9 +42,15 @@ function estadoDePieza(ts: Tarea[]): (typeof ORDEN_ESTADO)[number] {
   return "futuras";
 }
 
-export default async function ProyectoPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
+export default async function ProyectoPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ ok?: string; error?: string; temprana?: string; entrega?: string; prioridad?: string; causas?: string; quitar?: string }>;
+}) {
   const { id } = await params;
-  const { ok, error } = await searchParams;
+  const { ok, error, temprana, entrega: entregaPedida, prioridad: prioridadPedida, causas: causasTexto, quitar } = await searchParams;
   const [[fila], plan, eventos] = await Promise.all([
     db
       .select({ m: otMaquina, config: configuracion.nombre, cliente: cliente.razonSocial })
@@ -96,6 +104,44 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
       <div className="space-y-6 max-w-4xl">
         {header}
         {error && <Aviso tipo="error">{error}</Aviso>}
+        {temprana && entregaPedida && (
+          // Plan factible (§1.4): antes de activar con una fecha que no llega, se pregunta.
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-label="La fecha no llega">
+            <Link href={`/proyectos/${id}`} className="absolute inset-0 bg-black/30" aria-label="Cerrar" />
+            <div className="relative tarjeta max-w-lg w-full p-6 space-y-4">
+              <h2 className="text-lg font-bold">Con los plazos actuales, la entrega más temprana es el {fechaCorta(temprana, hoy)}.</h2>
+              <p>¿Mantenés el {fechaCorta(entregaPedida, hoy)} o la cambiás?</p>
+              {(() => {
+                let lista: Causa[] = [];
+                try {
+                  lista = JSON.parse(causasTexto ?? "[]");
+                } catch {}
+                return lista.length ? (
+                  <div>
+                    <div className="text-sm font-semibold mb-1">Por qué no llega:</div>
+                    <ul className="text-sm list-disc pl-5 space-y-1">
+                      {lista.map((c, i) => (
+                        <li key={i}>{capitalizar(textoCausa(c, hoy).texto)}.</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null;
+              })()}
+              <div className="flex flex-wrap gap-2 justify-end">
+                {[entregaPedida, temprana].map((f, i) => (
+                  <form key={f} action={activarProyectoAction}>
+                    <input type="hidden" name="id" value={id} />
+                    <input type="hidden" name="fechaEntrega" value={f} />
+                    <input type="hidden" name="prioridad" value={prioridadPedida ?? "normal"} />
+                    <input type="hidden" name="quitar" value={quitar ?? ""} />
+                    <input type="hidden" name="confirmado" value="1" />
+                    <button className={i === 0 ? "btn-secundario" : "btn"}>{i === 0 ? `Mantener el ${fechaCorta(f, hoy)}` : `Cambiar al ${fechaCorta(f, hoy)}`}</button>
+                  </form>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         {m.estadoProyecto === "pausado" ? (
           <form action={pausarProyectoAction} className="tarjeta p-5 space-y-3">
             <input type="hidden" name="id" value={m.id} />
@@ -170,6 +216,84 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
   const x = (f: string) => `${Math.min(100, Math.max(0, (habilesEntre(inicioEje, f, cal) / total) * 100))}%`;
   const ancho = (a: string, b: string) => `${Math.max(0.8, (habilesEntre(a, b, cal) / total) * 100)}%`;
   const comprasP = plan.resultado.compras.filter((c) => c.proyectoId === id && !c.pedido);
+  // Conjuntos con problemas arriba y desplegados; los que están en plazo, colapsados (§2.3).
+  const conPiezas = p.conjuntos.filter((c) => c.piezas.total > 0);
+  const sinPiezas = p.conjuntos.filter((c) => c.piezas.total === 0);
+  const conAtraso = conPiezas.filter((c) => c.atrasoDias > 0 || c.piezas.trabadas > 0);
+  const enPlazo = conPiezas.filter((c) => !conAtraso.includes(c));
+  const filaConjunto = (c: (typeof p.conjuntos)[number], abierto: boolean) => {
+            const ts = tareas.filter((t) => t.conjuntoId === c.id);
+            const porPieza = new Map<string, Tarea[]>();
+            for (const t of ts) porPieza.set(t.otPiezaId, [...(porPieza.get(t.otPiezaId) ?? []), t]);
+            const grupos = new Map<string, string[]>();
+            for (const [pid, tp] of porPieza) grupos.set(estadoDePieza(tp), [...(grupos.get(estadoDePieza(tp)) ?? []), pid]);
+            return (
+              <details key={c.id} className="group border-t border-border" open={abierto && !c.esperaA}>
+                <summary className="flex items-center cursor-pointer py-1.5 list-none">
+                  <div className="w-48 shrink-0 pr-2 text-sm">
+                    <span className="text-foreground-muted group-open:rotate-90 inline-block transition-transform mr-1">›</span>
+                    <span className="font-medium">{c.codigo}</span> {c.nombre}
+                    <BarraEstados piezas={c.piezas} />
+                    <div className="text-[11px] pl-3">
+                      {c.esperaA ? (
+                        <span className="text-gris">Espera a {c.esperaA.codigo} {c.esperaA.nombre}</span>
+                      ) : c.atrasoDias > 0 ? (
+                        <span className="text-rojo-fg font-semibold">
+                          +{diasHabiles(c.atrasoDias)}
+                          {c.causa ? `: ${textoCausa(c.causa, hoy).texto}` : ""}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="flex-1 relative h-6">
+                    {c.fabricacionDesde && c.piezas.total > 0 && (
+                      <div className="absolute top-1.5 h-3 rounded bg-accent/25" style={{ left: x(c.fabricacionDesde), width: ancho(c.fabricacionDesde, c.piezasListas) }} />
+                    )}
+                    <div
+                      className={`absolute top-1 h-4 rounded ${c.atrasoDias > 0 ? "bg-rojo" : "bg-accent"}`}
+                      style={{ left: x(c.montajeInicioEstimado), width: ancho(c.montajeInicioEstimado, c.montajeFinEstimado) }}
+                      title={`Montaje ${fechaCorta(c.montajeInicioEstimado)} → ${fechaCorta(c.montajeFinEstimado)}`}
+                    />
+                    <div className="absolute top-0 h-6 w-0.5 bg-foreground" style={{ left: x(c.montajeInicioLimite) }} title={`Debería empezar el montaje el ${fechaCorta(c.montajeInicioLimite)}`} />
+                  </div>
+                </summary>
+                <div className="pl-48 pb-3 space-y-2">
+                  <div className="text-xs text-foreground-muted">
+                    Montaje: debería empezar el {fechaCorta(c.montajeInicioLimite)} · estimado {fechaCorta(c.montajeInicioEstimado)} → {fechaCorta(c.montajeFinEstimado)} · piezas listas el {fechaCorta(c.piezasListas)}
+                  </div>
+                  {ORDEN_ESTADO.filter((e) => grupos.get(e)?.length).map((e) => (
+                    <details key={e} className="text-sm">
+                      <summary className="cursor-pointer">
+                        {LABEL_ESTADO[e]} ({grupos.get(e)!.length})
+                      </summary>
+                      <ul className="mt-1 ml-4 space-y-1">
+                        {grupos.get(e)!.map((pid) => {
+                          const tp = porPieza.get(pid)!;
+                          const actual = tp.find((t) => t.estado !== "terminada");
+                          return (
+                            <li key={pid} className="flex flex-wrap items-center gap-2 text-xs">
+                              <span className="font-medium">{nombres.get(pid)}</span>
+                              {actual && (
+                                <>
+                                  <span className="text-foreground-muted">
+                                    paso {actual.posicion}/{actual.totalPasos}: {actual.paso}
+                                    {actual.fechaPlan ? ` · plan ${fechaCorta(actual.fechaPlan)}` : ""}
+                                  </span>
+                                  <EstadoTareaChip estado={actual.estado} />
+                                  <Holgura nivel={actual.nivel} dias={actual.holgura} corto />
+                                  {actual.motivoTraba && <span className="text-rojo-fg">{actual.motivoTraba}</span>}
+                                </>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </details>
+                  ))}
+                </div>
+              </details>
+            );
+            };
 
   return (
     <div className="space-y-6">
@@ -177,17 +301,25 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
       {ok && <Aviso tipo="ok">{ok}</Aviso>}
       {error && <Aviso tipo="error">{error}</Aviso>}
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <Dato titulo="Entrega comprometida" valor={fechaCorta(p.entrega)} />
-        <Dato titulo="Fin estimado" valor={fechaCorta(p.finEstimado)} />
-        <Dato
-          titulo="Diferencia"
-          valor={p.diferenciaDias > 0 ? `${p.diferenciaDias} día${p.diferenciaDias === 1 ? "" : "s"} tarde` : p.diferenciaDias === 0 ? "justo a tiempo" : `${-p.diferenciaDias} día${p.diferenciaDias === -1 ? "" : "s"} antes`}
-          color={p.diferenciaDias > 0 ? "text-rojo-fg" : p.diferenciaDias >= -3 ? "text-naranja-fg" : "text-verde-fg"}
-        />
-        <Dato titulo="Avance en horas" valor={`${p.avancePct}%`} nota={`${Math.round(p.horasHechas)} de ${Math.round(p.horasTotales)} h`} />
-        <Dato titulo="Estado" valor={m.estadoProyecto === "en_montaje" ? "En montaje" : "Activo"} nota={`${p.piezasCubiertasConStock} piezas cubiertas con stock`} />
-      </div>
+      <section className="tarjeta p-5 space-y-4">
+        <div className="grid grid-cols-3 gap-4">
+          <Grande titulo="Entrega comprometida" valor={fechaCorta(p.entrega, hoy)} />
+          <Grande titulo="Fin estimado" valor={fechaCorta(p.finEstimado, hoy)} />
+          <Grande
+            titulo="Diferencia"
+            valor={p.diferenciaDias > 0 ? `${diasHabiles(p.diferenciaDias)} tarde` : p.diferenciaDias === 0 ? "justo a tiempo" : `${diasHabiles(-p.diferenciaDias)} antes`}
+            color={p.diferenciaDias > 0 ? "text-rojo-fg" : p.diferenciaDias >= -3 ? "text-naranja-fg" : "text-verde-fg"}
+          />
+        </div>
+        {p.causas.length > 0 ? <CausaRaiz codigo={p.codigo} causas={p.causas} hoy={hoy} /> : <p className="text-sm text-verde-fg">Llega a tiempo con el plan actual.</p>}
+        <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-foreground-muted border-t border-border pt-3">
+          <span>
+            Avance: <strong className="text-foreground">{p.avancePct}%</strong> en horas ({numero(Math.round(p.horasHechas))} de {numero(Math.round(p.horasTotales))} h)
+          </span>
+          <span>Estado: {m.estadoProyecto === "en_montaje" ? "En montaje" : "Activo"}</span>
+          {p.piezasCubiertasConStock > 0 && <span>{plural(p.piezasCubiertasConStock, "pieza")} cubierta{p.piezasCubiertasConStock === 1 ? "" : "s"} con stock</span>}
+        </div>
+      </section>
 
       <div className="flex flex-wrap gap-2 items-start">
         {tanda && tanda.otPiezaIds.length > 0 && (
@@ -196,7 +328,7 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
             {tanda.otPiezaIds.map((pid) => (
               <input key={pid} type="hidden" name="otPiezaId" value={pid} />
             ))}
-            <ConfirmarBoton mensaje={`¿Liberar ${tanda.otPiezaIds.length} piezas? Entran al plan de la semana.`}>Liberar tanda sugerida ({tanda.otPiezaIds.length})</ConfirmarBoton>
+            <ConfirmarBoton mensaje={`¿Liberar ${plural(tanda.otPiezaIds.length, "pieza")}? Entran al plan de la semana.`}>Liberar {plural(tanda.otPiezaIds.length, "pieza")}</ConfirmarBoton>
           </form>
         )}
         <details className="tarjeta px-3 py-2">
@@ -251,72 +383,22 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
               <span>{fechaCorta(finEje)}</span>
             </div>
           </div>
-          {p.conjuntos.map((c) => {
-            const ts = tareas.filter((t) => t.conjuntoId === c.id);
-            const porPieza = new Map<string, Tarea[]>();
-            for (const t of ts) porPieza.set(t.otPiezaId, [...(porPieza.get(t.otPiezaId) ?? []), t]);
-            const grupos = new Map<string, string[]>();
-            for (const [pid, tp] of porPieza) grupos.set(estadoDePieza(tp), [...(grupos.get(estadoDePieza(tp)) ?? []), pid]);
-            return (
-              <details key={c.id} className="group border-t border-border">
-                <summary className="flex items-center cursor-pointer py-1.5 list-none">
-                  <div className="w-48 shrink-0 pr-2 text-sm">
-                    <span className="text-foreground-muted group-open:rotate-90 inline-block transition-transform mr-1">›</span>
-                    <span className="font-medium">{c.codigo}</span> {c.nombre}
-                    <div className="text-[11px] text-foreground-muted pl-3">
-                      {c.piezas.total} piezas · {c.piezas.terminadas} hechas
-                      {c.atrasoDias > 0 && <span className="text-rojo-fg font-semibold"> · +{c.atrasoDias} días ({c.motivoAtraso})</span>}
-                    </div>
-                  </div>
-                  <div className="flex-1 relative h-6">
-                    {c.fabricacionDesde && c.piezas.total > 0 && (
-                      <div className="absolute top-1.5 h-3 rounded bg-accent/25" style={{ left: x(c.fabricacionDesde), width: ancho(c.fabricacionDesde, c.piezasListas) }} />
-                    )}
-                    <div
-                      className={`absolute top-1 h-4 rounded ${c.atrasoDias > 0 ? "bg-rojo" : "bg-accent"}`}
-                      style={{ left: x(c.montajeInicioEstimado), width: ancho(c.montajeInicioEstimado, c.montajeFinEstimado) }}
-                      title={`Montaje ${fechaCorta(c.montajeInicioEstimado)} → ${fechaCorta(c.montajeFinEstimado)}`}
-                    />
-                    <div className="absolute top-0 h-6 w-0.5 bg-foreground" style={{ left: x(c.montajeInicioLimite) }} title={`Debería empezar el montaje el ${fechaCorta(c.montajeInicioLimite)}`} />
-                  </div>
-                </summary>
-                <div className="pl-48 pb-3 space-y-2">
-                  <div className="text-xs text-foreground-muted">
-                    Montaje: debería empezar el {fechaCorta(c.montajeInicioLimite)} · estimado {fechaCorta(c.montajeInicioEstimado)} → {fechaCorta(c.montajeFinEstimado)} · piezas listas el {fechaCorta(c.piezasListas)}
-                  </div>
-                  {ORDEN_ESTADO.filter((e) => grupos.get(e)?.length).map((e) => (
-                    <details key={e} className="text-sm">
-                      <summary className="cursor-pointer">
-                        {LABEL_ESTADO[e]} ({grupos.get(e)!.length})
-                      </summary>
-                      <ul className="mt-1 ml-4 space-y-1">
-                        {grupos.get(e)!.map((pid) => {
-                          const tp = porPieza.get(pid)!;
-                          const actual = tp.find((t) => t.estado !== "terminada");
-                          return (
-                            <li key={pid} className="flex flex-wrap items-center gap-2 text-xs">
-                              <span className="font-medium">{nombres.get(pid)}</span>
-                              {actual && (
-                                <>
-                                  <span className="text-foreground-muted">
-                                    paso {actual.posicion}/{actual.totalPasos}: {actual.paso}
-                                    {actual.fechaPlan ? ` · plan ${fechaCorta(actual.fechaPlan)}` : ""}
-                                  </span>
-                                  <EstadoTareaChip estado={actual.estado} />
-                                  <Holgura nivel={actual.nivel} dias={actual.holgura} corto />
-                                  {actual.motivoTraba && <span className="text-rojo-fg">{actual.motivoTraba}</span>}
-                                </>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </details>
-                  ))}
-                </div>
-              </details>
-            );
-          })}
+          {conAtraso.length > 0 && <div className="text-xs font-semibold text-rojo-fg pt-1">Con atraso ({conAtraso.length})</div>}
+          {conAtraso.map((c) => filaConjunto(c, true))}
+          {enPlazo.length > 0 && (
+            <details className="border-t border-border">
+              <summary className="cursor-pointer py-2 text-sm text-foreground-muted list-none">
+                <span className="mr-1">›</span>
+                {plural(enPlazo.length, "conjunto")} en plazo
+              </summary>
+              {enPlazo.map((c) => filaConjunto(c, false))}
+            </details>
+          )}
+          {sinPiezas.length > 0 && (
+            <p className="border-t border-border py-2 text-xs text-gris">
+              Sin piezas cargadas: {sinPiezas.map((c) => `${c.codigo} ${c.nombre}`).join(" · ")}
+            </p>
+          )}
           <div className="flex items-center border-t border-border py-1.5">
             <div className="w-48 shrink-0 text-sm font-medium">Montaje final y pruebas</div>
             <div className="flex-1 text-xs text-foreground-muted">
@@ -331,20 +413,20 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
           <div className="flex items-baseline justify-between">
             <h2 className="font-semibold">Compras sin pedir ({comprasP.length})</h2>
             <Link href="/pedir" className="text-sm text-accent hover:underline">
-              Pedir esta semana →
+              {comprasP.length > 3 ? `Ver las ${comprasP.length} en Pedir esta semana →` : "Pedir esta semana →"}
             </Link>
           </div>
           <ul className="text-sm mt-2 divide-y divide-border max-h-72 overflow-y-auto">
             {comprasP
               .sort((a, b) => a.pedirAntes.localeCompare(b.pedirAntes))
-              .slice(0, 12)
+              .slice(0, 3)
               .map((c) => (
                 <li key={c.clave} className="py-1.5 flex flex-wrap justify-between gap-2">
                   <span>
                     {c.esMaterial ? "Material para " : ""}
                     {c.piezaNombre} × {c.cantidad}
                   </span>
-                  <span className={`text-xs ${c.pedirAntes < hoy ? "text-rojo-fg font-semibold" : "text-foreground-muted"}`}>pedir antes del {fechaCorta(c.pedirAntes)}</span>
+                  {c.pedirYa ? <Etiqueta tono="naranja">Pedir ya</Etiqueta> : <span className={`text-xs ${c.pedirAntes < hoy ? "text-rojo-fg font-semibold" : "text-foreground-muted"}`}>pedir antes del {fechaCorta(c.pedirAntes, hoy)}</span>}
                 </li>
               ))}
           </ul>
@@ -371,12 +453,34 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
   );
 }
 
-function Dato({ titulo, valor, nota, color }: { titulo: string; valor: string; nota?: string; color?: string }) {
+function Grande({ titulo, valor, color }: { titulo: string; valor: string; color?: string }) {
   return (
-    <div className="tarjeta px-4 py-3">
-      <div className="text-xs text-foreground-muted">{titulo}</div>
-      <div className={`text-lg font-semibold ${color ?? ""}`}>{valor}</div>
-      {nota && <div className="text-xs text-foreground-muted">{nota}</div>}
+    <div>
+      <div className="text-sm text-foreground-muted">{titulo}</div>
+      <div className={`text-2xl sm:text-[32px] font-bold leading-tight ${color ?? ""}`}>{valor}</div>
     </div>
   );
 }
+
+/** Barra de piezas por estado del conjunto (terminadas · en curso · listas · trabadas · futuras). */
+function BarraEstados({ piezas }: { piezas: { total: number; terminadas: number; enCurso: number; listas: number; trabadas: number; futuras: number } }) {
+  const tramos = [
+    ["terminadas", "bg-verde", "terminadas"],
+    ["enCurso", "bg-naranja", "en curso"],
+    ["listas", "bg-accent", "listas"],
+    ["trabadas", "bg-rojo", "trabadas"],
+    ["futuras", "bg-gris/50", "futuras"],
+  ] as const;
+  const titulo = tramos.filter(([k]) => piezas[k]).map(([k, , l]) => `${piezas[k]} ${l}`).join(" · ");
+  return (
+    <div className="pl-3 mt-0.5 flex items-center gap-1.5" title={titulo}>
+      <div className="flex h-1.5 w-24 rounded-full overflow-hidden bg-surface-muted">
+        {tramos.map(([k, c]) => (piezas[k] ? <div key={k} className={c} style={{ width: `${(piezas[k] / piezas.total) * 100}%` }} /> : null))}
+      </div>
+      <span className="text-[11px] text-foreground-muted">
+        {piezas.terminadas}/{piezas.total}
+      </span>
+    </div>
+  );
+}
+

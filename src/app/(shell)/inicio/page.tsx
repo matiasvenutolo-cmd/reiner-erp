@@ -21,6 +21,11 @@ import { cargaSemana } from "@/lib/planning/carga";
 
 export const dynamic = "force-dynamic";
 
+/** Minutos desde una fecha (para las paradas en curso). */
+function minutosDesde(f: Date | string): number {
+  return Math.round((Date.now() - new Date(f).getTime()) / 60000);
+}
+
 const NOMBRE_DIA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
 type Decision = { texto: React.ReactNode; boton: string; href: string; dias: number; tipo: "entrega" | "capacidad" | "datos"; urgente?: boolean };
@@ -65,7 +70,7 @@ export default async function HoyPage() {
   ]);
   const tienePlano = new Set(conPlano.map((x) => x.id));
   const motivosOperario = new Set(Object.values(MOTIVO_BLOQUEO));
-  const paradasLargas = paradas.filter((p) => Date.now() - new Date(p.inicio).getTime() > 30 * 60 * 1000);
+  const paradasLargas = paradas.filter((p) => minutosDesde(p.inicio) > 30);
 
   // 3 · Qué hay que decidir — primero lo que afecta una entrega, después capacidad, al final datos.
   const viernes = sumarHabiles(lunes, 4, cal);
@@ -278,7 +283,7 @@ export default async function HoyPage() {
             ))}
             {paradasLargas.map((p) => (
               <div key={p.id} className="tarjeta franja border-l-naranja px-4 py-3 text-sm">
-                <strong>{p.usuarioNombre}</strong> lleva {numero(Math.round((Date.now() - new Date(p.inicio).getTime()) / 60000))} min parado en {capitalizar(p.piezaNombre)} · {p.tipoParadaNombre}.
+                <strong>{p.usuarioNombre}</strong> lleva {numero(minutosDesde(p.inicio))} min parado en {capitalizar(p.piezaNombre)} · {p.tipoParadaNombre}.
               </div>
             ))}
             {[...porMotivo].map(([motivo, ts]) => {

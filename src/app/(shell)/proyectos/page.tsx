@@ -5,24 +5,59 @@ import { desc, eq } from "drizzle-orm";
 import { getPlan } from "@/lib/planning/datos";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PestanasOt } from "@/components/ui/PestanasSecciones";
-import { fechaCorta } from "@/components/v2/Plan";
+import { Etiqueta } from "@/components/ui/Etiqueta";
+import { Vacio } from "@/components/ui/Aviso";
+import { fechaCorta, textoCausa } from "@/components/v2/Plan";
+import { diasHabiles, plural } from "@/lib/formato";
 import type { ProyectoPlan } from "@/lib/planning/motor";
-
-type FilaProyecto = { m: typeof otMaquina.$inferSelect; config: string | null; cliente: string | null };
 
 export const dynamic = "force-dynamic";
 
-const TIPO = { maquina: "Máquina", repuesto: "Repuesto", stock: "Stock" } as const;
-const ESTADO: Record<string, [string, string]> = {
-  borrador: ["Borrador", "badge-pendiente"],
-  activo: ["Activo", "bg-accent-soft text-accent"],
-  en_montaje: ["En montaje", "badge-en_curso"],
-  terminado: ["Terminado", "badge-terminada"],
-  entregado: ["Entregado", "badge-terminada"],
-  pausado: ["Pausado", "badge-alerta"],
-};
+type Fila = { m: typeof otMaquina.$inferSelect; config: string | null; cliente: string | null };
 
-/** La máquina es un proyecto con fecha de entrega; las órdenes de pieza y de conjunto usan el mismo modelo, con un solo nivel. */
+const GRUPOS = [
+  { tipo: "maquina", titulo: "Máquinas" },
+  { tipo: "repuesto", titulo: "Repuestos para clientes" },
+  { tipo: "stock", titulo: "Órdenes para stock" },
+] as const;
+
+function Diferencia({ p }: { p: ProyectoPlan }) {
+  if (p.diferenciaDias > 0) return <Etiqueta tono="rojo">{diasHabiles(p.diferenciaDias)} tarde</Etiqueta>;
+  if (p.diferenciaDias >= -3) return <Etiqueta tono="naranja">{p.diferenciaDias === 0 ? "justo a tiempo" : `${diasHabiles(-p.diferenciaDias)} antes`}</Etiqueta>;
+  return <Etiqueta tono="verde">{diasHabiles(-p.diferenciaDias)} antes</Etiqueta>;
+}
+
+/** Tarjeta de proyecto (§2.3): máquina y cliente en grande, avance en horas y la diferencia con la entrega. */
+function TarjetaProyecto({ x, p, hoy }: { x: Fila; p: ProyectoPlan; hoy: string }) {
+  const causa = p.causas[0] ? textoCausa(p.causas[0].causa, hoy) : null;
+  return (
+    <Link href={`/proyectos/${x.m.id}`} className={`tarjeta franja ${p.diferenciaDias > 0 ? "border-l-rojo" : "border-l-verde"} p-4 block hover:border-accent transition-colors`}>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-lg font-bold leading-tight">{x.cliente ?? x.config ?? x.m.codigo}</div>
+          <div className="text-sm text-foreground-muted">
+            {[x.cliente ? x.config : null, x.m.codigo].filter(Boolean).join(" · ")}
+            {x.m.esDemo && <span className="badge-estado bg-demo-bg text-demo-fg ml-2">demo</span>}
+            {x.m.prioridad === "alta" && <span className="ml-2"><Etiqueta tono="naranja" sinIcono>prioridad alta</Etiqueta></span>}
+          </div>
+        </div>
+        <Diferencia p={p} />
+      </div>
+      <div className="flex items-center gap-3 mt-3 text-sm">
+        <div className="h-2 flex-1 rounded-full bg-surface-muted overflow-hidden">
+          <div className="h-full bg-accent rounded-full" style={{ width: `${p.avancePct}%` }} />
+        </div>
+        <span className="tabular-nums text-foreground-muted whitespace-nowrap">{p.avancePct}% en horas</span>
+      </div>
+      <div className="text-sm text-foreground-muted mt-2">
+        Entrega {fechaCorta(p.entrega, hoy)} · fin estimado {fechaCorta(p.finEstimado, hoy)}
+      </div>
+      {causa && <div className="text-sm mt-1">Atrasa: {causa.texto}.</div>}
+    </Link>
+  );
+}
+
+/** La máquina es un proyecto con fecha de entrega; los repuestos y las órdenes para stock usan el mismo modelo, con un solo nivel. */
 export default async function ProyectosPage() {
   const [plan, todos] = await Promise.all([
     getPlan(),
@@ -33,6 +68,7 @@ export default async function ProyectosPage() {
       .leftJoin(cliente, eq(cliente.id, otMaquina.clienteId))
       .orderBy(desc(otMaquina.createdAt)),
   ]);
+  const hoy = plan.entrada.hoy;
   const planDe = new Map(plan.resultado.proyectos.map((p) => [p.id, p]));
   const activos = todos.filter((x) => planDe.has(x.m.id));
   const paraActivar = todos.filter((x) => !planDe.has(x.m.id) && ["borrador", "pausado", "activo"].includes(x.m.estadoProyecto));
@@ -53,88 +89,65 @@ export default async function ProyectosPage() {
       </PageHeader>
 
       {paraActivar.length > 0 && (
-        <section>
-          <h2 className="text-base font-semibold">Para activar ({paraActivar.length})</h2>
-          <p className="text-xs text-foreground-muted mb-2">Sin fecha de entrega comprometida no se pueden planificar: cargala para que el sistema arme sus tareas y compras.</p>
-          <Tabla filas={paraActivar} planDe={planDe} />
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold">Para activar ({paraActivar.length})</h2>
+          <p className="text-sm text-foreground-muted">Cargá la fecha de entrega para que el sistema arme sus tareas y compras.</p>
+          <ul className="tarjeta divide-y divide-border">
+            {paraActivar.map((x) => (
+              <li key={x.m.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <span>
+                  <span className="font-semibold">{x.cliente ?? x.config}</span>
+                  <span className="text-sm text-foreground-muted">
+                    {" "}
+                    · {x.m.codigo}
+                    {x.m.plazoEntrega ? ` · plazo "${x.m.plazoEntrega}"` : ""}
+                    {x.m.estadoProyecto === "pausado" ? " · pausado" : ""}
+                  </span>
+                </span>
+                <Link href={`/proyectos/${x.m.id}`} className="btn btn-sm">
+                  {x.m.estadoProyecto === "pausado" ? "Reactivar" : "Cargar fecha"} →
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
-      <section>
-        <h2 className="text-base font-semibold mb-2">En curso ({activos.length})</h2>
-        <Tabla filas={activos} planDe={planDe} />
-      </section>
+
+      {activos.length === 0 && <Vacio neutro>No hay proyectos activos.</Vacio>}
+      {GRUPOS.map((g) => {
+        const lista = activos.filter((x) => (x.m.destino ?? "maquina") === g.tipo);
+        if (!lista.length) return null;
+        return (
+          <section key={g.tipo} className="space-y-2">
+            <h2 className="text-lg font-semibold">
+              {g.titulo} ({lista.length})
+            </h2>
+            <div className="grid md:grid-cols-2 gap-3">
+              {lista
+                .sort((a, b) => planDe.get(b.m.id)!.diferenciaDias - planDe.get(a.m.id)!.diferenciaDias)
+                .map((x) => (
+                  <TarjetaProyecto key={x.m.id} x={x} p={planDe.get(x.m.id)!} hoy={hoy} />
+                ))}
+            </div>
+          </section>
+        );
+      })}
+
       {cerrados.length > 0 && (
         <details className="tarjeta px-4 py-3">
-          <summary className="cursor-pointer text-sm font-semibold">Terminados y entregados ({cerrados.length})</summary>
-          <div className="mt-3">
-            <Tabla filas={cerrados} planDe={planDe} />
-          </div>
+          <summary className="cursor-pointer text-sm font-semibold">Terminados y entregados ({plural(cerrados.length, "orden", "órdenes")})</summary>
+          <ul className="mt-2 divide-y divide-border text-sm">
+            {cerrados.map((x) => (
+              <li key={x.m.id} className="py-2 flex justify-between gap-2">
+                <Link href={`/ot/${x.m.id}`} className="hover:text-accent hover:underline">
+                  {x.cliente ?? x.config} · {x.m.codigo}
+                </Link>
+                <span className="text-foreground-muted">{x.m.estadoProyecto === "entregado" ? "Entregado" : "Terminado"}</span>
+              </li>
+            ))}
+          </ul>
         </details>
       )}
     </div>
   );
-}
-
-function Fila({ x, p }: { x: FilaProyecto; p?: ProyectoPlan }) {
-  const [estado, cls] = ESTADO[x.m.estadoProyecto] ?? [x.m.estadoProyecto, "badge-pendiente"];
-  return (
-    <tr className="border-t border-border first:border-t-0 hover:bg-surface-muted/50">
-      <td className="px-4 py-3">
-        <Link href={`/proyectos/${x.m.id}`} className="font-mono font-semibold hover:text-accent hover:underline">
-          {x.m.codigo}
-        </Link>
-        <div className="text-xs text-foreground-muted">{[x.cliente, x.config].filter(Boolean).join(" · ")}</div>
-      </td>
-      <td className="px-3 py-3">
-        <span className="badge-estado bg-surface-muted text-foreground">{TIPO[x.m.destino as keyof typeof TIPO] ?? x.m.destino}</span>
-        {x.m.esDemo && <span className="badge-estado bg-demo-bg text-demo-fg ml-1">demo</span>}
-      </td>
-      <td className="px-3 py-3">
-        <span className={`badge-estado ${cls}`}>{estado}</span>
-      </td>
-      <td className="px-3 py-3 whitespace-nowrap">{x.m.fechaEntrega ? fechaCorta(x.m.fechaEntrega) : <span className="text-foreground-muted">sin fecha{x.m.plazoEntrega ? ` (plazo: ${x.m.plazoEntrega})` : ""}</span>}</td>
-      <td className="px-3 py-3 whitespace-nowrap">{p ? fechaCorta(p.finEstimado) : "—"}</td>
-      <td className="px-3 py-3 whitespace-nowrap">
-        {p ? (
-          <span className={`font-semibold ${p.diferenciaDias > 0 ? "text-rojo-fg" : p.diferenciaDias >= -3 ? "text-naranja-fg" : "text-verde-fg"}`}>
-            {p.diferenciaDias > 0 ? `${p.diferenciaDias} día${p.diferenciaDias === 1 ? "" : "s"} tarde` : p.diferenciaDias === 0 ? "justo" : `${-p.diferenciaDias} día${p.diferenciaDias === -1 ? "" : "s"} antes`}
-          </span>
-        ) : (
-          "—"
-        )}
-      </td>
-      <td className="px-3 py-3 tabular-nums">{p ? `${p.avancePct}%` : "—"}</td>
-      <td className="px-4 py-3 text-right">
-        <Link href={`/proyectos/${x.m.id}`} className="btn-secundario btn-sm">
-          {p ? "Ver" : "Activar"} →
-        </Link>
-      </td>
-    </tr>
-  );
-}
-
-function Tabla({ filas, planDe }: { filas: FilaProyecto[]; planDe: Map<string, ProyectoPlan> }) {
-return (
-  <div className="tarjeta overflow-x-auto">
-    <table className="w-full text-sm">
-      <thead className="text-xs text-foreground-muted">
-        <tr className="border-b border-border">
-          <th className="text-left px-4 py-2 font-medium">Proyecto u orden</th>
-          <th className="text-left px-3 py-2 font-medium">Tipo</th>
-          <th className="text-left px-3 py-2 font-medium">Estado</th>
-          <th className="text-left px-3 py-2 font-medium">Entrega</th>
-          <th className="text-left px-3 py-2 font-medium">Fin estimado</th>
-          <th className="text-left px-3 py-2 font-medium">¿Llega?</th>
-          <th className="text-left px-3 py-2 font-medium">Avance</th>
-          <th className="px-4 py-2"></th>
-        </tr>
-      </thead>
-      <tbody>
-        {filas.map((x) => (
-          <Fila key={x.m.id} x={x} p={planDe.get(x.m.id)} />
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
 }
