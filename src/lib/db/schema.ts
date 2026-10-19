@@ -296,6 +296,7 @@ export const pieza = pgTable("pieza", {
   materialDeStock: boolean("material_de_stock").notNull().default(false),
   proveedorHabitualId: text("proveedor_habitual_id"),
   plazoCompraDias: integer("plazo_compra_dias"),
+  tamanoLote: integer("tamano_lote"), // v2 usabilidad — lote por defecto para partir tareas grandes
   // Pathname del blob, no URL completa (ver runbook §A5).
   fotoPathname: text("foto_pathname"),
 });
@@ -726,6 +727,7 @@ export const registroOperacion = pgTable("registro_operacion", {
   piezasOk: integer("piezas_ok").default(0),
   piezasRechazadas: integer("piezas_rechazadas").default(0),
   observacion: text("observacion"),
+  motivoRechazo: text("motivo_rechazo"), // v2 usabilidad — medida | terminacion | material | otro
 });
 
 export const parada = pgTable("parada", {
@@ -989,6 +991,71 @@ export type PiezaAdjunto = typeof piezaAdjunto.$inferSelect;
 export type PiezaConfiguracion = typeof piezaConfiguracion.$inferSelect;
 export type Operacion = typeof operacion.$inferSelect;
 export type Ubicacion = typeof ubicacion.$inferSelect;
+// ── v2 · mejoras de usabilidad ──────────────────────────────────────────────
+
+/** "No puedo hacer esta" (operario): la tarea queda trabada con su motivo hasta que alguien la destraba. */
+export const tareaBloqueo = pgTable("tarea_bloqueo", {
+  id: id(),
+  otPiezaId: text("ot_pieza_id")
+    .notNull()
+    .references(() => otPieza.id),
+  operacionId: text("operacion_id").notNull(),
+  motivo: text("motivo").notNull(), // falta_material | falta_pieza_anterior | falta_plano | maquina | otro
+  texto: text("texto"),
+  usuarioId: text("usuario_id")
+    .notNull()
+    .references(() => usuario.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  resueltoAt: timestamp("resuelto_at"),
+  resueltoPorId: text("resuelto_por_id"),
+});
+
+/** "Hacer esta antes" (operario): cambia el orden de su cola, con motivo; el jefe lo ve en la bitácora. */
+export const tareaAdelanto = pgTable("tarea_adelanto", {
+  id: id(),
+  usuarioId: text("usuario_id")
+    .notNull()
+    .references(() => usuario.id),
+  otPiezaId: text("ot_pieza_id").notNull(),
+  operacionId: text("operacion_id").notNull(),
+  motivo: text("motivo").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/** Avisos de la planta al jefe o a ingeniería ("no tengo más tareas", "falta el plano"). */
+export const avisoPlanta = pgTable("aviso_planta", {
+  id: id(),
+  tipo: text("tipo").notNull(), // sin_tareas | falta_plano | otro
+  texto: text("texto").notNull(),
+  otPiezaId: text("ot_pieza_id"),
+  usuarioId: text("usuario_id")
+    .notNull()
+    .references(() => usuario.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  resueltoAt: timestamp("resuelto_at"),
+});
+
+/** Tamaño de lote elegido a mano para una tarea (pisa el de la pieza). */
+export const tareaLote = pgTable(
+  "tarea_lote",
+  {
+    otPiezaId: text("ot_pieza_id").notNull(),
+    operacionId: text("operacion_id").notNull(),
+    tamano: integer("tamano").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.otPiezaId, t.operacionId] })],
+);
+
+/** Semana confirmada por el jefe de planta: quién y cuándo. */
+export const semanaConfirmada = pgTable("semana_confirmada", {
+  lunes: date("lunes").primaryKey(),
+  usuarioId: text("usuario_id")
+    .notNull()
+    .references(() => usuario.id),
+  confirmadaAt: timestamp("confirmada_at").notNull().defaultNow(),
+  tareas: integer("tareas").notNull().default(0),
+});
+
 export type StockPieza = typeof stockPieza.$inferSelect;
 export type WipPieza = typeof wipPieza.$inferSelect;
 export type MovimientoStock = typeof movimientoStock.$inferSelect;

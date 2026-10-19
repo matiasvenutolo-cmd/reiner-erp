@@ -84,6 +84,7 @@ export const ICONO_RUTA: Record<string, string> = {
   "/proveedores": "proveedores",
   "/usuarios": "usuarios",
   "/taller": "taller",
+  "/taller/centro": "taller",
   "/proyectos": "proyectos",
   "/llegamos": "llegamos",
   "/pedir": "pedir",

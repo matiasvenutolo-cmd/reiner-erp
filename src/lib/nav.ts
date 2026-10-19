@@ -82,6 +82,7 @@ const NAV_ITEMS: NavEntry[] = [
   { href: "/usuarios", label: "Usuarios", roles: STAFF, grupo: "admin" },
   { href: "/admin/demo", label: "Datos de demo", roles: STAFF, grupo: "admin" },
 
+  { href: "/taller/centro", label: "Pantalla de un centro", roles: [...STAFF, "operario"], grupo: "produccion", ayuda: "Para la tablet fija en una máquina" },
   { href: "/taller", label: "Mi próxima tarea", roles: ["operario"] },
 ];
 

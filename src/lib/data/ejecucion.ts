@@ -143,7 +143,20 @@ export type IniciarOperacionInput = {
   operacionId: string;
   usuarioId: string;
   tipo: "setup" | "ejecucion";
+  /** v2 — hora real del toque (si se guardó sin conexión y se envía después). */
+  cuando?: Date;
 };
+
+/**
+ * v2 — Hora del toque: la que mandó la tablet si se guardó sin conexión, sólo
+ * si es razonable (de las últimas 12 horas y no del futuro); si no, ahora.
+ */
+export function horaDelToque(cuando?: Date | null): Date {
+  const ahora = new Date();
+  if (!cuando || Number.isNaN(cuando.getTime())) return ahora;
+  const dif = ahora.getTime() - cuando.getTime();
+  return dif >= 0 && dif < 12 * 3600 * 1000 ? cuando : ahora;
+}
 
 export async function iniciarOperacion(
   input: IniciarOperacionInput,
@@ -183,7 +196,7 @@ export async function iniciarOperacion(
       operacionId: input.operacionId,
       usuarioId: input.usuarioId,
       tipo: input.tipo,
-      inicio: new Date(),
+      inicio: horaDelToque(input.cuando),
       piezasOk: 0,
       piezasRechazadas: 0,
     })
@@ -196,29 +209,29 @@ export async function iniciarOperacion(
   return { ok: true, id: registro.id };
 }
 
-export async function pausarOperacion(registroOperacionId: string, tipoParadaId: string, usuarioId: string): Promise<void> {
+export async function pausarOperacion(registroOperacionId: string, tipoParadaId: string, usuarioId: string, cuando?: Date): Promise<void> {
   await getRegistroAbiertoPropio(registroOperacionId, usuarioId);
   const existente = await getParadaAbierta(registroOperacionId);
   if (existente) return; // ya está pausada
-  await db.insert(parada).values({ registroOperacionId, tipoParadaId, inicio: new Date() });
+  await db.insert(parada).values({ registroOperacionId, tipoParadaId, inicio: horaDelToque(cuando) });
 }
 
-async function cerrarParadaAbierta(registroOperacionId: string): Promise<void> {
+async function cerrarParadaAbierta(registroOperacionId: string, cuando?: Date): Promise<void> {
   const abierta = await getParadaAbierta(registroOperacionId);
   if (!abierta) return;
-  const fin = new Date();
+  const fin = horaDelToque(cuando);
   const duracionSeg = Math.round((fin.getTime() - abierta.inicio.getTime()) / 1000);
   await db.update(parada).set({ fin, duracionSeg }).where(eq(parada.id, abierta.id));
 }
 
 /** Retomar una operación pausada: sólo si no hay otra en curso (nunca dos a la vez). */
-export async function reanudarOperacion(registroOperacionId: string, usuarioId: string): Promise<void> {
+export async function reanudarOperacion(registroOperacionId: string, usuarioId: string, cuando?: Date): Promise<void> {
   await getRegistroAbiertoPropio(registroOperacionId, usuarioId);
   const enCurso = await getOperacionEnCurso(usuarioId);
   if (enCurso && enCurso.id !== registroOperacionId) {
     throw new Error(`Tenés en curso ${enCurso.piezaNombre} (${enCurso.otPiezaCodigo}). Pausala o finalizala antes de retomar ésta.`);
   }
-  await cerrarParadaAbierta(registroOperacionId);
+  await cerrarParadaAbierta(registroOperacionId, cuando);
 }
 
 export type FinalizarOperacionInput = {
@@ -227,6 +240,9 @@ export type FinalizarOperacionInput = {
   piezasOk: number;
   piezasRechazadas: number;
   observacion?: string;
+  /** v2 — motivo de los rechazos (medida, terminación, material, otro). */
+  motivoRechazo?: string;
+  cuando?: Date;
   // Sólo si es la última operación de la hoja de ruta de la pieza:
   cierrePieza?: {
     piezasNoOk: number;
@@ -247,13 +263,13 @@ export async function finalizarOperacion(input: FinalizarOperacionInput): Promis
   }
 
   // Si quedó una parada abierta, se cierra junto con la operación.
-  await cerrarParadaAbierta(registro.id);
+  await cerrarParadaAbierta(registro.id, input.cuando);
 
-  const fin = new Date();
+  const fin = horaDelToque(input.cuando);
   const duracionSeg = Math.round((fin.getTime() - registro.inicio.getTime()) / 1000);
   await db
     .update(registroOperacion)
-    .set({ fin, duracionSeg, piezasOk: input.piezasOk, piezasRechazadas: input.piezasRechazadas, observacion: input.observacion })
+    .set({ fin, duracionSeg, piezasOk: input.piezasOk, piezasRechazadas: input.piezasRechazadas, observacion: input.observacion, motivoRechazo: input.piezasRechazadas > 0 ? (input.motivoRechazo ?? null) : null })
     .where(eq(registroOperacion.id, registro.id));
 
   if (input.cierrePieza) {
@@ -371,4 +387,27 @@ export function resumirHistorialPorOperacion(historial: Awaited<ReturnType<typeo
     resumen.set(registro.operacionId, r);
   }
   return resumen;
+}
+
+/**
+ * v2 — "Deshacer" después de Terminar (mejoras de usabilidad §3.4): durante unos
+ * segundos se puede volver atrás si se tocó sin querer. Reabre el registro y,
+ * si había cerrado la pieza, deshace ese cierre. Sólo el mismo operario, sólo
+ * si nadie siguió trabajando la pieza después.
+ */
+export async function deshacerFinalizar(registroOperacionId: string, usuarioId: string): Promise<void> {
+  const [registro] = await db.select().from(registroOperacion).where(eq(registroOperacion.id, registroOperacionId));
+  if (!registro || registro.usuarioId !== usuarioId || !registro.fin) throw new Error("No hay nada para deshacer.");
+  if (Date.now() - registro.fin.getTime() > 60_000) throw new Error("Ya pasó el momento para deshacer. Avisale al jefe de planta.");
+  const posteriores = await db
+    .select({ id: registroOperacion.id })
+    .from(registroOperacion)
+    .where(and(eq(registroOperacion.otPiezaId, registro.otPiezaId), sql`${registroOperacion.inicio} > ${registro.fin}`));
+  if (posteriores.length) throw new Error("La pieza ya siguió en otro paso: no se puede deshacer.");
+  await db.update(registroOperacion).set({ fin: null, duracionSeg: null, piezasOk: 0, piezasRechazadas: 0, motivoRechazo: null }).where(eq(registroOperacion.id, registro.id));
+  const [op] = await db.select().from(otPieza).where(eq(otPieza.id, registro.otPiezaId));
+  if (op?.fechaFin && Math.abs(op.fechaFin.getTime() - registro.fin.getTime()) < 5000) {
+    await db.update(otPieza).set({ fechaFin: null, piezasOk: 0, piezasNoOk: 0, piezasDefectuosas: 0, piezasRetrabajadas: 0 }).where(eq(otPieza.id, op.id));
+    await db.delete(tareaRevision).where(and(eq(tareaRevision.otPiezaId, op.id), sql`${tareaRevision.createdAt} >= ${new Date(registro.fin.getTime() - 5000)}`));
+  }
 }

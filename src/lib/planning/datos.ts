@@ -15,7 +15,7 @@ import { db } from "@/lib/db/client";
 import {
   otMaquina, otConjunto, otPieza, pieza, conjunto, operacion, proceso, centroTrabajo, usuario, usuarioCentroTrabajo,
   registroOperacion, parada, remito, remitoItem, pedidoCompra, proveedor, proveedorServicio, feriado, ausencia,
-  montajeConjunto, configuracion, planAjuste, parametro, cliente,
+  montajeConjunto, configuracion, planAjuste, parametro, cliente, tareaBloqueo,
 } from "@/lib/db/schema";
 import { hoyISO, fechaISO } from "@/lib/fecha";
 import { sumarHabiles, type Calendario } from "./calendario";
@@ -49,7 +49,7 @@ export const getPlan = cache(async (): Promise<ContextoPlan> => {
   const t0 = Date.now();
   const hoy = hoyISO();
   // Una sola tanda para todo lo que no depende de los proyectos.
-  const [calendario, params, proyectosRows, centrosRows, habilitados, ausencias, ajustes] = await Promise.all([
+  const [calendario, params, proyectosRows, centrosRows, habilitados, ausencias, ajustes, bloqueos] = await Promise.all([
     getCalendario(),
     getParametros(),
     db
@@ -66,6 +66,7 @@ export const getPlan = cache(async (): Promise<ContextoPlan> => {
       .where(and(eq(usuario.activo, true), eq(usuario.rol, "operario"))),
     db.select().from(ausencia),
     db.select().from(planAjuste),
+    db.select().from(tareaBloqueo).where(isNull(tareaBloqueo.resueltoAt)),
   ]);
   const proyectosActivos = proyectosRows.filter((r) => r.m.fechaEntrega);
   const ids = proyectosActivos.map((r) => r.m.id);
@@ -244,10 +245,20 @@ export const getPlan = cache(async (): Promise<ContextoPlan> => {
     ajustes: new Map(ajustes.map((a) => [`${a.otPiezaId}::${a.operacionId}`, { fecha: a.fecha, operarioId: a.operarioId, centroId: a.centroTrabajoId, fijada: a.fijada }])),
     horizonteLiberacion: params.horizonte,
     exigirPlano: params.exigirPlano,
+    bloqueos: new Map(bloqueos.map((b) => [`${b.otPiezaId}::${b.operacionId}`, MOTIVO_BLOQUEO[b.motivo] ?? b.texto ?? "No se puede hacer"])),
   };
   const resultado = planificar(entrada);
   return { entrada, resultado, centros, operarios, proyectosInfo, ms: Date.now() - t0 };
 });
+
+/** Motivos de "No puedo hacer esta", en palabras de la planta. */
+export const MOTIVO_BLOQUEO: Record<string, string> = {
+  falta_material: "Falta material",
+  falta_pieza_anterior: "Falta la pieza del paso anterior",
+  falta_plano: "Falta plano o está mal",
+  maquina: "Máquina o herramienta",
+  otro: "Otro motivo",
+};
 
 /** Proyectos que todavía no se planifican (borrador, pausado o sin fecha de entrega). */
 export async function getProyectosSinPlan() {

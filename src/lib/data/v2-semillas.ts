@@ -15,7 +15,7 @@ import { db } from "@/lib/db/client";
 import {
   proceso, feriado, montajeConjunto, configuracion, conjunto, parametro, pieza, operacion, otMaquina, otConjunto, otPieza,
   registroOperacion, parada, reservaStock, asignacionTrabajo, planAjuste, proyectoEvento, pedidoCompra, movimientoStock,
-  remitoItem, ausencia, cliente, proveedor, proveedorServicio, articuloStock, solicitudCompra, tareaRevision, usuario,
+  remitoItem, ausencia, tipoParada, cliente, proveedor, proveedorServicio, articuloStock, solicitudCompra, tareaRevision, usuario,
 } from "@/lib/db/schema";
 import { FERIADOS_AR, sumarHabiles } from "@/lib/planning/calendario";
 import { generarOtMaquina, generarOrdenSuelta, enviarAProduccion } from "./ot";
@@ -72,6 +72,17 @@ export async function sembrarEstimaciones(): Promise<string[]> {
     await db.update(proceso).set({ setupMin: t.setup ?? null, minPorUnidad: t.unidad ?? null, plazoDias: t.plazo ?? null, tiempoOrigen: "estimado" }).where(eq(proceso.id, p.id));
   }
   log.push(`tiempos por proceso: ${procesos.filter((p) => TIEMPOS[p.id]).length}`);
+
+  // Motivos de parada de la vista de operario (mejoras de usabilidad §3.5). Los anteriores quedan para el historial.
+  await db
+    .insert(tipoParada)
+    .values([
+      { id: "maquina", codigo: "MAQUINA", nombre: "Máquina" },
+      { id: "herramienta", codigo: "HERRAMIENTA", nombre: "Herramienta" },
+      { id: "calidad", codigo: "CALIDAD", nombre: "Calidad" },
+      { id: "me-llamaron", codigo: "ME_LLAMARON", nombre: "Me llamaron" },
+    ])
+    .onConflictDoNothing();
 
   await db.insert(feriado).values(FERIADOS_AR.map((f) => ({ ...f, tipo: "nacional" }))).onConflictDoNothing();
   log.push(`feriados: ${FERIADOS_AR.length}`);

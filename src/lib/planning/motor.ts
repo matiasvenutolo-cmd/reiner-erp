@@ -93,6 +93,8 @@ export type EntradaMotor = {
   ajustes: Map<string, Ajuste>;
   horizonteLiberacion: number;
   exigirPlano: boolean;
+  /** "otPiezaId::operacionId" → motivo, cuando el operario marcó "No puedo hacer esta". */
+  bloqueos?: Map<string, string>;
 };
 
 export type Nivel = "atrasada" | "arranca_tarde" | "urgente" | "en_plazo" | "futura";
@@ -387,6 +389,11 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
             motivo = "Tercerizado demorado";
           }
         } else estado = "lista";
+        const bloqueo = e.bloqueos?.get(`${pz.otPiezaId}::${paso.operacionId}`);
+        if (bloqueo && estado !== "terminada" && estado !== "en_curso") {
+          estado = "trabada";
+          motivo = bloqueo;
+        }
         tareas.push({
           clave: `${pz.otPiezaId}::${paso.operacionId}`,
           proyectoId: p.id,
