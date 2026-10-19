@@ -3,6 +3,7 @@ import { getUsuarioActual } from "@/lib/session";
 import { getMenu, ROL_LABEL } from "@/lib/nav";
 import { cerrarSesionAction } from "@/app/actions/sesion";
 import { Sidebar } from "@/components/Sidebar";
+import { getContadoresMenu } from "@/lib/data/contadores";
 
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const usuario = await getUsuarioActual();
@@ -44,7 +45,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex flex-col md:flex-row">
       <Sidebar
         usuario={{ nombre: usuario.nombre, rolLabel: ROL_LABEL[usuario.rol] }}
-        secciones={getMenu(usuario.rol)}
+        secciones={getMenu(usuario.rol, await getContadoresMenu().catch(() => ({})))}
         cerrarSesionAction={cerrarSesionAction}
       />
       <main className="flex-1 min-w-0 px-4 py-6 md:px-8 md:py-8">

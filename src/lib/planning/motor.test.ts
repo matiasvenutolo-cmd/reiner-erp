@@ -117,3 +117,35 @@ test("montaje: conjuntos alternativos (mismo orden) comparten el tramo y no suma
   assert.equal(a.conjuntos.get("C23")!.inicio, "2026-12-09");
   assert.equal(a.conjuntos.get("C1")!.inicio, "2026-12-07");
 });
+
+test("lotes: una tarea grande se parte y el lote 1 del paso siguiente no espera al último lote", () => {
+  const p = proyecto([paso("A", { horas: 20, setupHoras: 0.5, porUnidadHoras: 0.13, lote: 30 }), paso("B", { horas: 10, setupHoras: 0.5, porUnidadHoras: 0.06, lote: 30 })], {
+    piezas: [{ otPiezaId: "X", codigo: "X1", nombre: "Pieza", cantidad: 150, conjuntoId: "C1", liberada: true, tienePlano: true, clase: "fabricada", sinRuta: false, pasos: [] }],
+  });
+  p.piezas[0].pasos = [paso("A", { horas: 20, setupHoras: 0.5, porUnidadHoras: 0.13, lote: 30 }), paso("B", { horas: 10, setupHoras: 0.5, porUnidadHoras: 0.06, lote: 30 })];
+  const r = planificar(entrada(p));
+  const a = r.tareas.filter((t) => t.operacionId === "A");
+  const b = r.tareas.filter((t) => t.operacionId === "B");
+  assert.equal(a.length, 5);
+  assert.deepEqual(a[0].lote, { n: 1, de: 5 });
+  assert.equal(a[0].cantidad, 30);
+  // El lote 1 de B arranca antes de que termine el último lote de A.
+  assert.ok(b[0].fechaPlan! <= a[4].finPlan!);
+});
+
+test("carga por operario: un operario en dos centros nunca pasa sus horas del día", () => {
+  const cnc: CentroEntrada = { id: "CNC", nombre: "CNC", horasDia: 8, maquinas: 1, eficiencia: 0.85, operarios: [{ id: "op1", nombre: "Uno" }] };
+  const p = proyecto([paso("A", { horas: 6 }), paso("B", { horas: 6, centroId: "CNC" })]);
+  p.piezas.push({ ...p.piezas[0], otPiezaId: "Y", pasos: [paso("C", { horas: 6, centroId: "CNC" })] });
+  const r = planificar({ ...entrada(p), centros: [torno, cnc], horasOperarioDia: 6.8 });
+  for (const h of r.cargaOperario.get("op1")!.values()) assert.ok(h <= 6.8 + 1e-6);
+});
+
+test("plan factible: lo que nació tarde es 'arranca tarde' y 'pedir ya', no atrasado ni vencido", () => {
+  const p = proyecto([paso("M", { tipo: "compras", horas: 0, plazoDias: 20 }), paso("A")], { entrega: "2026-11-12", inicio: "2026-11-02" });
+  const r = planificar(entrada(p));
+  assert.equal(r.compras[0].pedirYa, true);
+  assert.equal(r.tareas.find((t) => t.operacionId === "A")!.nivel, "arranca_tarde");
+  const r2 = planificar({ ...entrada(p), asignadasAntes: new Set(["X::A"]) });
+  assert.equal(r2.tareas.find((t) => t.operacionId === "A")!.nivel, "atrasada");
+});

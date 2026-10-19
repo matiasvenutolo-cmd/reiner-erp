@@ -173,8 +173,10 @@ export async function iniciarOperacion(
     return { ok: false, error: "Esta pieza todavía no fue enviada a producción." };
   }
   // Sólo el paso que sigue en la hoja de ruta, y sólo si le corresponde a este operario.
-  const { operacionActual } = await getEstadoYOperacionActual(op);
-  if (!operacionActual || operacionActual.id !== input.operacionId) {
+  const { operacionesDisponibles } = await getEstadoYOperacionActual(op);
+  // v2 — con lotes puede haber más de un paso disponible (el lote terminado ya pasa al siguiente).
+  const operacionActual = operacionesDisponibles?.find((x) => x.id === input.operacionId) ?? null;
+  if (!operacionActual) {
     return { ok: false, error: "Esa no es la operación que sigue en la hoja de ruta de la pieza." };
   }
   const { centroIds, asignadasHoy } = await getHabilitacionOperario(input.usuarioId);

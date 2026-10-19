@@ -19,7 +19,11 @@ function ItemLink({ item, activo, onClick }: { item: ItemNav; activo: boolean; o
       }`}
     >
       <Icono nombre={ICONO_RUTA[item.href] ?? "flecha"} className={`w-[18px] h-[18px] shrink-0 ${activo ? "" : "text-foreground-muted"}`} />
-      {item.label}
+      <span className="flex-1 min-w-0 truncate">{item.label}</span>
+      {/* Número sólo cuando hay algo que hacer (§1.1): nada de badges en cero. */}
+      {item.contador ? (
+        <span className={`ml-auto rounded-full px-2 py-0.5 text-[12px] font-semibold tabular-nums ${activo ? "bg-white/25 text-white" : "bg-accent-soft text-accent-hover"}`}>{item.contador}</span>
+      ) : null}
     </Link>
   );
 }
@@ -43,6 +47,9 @@ export function Sidebar({
   const [abierto, setAbierto] = useState(false);
   const activo = itemDelMenu(pathname);
   const cerrar = () => setAbierto(false);
+  // Las áreas que no son del perfil arrancan colapsadas (§1.1); la del ítem actual siempre abierta.
+  const [desplegadas, setDesplegadas] = useState<Record<string, boolean>>({});
+  const estaAbierta = (s: SeccionNav) => desplegadas[s.grupo ?? ""] ?? (s.abierta || s.items.some((i) => i.href === activo));
 
   const contenido = (
     <>
@@ -50,18 +57,27 @@ export function Sidebar({
         <Image src="/reiner-logo.png" alt="REINER" width={104} height={22} priority />
       </div>
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
-        {secciones.map((s) => (
-          <div key={s.grupo ?? "inicio"} className="space-y-0.5">
-            {s.grupo && (
-              <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-foreground-muted">
-                {GRUPO_LABEL[s.grupo]}
-              </div>
-            )}
-            {s.items.map((item) => (
-              <ItemLink key={item.href} item={item} activo={activo === item.href} onClick={cerrar} />
-            ))}
-          </div>
-        ))}
+        {secciones.map((s) => {
+          const abiertaSec = estaAbierta(s);
+          const pendientes = s.items.reduce((n, i) => n + (i.contador ?? 0), 0);
+          return (
+            <div key={s.grupo ?? "inicio"} className="space-y-0.5">
+              {s.grupo && (
+                <button
+                  type="button"
+                  onClick={() => setDesplegadas((d) => ({ ...d, [s.grupo!]: !abiertaSec }))}
+                  aria-expanded={abiertaSec}
+                  className="w-full flex items-center gap-1 px-3 pb-1 text-[12px] font-semibold text-foreground-muted hover:text-foreground"
+                >
+                  <Icono nombre={abiertaSec ? "abajo" : "derecha"} className="w-3.5 h-3.5" />
+                  <span className="flex-1 text-left">{GRUPO_LABEL[s.grupo]}</span>
+                  {!abiertaSec && pendientes > 0 && <span className="rounded-full bg-accent-soft text-accent-hover px-1.5 text-[11px] tabular-nums">{pendientes}</span>}
+                </button>
+              )}
+              {abiertaSec && s.items.map((item) => <ItemLink key={item.href} item={item} activo={activo === item.href} onClick={cerrar} />)}
+            </div>
+          );
+        })}
       </nav>
       <div className="border-t border-border p-3 space-y-2">
         <div className="px-1 leading-tight">

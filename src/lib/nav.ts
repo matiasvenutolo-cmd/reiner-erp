@@ -1,11 +1,26 @@
 import type { Usuario } from "@/lib/db/schema";
 
+/**
+ * Cada perfil entra a su pantalla (mejoras de usabilidad §1.1): el jefe de
+ * planta al Plan de la semana, compras a Pedir esta semana, dirección a
+ * ¿Llegamos?, ingeniería a Liberación de piezas. El acceso a todo lo demás
+ * sigue igual: sólo cambia lo que se ve primero.
+ */
 export const HOME_POR_ROL: Record<Usuario["rol"], string> = {
   operario: "/taller",
-  taller: "/inicio",
-  ingenieria: "/inicio",
-  direccion: "/inicio",
-  compras: "/compras",
+  taller: "/planificacion",
+  ingenieria: "/liberacion",
+  direccion: "/llegamos",
+  compras: "/pedir",
+};
+
+/** Áreas del menú que cada perfil ve abiertas; las demás quedan colapsadas (se abren con un toque). */
+export const AREAS_DEL_ROL: Record<Usuario["rol"], GrupoNav[]> = {
+  operario: [],
+  taller: ["produccion"],
+  ingenieria: ["ingenieria", "admin"],
+  direccion: ["produccion"],
+  compras: ["compras", "stock"],
 };
 
 export const ROL_LABEL: Record<Usuario["rol"], string> = {
@@ -27,7 +42,7 @@ export const GRUPO_LABEL: Record<GrupoNav, string> = {
   admin: "Admin",
 };
 
-export type ItemNav = { href: string; label: string; grupo?: GrupoNav; ayuda?: string };
+export type ItemNav = { href: string; label: string; grupo?: GrupoNav; ayuda?: string; contador?: number };
 
 type NavEntry = ItemNav & {
   roles: Usuario["rol"][];
@@ -75,6 +90,7 @@ const NAV_ITEMS: NavEntry[] = [
   { href: "/maestros", label: "Piezas y hojas de ruta", roles: STAFF, grupo: "ingenieria", ayuda: "Máquinas, conjuntos, piezas, rutas y tiempos" },
   { href: "/liberacion", label: "Liberación de piezas", roles: STAFF, grupo: "ingenieria", ayuda: "Qué piezas entran al plan" },
 
+  { href: "/admin/configuracion", label: "Configuración pendiente", roles: STAFF, grupo: "admin", ayuda: "Datos que faltan cargar para que el plan sea confiable" },
   { href: "/operaciones", label: "Operaciones y centros", roles: STAFF, grupo: "admin", ayuda: "Tiempos por proceso y capacidad" },
   { href: "/admin/calendario", label: "Calendario", roles: STAFF, grupo: "admin", ayuda: "Feriados, cierres y ausencias" },
   { href: "/admin/montaje", label: "Secuencias de montaje", roles: STAFF, grupo: "admin" },
@@ -86,17 +102,17 @@ const NAV_ITEMS: NavEntry[] = [
   { href: "/taller", label: "Mi próxima tarea", roles: ["operario"] },
 ];
 
-export type SeccionNav = { grupo: GrupoNav | null; items: ItemNav[] };
+export type SeccionNav = { grupo: GrupoNav | null; items: ItemNav[]; abierta: boolean };
 
 /** Menú del rol, agrupado por área en el orden de NAV_ITEMS. */
-export function getMenu(rol: Usuario["rol"]): SeccionNav[] {
+export function getMenu(rol: Usuario["rol"], contadores: Record<string, number> = {}): SeccionNav[] {
   const secciones: SeccionNav[] = [];
   for (const item of NAV_ITEMS) {
     if (!item.roles.includes(rol) || item.enMenu === false) continue;
     const grupo = item.grupo ?? null;
     let seccion = secciones.find((s) => s.grupo === grupo);
-    if (!seccion) secciones.push((seccion = { grupo, items: [] }));
-    seccion.items.push({ href: item.href, label: item.label, grupo: item.grupo, ayuda: item.ayuda });
+    if (!seccion) secciones.push((seccion = { grupo, items: [], abierta: !grupo || AREAS_DEL_ROL[rol].includes(grupo) }));
+    seccion.items.push({ href: item.href, label: item.label, grupo: item.grupo, ayuda: item.ayuda, contador: contadores[item.href] || undefined });
   }
   return secciones;
 }

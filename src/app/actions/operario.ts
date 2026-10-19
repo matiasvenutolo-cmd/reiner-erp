@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { tareaBloqueo, tareaAdelanto, avisoPlanta, otPieza, otConjunto, proyectoEvento, usuario, pieza } from "@/lib/db/schema";
@@ -41,6 +41,7 @@ async function correr(fd: FormData, fn: (usuarioId: string) => Promise<string | 
   }
   if (error) redirect(`${volver}${sep}error=${encodeURIComponent(error)}`);
   for (const r of ["/taller", "/inicio", "/planificacion", "/proyectos", "/llegamos"]) revalidatePath(r, "layout");
+  revalidateTag("contadores", { expire: 0 });
   redirect(destino ? destino(usuarioId) : ok ? `${volver}${sep}ok=${encodeURIComponent(ok)}` : volver);
 }
 
@@ -151,6 +152,7 @@ export async function destrabarAction(fd: FormData) {
   const u = await getUsuarioDePlanta();
   await db.update(tareaBloqueo).set({ resueltoAt: new Date(), resueltoPorId: u.id }).where(eq(tareaBloqueo.id, t(fd, "id")));
   for (const r of ["/inicio", "/taller", "/planificacion"]) revalidatePath(r, "layout");
+  revalidateTag("contadores", { expire: 0 });
   redirect(`${t(fd, "volver") || "/inicio"}?ok=${encodeURIComponent("Tarea destrabada: vuelve a la cola del operario.")}`);
 }
 
@@ -159,5 +161,6 @@ export async function resolverAvisoAction(fd: FormData) {
   await db.update(avisoPlanta).set({ resueltoAt: new Date() }).where(eq(avisoPlanta.id, t(fd, "id")));
   revalidatePath("/inicio", "layout");
   revalidatePath("/admin", "layout");
+  revalidateTag("contadores", { expire: 0 });
   redirect(`${t(fd, "volver") || "/inicio"}?ok=${encodeURIComponent("Aviso resuelto.")}`);
 }

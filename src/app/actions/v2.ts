@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { plural } from "@/lib/formato";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
@@ -11,7 +11,7 @@ import {
 } from "@/lib/db/schema";
 import { getUsuarioActual, getUsuarioDePlanta } from "@/lib/session";
 import { enviarAProduccion } from "@/lib/data/ot";
-import { getPlan } from "@/lib/planning/datos";
+import { getPlan, construirPlan } from "@/lib/planning/datos";
 import { proximosHabiles } from "@/lib/planning/calendario";
 import { registrarLlegadaPedido } from "@/lib/data/compras";
 import { getEstadoYOperacionActual } from "@/lib/data/ot";
@@ -39,6 +39,7 @@ async function correr(volver: string, fn: () => Promise<string | void>) {
   if (error) redirect(con(`error=${encodeURIComponent(error)}`));
   for (const r of ["/inicio", "/planificacion", "/proyectos", "/llegamos", "/pedir", "/liberacion", "/taller", "/stock", "/admin", "/operaciones", "/maestros", "/tercerizados"])
     revalidatePath(r, "layout");
+  revalidateTag("contadores", { expire: 0 });
   redirect(ok ? con(`ok=${encodeURIComponent(ok)}`) : volver);
 }
 
@@ -145,10 +146,26 @@ export async function confirmarSemanaAction(fd: FormData) {
 export async function activarProyectoAction(fd: FormData) {
   const u = await getUsuarioDePlanta();
   const id = t(fd, "id");
+  // Plan factible (§1.4): antes de activar, se calcula hacia adelante desde hoy. Si no llega, se pregunta.
+  const entregaPedida = t(fd, "fechaEntrega");
+  if (entregaPedida && !fd.has("confirmado")) {
+    const prioridad = t(fd, "prioridad") === "alta" ? "alta" : "normal";
+    const sim = await construirPlan({ id, entrega: entregaPedida, prioridad });
+    const pp = sim.resultado.proyectos.find((x) => x.id === id);
+    if (pp && pp.diferenciaDias > 0) {
+      const causas = [...pp.causas.map((c) => c.causa)];
+      for (const c of pp.conjuntos.filter((x) => x.causa && x.atrasoDias > 0).sort((a, b) => b.atrasoDias - a.atrasoDias)) {
+        if (causas.length >= 3) break;
+        if (!causas.some((k) => JSON.stringify(k) === JSON.stringify(c.causa))) causas.push(c.causa!);
+      }
+      const q = new URLSearchParams({ temprana: pp.finEstimado, entrega: entregaPedida, prioridad, causas: JSON.stringify(causas.slice(0, 3)), quitar: fd.getAll("quitarOtPiezaId").map(String).join(",") });
+      redirect(`/proyectos/${id}?${q}`);
+    }
+  }
   await correr(`/proyectos/${id}`, async () => {
     const entrega = t(fd, "fechaEntrega");
     if (!entrega) throw new Error("La fecha de entrega comprometida es obligatoria para activar el proyecto.");
-    const quitar = fd.getAll("quitarOtPiezaId").map(String);
+    const quitar = [...fd.getAll("quitarOtPiezaId").map(String), ...t(fd, "quitar").split(",")].filter(Boolean);
     if (quitar.length) await db.update(otPieza).set({ cantidadAFabricar: 0 }).where(inArray(otPieza.id, quitar));
     await db
       .update(otMaquina)

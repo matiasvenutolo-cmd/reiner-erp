@@ -38,6 +38,15 @@ export type PasoEntrada = {
   /** Compra pedida: fecha prometida (o pedido + plazo). */
   llegadaPrevista?: string | null;
   pedido?: boolean;
+  /** v2 — partes del tiempo, para partir la tarea en lotes (setup por lote + minutos por unidad). */
+  setupHoras?: number;
+  porUnidadHoras?: number;
+  /** v2 — tamaño de lote (si es menor que la cantidad, la tarea se parte). */
+  lote?: number | null;
+  /** v2 — piezas ya declaradas (OK + rechazadas) en este paso, para saber qué lotes terminaron. */
+  declaradas?: number;
+  /** v2 — piezas OK ya hechas en este paso (las que pueden pasar al siguiente). */
+  hechasOk?: number;
 };
 
 export type PiezaEntrada = {
@@ -69,6 +78,8 @@ export type ProyectoEntrada = {
   conjuntos: ConjuntoEntrada[];
   piezas: PiezaEntrada[];
   piezasCubiertasConStock: number;
+  /** v2 — fecha de alta del proyecto: lo que ya venía tarde al nacer "arranca tarde" o "pedir ya", no "atrasado". */
+  inicio?: string;
 };
 
 export type CentroEntrada = {
@@ -95,6 +106,10 @@ export type EntradaMotor = {
   exigirPlano: boolean;
   /** "otPiezaId::operacionId" → motivo, cuando el operario marcó "No puedo hacer esta". */
   bloqueos?: Map<string, string>;
+  /** v2 — tareas que estaban en un plan confirmado de un día anterior y no se empezaron (pasan de "arranca tarde" a atrasada). */
+  asignadasAntes?: Set<string>;
+  /** v2 — horas que se le pueden planificar a un operario por día (calendario × eficiencia). */
+  horasOperarioDia?: number;
 };
 
 export type Nivel = "atrasada" | "arranca_tarde" | "urgente" | "en_plazo" | "futura";
@@ -135,6 +150,10 @@ export type Tarea = {
   tarde: boolean;
   /** Horas que ocupa en cada día del plan (puede repartirse en varios días). */
   horasPorDia: Record<string, number>;
+  /** v2 — lote de una tarea partida: "lote 2 de 5". */
+  lote?: { n: number; de: number } | null;
+  /** v2 — nació con margen negativo (al dar de alta el proyecto ya no llegaba). */
+  nacioTarde?: boolean;
 };
 
 export type Compra = {
@@ -155,7 +174,17 @@ export type Compra = {
   pedido: boolean;
   llegadaPrevista: string | null;
   holgura: number;
+  /** v2 — el "pedir antes del" ya había pasado cuando se generó: "Pedir ya" (naranja), no "Vencida" (rojo). */
+  pedirYa?: boolean;
 };
+
+/** v2 — La causa raíz de un atraso (mejoras de usabilidad §1.5): la que, si se resuelve, corre las demás. */
+export type Causa =
+  | { tipo: "compra"; conjunto: string; pieza: string; pedirAntes: string; pedido: boolean; llegada: string | null; pedirYa: boolean }
+  | { tipo: "comercial"; conjunto: string; pieza: string; pedirAntes: string; pedido: boolean; llegada: string | null; pedirYa: boolean }
+  | { tipo: "tercerizado"; conjunto: string; pieza: string; paso: string; vuelta: string }
+  | { tipo: "capacidad"; conjunto: string; pieza: string; centroId: string; centro: string; desde: string }
+  | { tipo: "sin_liberar"; conjunto: string; pieza: string };
 
 export type ConjuntoPlan = {
   id: string;
@@ -172,6 +201,10 @@ export type ConjuntoPlan = {
   /** Días hábiles de atraso del montaje estimado contra el límite. */
   atrasoDias: number;
   motivoAtraso: string | null;
+  /** v2 — se atrasa sólo porque espera al conjunto anterior en la secuencia (se muestra en gris). */
+  esperaA?: { codigo: string; nombre: string } | null;
+  /** v2 — si se atrasa por sus propias piezas, por qué. */
+  causa?: Causa | null;
   fabricacionDesde: string | null;
   piezas: { total: number; terminadas: number; enCurso: number; listas: number; trabadas: number; futuras: number };
 };
@@ -194,6 +227,8 @@ export type ProyectoPlan = {
   conjuntos: ConjuntoPlan[];
   piezasCubiertasConStock: number;
   piezasSinRuta: number;
+  /** v2 — hasta 2 causas raíz independientes, ordenadas por días de atraso. */
+  causas: { causa: Causa; dias: number }[];
 };
 
 export type ResultadoMotor = {
@@ -206,6 +241,8 @@ export type ResultadoMotor = {
   capacidad: Map<string, Map<string, number>>;
   /** Piezas no liberadas cuyo primer paso entra en el horizonte. */
   tandas: { proyectoId: string; otPiezaIds: string[]; sinPlano: string[] }[];
+  /** v2 — operarioId → fecha → horas planificadas (§1.7). */
+  cargaOperario: Map<string, Map<string, number>>;
 };
 
 export const CENTRO_POR_DEFECTO = "TALLER";
@@ -296,6 +333,8 @@ class Capacidad {
     private centros: Map<string, CentroEntrada>,
     private ausencias: Map<string, Set<string>>,
     private cal: Calendario,
+    /** v2 — horas por operario por día (mejoras de usabilidad §1.7). */
+    private horasOperario: number,
   ) {}
   total(centroId: string, dia: string): number {
     let m = this.disponible.get(centroId);
@@ -319,27 +358,46 @@ class Capacidad {
     if (!m) this.usado.set(centroId, (m = new Map()));
     m.set(dia, (m.get(dia) ?? 0) + horas);
   }
-  /** Operario habilitado con menos carga ese día (sin ausentes). */
-  operario(centroId: string, dia: string, horas: number, fijo: string | null): string | null {
+  cargaOperario(id: string, dia: string): number {
+    return this.porOperario.get(id)?.get(dia) ?? 0;
+  }
+  libreOperario(id: string, dia: string): number {
+    if (this.ausencias.get(id)?.has(dia) || !esHabil(dia, this.cal)) return 0;
+    return this.horasOperario - this.cargaOperario(id, dia);
+  }
+  /**
+   * Operario para ese día: el fijado a mano, o el habilitado (presente) con más
+   * horas libres. Si un operario está en dos centros, sus horas se reparten
+   * entre los dos: nunca se le planifica más que su día (§1.7).
+   */
+  elegirOperario(centroId: string, dia: string, fijo: string | null): { id: string | null; libre: number } {
     const ops = this.centros.get(centroId)?.operarios ?? [];
-    const presentes = ops.filter((o) => !this.ausencias.get(o.id)?.has(dia));
-    const elegido = fijo ?? [...presentes].sort((a, b) => (this.porOperario.get(a.id)?.get(dia) ?? 0) - (this.porOperario.get(b.id)?.get(dia) ?? 0))[0]?.id ?? null;
-    if (elegido) {
-      let m = this.porOperario.get(elegido);
-      if (!m) this.porOperario.set(elegido, (m = new Map()));
-      m.set(dia, (m.get(dia) ?? 0) + horas);
-    }
-    return elegido;
+    if (fijo) return { id: fijo, libre: this.libreOperario(fijo, dia) };
+    if (!ops.length) return { id: null, libre: Infinity };
+    const mejor = [...ops].map((o) => ({ id: o.id, libre: this.libreOperario(o.id, dia) })).sort((a, b) => b.libre - a.libre)[0];
+    return mejor;
+  }
+  asignarOperario(id: string | null, dia: string, horas: number) {
+    if (!id) return;
+    let m = this.porOperario.get(id);
+    if (!m) this.porOperario.set(id, (m = new Map()));
+    m.set(dia, (m.get(dia) ?? 0) + horas);
   }
 }
 
 // ── Motor completo ────────────────────────────────────────────────────────
 
+/** Nivel de margen de una tarea, con la regla de "arranca tarde" (§1.4): lo que nació tarde es naranja, no rojo, hasta que alguien no lo empezó a tiempo. */
+function nivelTarea(holgura: number, nacioTarde: boolean, noSeEmpezo: boolean): Nivel {
+  const n = nivelDe(holgura);
+  return n === "atrasada" && nacioTarde && !noSeEmpezo ? "arranca_tarde" : n;
+}
+
 export function planificar(e: EntradaMotor): ResultadoMotor {
   const cal = e.calendario;
   const hoy = ajustarAHabil(e.hoy, cal);
   const centros = new Map(e.centros.map((c) => [c.id, c]));
-  const cap = new Capacidad(centros, e.ausencias, cal);
+  const cap = new Capacidad(centros, e.ausencias, cal, e.horasOperarioDia ?? 6.8);
   const tareas: Tarea[] = [];
   const compras: Compra[] = [];
   const tandas: ResultadoMotor["tandas"] = [];
@@ -349,6 +407,7 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
   for (const p of e.proyectos) {
     const atras = haciaAtras(p, centros, cal);
     atrasPorProyecto.set(p.id, atras);
+    const inicioProyecto = p.inicio ? ajustarAHabil(p.inicio, cal) : null;
     const tanda: string[] = [];
     const sinPlano: string[] = [];
     for (const pz of p.piezas) {
@@ -365,6 +424,9 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
         const holgura = habilesEntre(hoy, a.inicioMasTardio, cal);
         let estado: EstadoTarea;
         let motivo: string | null = null;
+        // Con lotes, el paso siguiente puede arrancar con las piezas del lote terminado.
+        const anterior = i > 0 ? pz.pasos[i - 1] : null;
+        const flujoDeLote = !!anterior?.lote && (anterior.hechasOk ?? 0) > (paso.declaradas ?? 0);
         if (paso.estado === "terminada") estado = "terminada";
         else if (paso.estado === "en_curso") estado = "en_curso";
         else if (paso.estado === "pausada") estado = "pausada";
@@ -374,7 +436,7 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
             estado = "trabada";
             motivo = "Falta plano";
           }
-        } else if (i !== actual) estado = "liberada";
+        } else if (i !== actual && !(flujoDeLote && paso.tipo === "interno")) estado = "liberada";
         else if (paso.tipo === "compras") {
           estado = "liberada";
           motivo = "Esperando material";
@@ -389,13 +451,15 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
             motivo = "Tercerizado demorado";
           }
         } else estado = "lista";
-        const bloqueo = e.bloqueos?.get(`${pz.otPiezaId}::${paso.operacionId}`);
+        const claveBase = `${pz.otPiezaId}::${paso.operacionId}`;
+        const bloqueo = e.bloqueos?.get(claveBase);
         if (bloqueo && estado !== "terminada" && estado !== "en_curso") {
           estado = "trabada";
           motivo = bloqueo;
         }
-        tareas.push({
-          clave: `${pz.otPiezaId}::${paso.operacionId}`,
+        const nacioTarde = !!inicioProyecto && a.inicioMasTardio < inicioProyecto;
+        const base: Tarea = {
+          clave: claveBase,
           proyectoId: p.id,
           proyectoCodigo: p.codigo,
           proyectoTipo: p.tipo,
@@ -415,7 +479,7 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
           fechaLimite: a.fechaLimite,
           inicioMasTardio: a.inicioMasTardio,
           holgura,
-          nivel: nivelDe(holgura),
+          nivel: nivelTarea(holgura, nacioTarde, !!e.asignadasAntes?.has(claveBase)),
           estado,
           motivoTraba: motivo,
           estimado: paso.estimado,
@@ -427,7 +491,38 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
           movida: false,
           tarde: false,
           horasPorDia: {},
-        });
+          lote: null,
+          nacioTarde,
+        };
+        // Tareas grandes partidas en lotes (§1.6): cada lote es una tarjeta propia, con su setup.
+        const lote = paso.tipo === "interno" && paso.lote && paso.lote < pz.cantidad ? paso.lote : null;
+        if (!lote) {
+          tareas.push(base);
+          return;
+        }
+        const de = Math.ceil(pz.cantidad / lote);
+        const declaradas = paso.declaradas ?? 0;
+        let primeroPendiente = true;
+        for (let n = 1; n <= de; n++) {
+          const cant = n < de ? lote : pz.cantidad - lote * (de - 1);
+          const hechoHasta = lote * (n - 1) + cant;
+          const terminado = declaradas >= hechoHasta;
+          let est: EstadoTarea = terminado ? "terminada" : estado;
+          if (!terminado) {
+            if (primeroPendiente) primeroPendiente = false;
+            else if (est === "lista" || est === "en_curso" || est === "pausada") est = "liberada";
+          }
+          // El lote n del paso siguiente está listo cuando el lote n del anterior ya pasó.
+          if (!terminado && est === "liberada" && anterior?.lote && (anterior.hechasOk ?? 0) >= hechoHasta && pz.liberada) est = "lista";
+          tareas.push({
+            ...base,
+            clave: `${claveBase}::L${n}`,
+            cantidad: cant,
+            horas: (paso.setupHoras ?? 0) + (paso.porUnidadHoras ?? paso.horas / pz.cantidad) * cant,
+            estado: est,
+            lote: { n, de },
+          });
+        }
       });
     }
     if (tanda.length || sinPlano.length) tandas.push({ proyectoId: p.id, otPiezaIds: tanda, sinPlano });
@@ -451,6 +546,8 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
         pedido: c.pedido,
         llegadaPrevista: c.llegadaPrevista,
         holgura: habilesEntre(hoy, pedirAntes, cal),
+        // Plan factible (§1.4): si al nacer el proyecto ya había pasado el día para pedirlo, es "Pedir ya", no "Vencida".
+        pedirYa: !!inicioProyecto && pedirAntes < inicioProyecto,
       });
     }
   }
@@ -466,8 +563,10 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
 
   const prioridad = new Map(e.proyectos.map((p) => [p.id, p.prioridad]));
   const piezas = e.proyectos.flatMap((p) => p.piezas.map((pz) => ({ p, pz })));
+  const tareasDePieza = new Map<string, Tarea[]>();
+  for (const t of tareas) tareasDePieza.set(t.otPiezaId, [...(tareasDePieza.get(t.otPiezaId) ?? []), t]);
   const holguraActual = (pz: PiezaEntrada) => {
-    const t = tareas.find((x) => x.otPiezaId === pz.otPiezaId && x.estado !== "terminada");
+    const t = tareasDePieza.get(pz.otPiezaId)?.find((x) => x.estado !== "terminada");
     return t ? t.holgura : Infinity;
   };
   // Primero las liberadas (son las que se pueden hacer); después las que todavía no entraron al plan.
@@ -479,114 +578,197 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
   );
 
   const finPieza = new Map<string, string>();
+  /** Por pieza: la primera tarea que terminó después de su fecha límite (de ahí sale la causa raíz). */
+  const origenAtraso = new Map<string, { t: Tarea; porLiberar: boolean }>();
+  const compraDe = new Map(compras.map((c) => [c.clave, c]));
   for (const { p, pz } of piezas) {
-    let desde = hoy;
+    let desdeInicial = hoy;
+    let porLiberar = false;
     if (!pz.liberada) {
       // Una pieza no liberada no ocupa el plan de esta semana: arranca cuando entraría en la tanda
       // (horizonte de liberación) y, como pronto, la semana que viene — liberarla es una decisión.
-      const primero = tareas.find((x) => x.otPiezaId === pz.otPiezaId);
+      const primero = tareasDePieza.get(pz.otPiezaId)?.[0];
       const semanaQueViene = sumarHabiles(hoy, 5, cal);
-      if (semanaQueViene > desde) desde = semanaQueViene;
+      if (semanaQueViene > desdeInicial) desdeInicial = semanaQueViene;
       if (primero) {
         const libera = sumarHabiles(primero.inicioMasTardio, -e.horizonteLiberacion, cal);
-        if (libera > desde) desde = libera;
+        if (libera > desdeInicial) desdeInicial = libera;
       }
+      porLiberar = desdeInicial > hoy;
     }
     if (pz.compraEntera && !pz.compraEntera.recibida) {
-      const llega = pz.compraEntera.llegadaPrevista ?? sumarHabiles(desde, pz.compraEntera.plazoDias, cal);
+      const llega = pz.compraEntera.llegadaPrevista ?? sumarHabiles(desdeInicial, pz.compraEntera.plazoDias, cal);
       finPieza.set(pz.otPiezaId, llega > hoy ? llega : hoy);
       continue;
     }
+    // Fin de cada paso (y de cada lote) para encadenar: el lote n del paso siguiente espera al lote n del anterior.
+    const finPaso = new Map<number, { fin: string; lotes: string[]; conLote: boolean }>();
     let ultimoFin = hoy;
-    for (const t of tareas.filter((x) => x.otPiezaId === pz.otPiezaId)) {
-      if (t.estado === "terminada") continue;
+    for (const t of tareasDePieza.get(pz.otPiezaId) ?? []) {
       const paso = pz.pasos[t.posicion - 1];
+      const previo = finPaso.get(t.posicion - 1);
+      let desde = desdeInicial;
+      if (previo) {
+        const dep = t.lote && previo.conLote && previo.lotes[t.lote.n - 1] ? previo.lotes[t.lote.n - 1] : previo.fin;
+        const siguiente = sumarHabiles(dep, 1, cal);
+        if (siguiente > desde) desde = siguiente;
+      }
+      if (t.estado === "terminada") {
+        const registro = finPaso.get(t.posicion) ?? { fin: hoy, lotes: [], conLote: !!t.lote };
+        if (t.lote) registro.lotes[t.lote.n - 1] = hoy;
+        finPaso.set(t.posicion, registro);
+        continue;
+      }
       if (t.tipo === "compras") {
-        const compra = compras.find((c) => c.clave === t.clave);
+        const compra = compraDe.get(t.clave);
         const llega = paso.llegadaPrevista ?? sumarHabiles(compra && compra.pedirAntes > desde ? compra.pedirAntes : desde, paso.plazoDias, cal);
         t.fechaPlan = desde;
         t.finPlan = llega < hoy ? hoy : llega;
-        desde = sumarHabiles(t.finPlan, 1, cal);
       } else if (t.tipo === "tercerizado") {
         const salida = paso.estado === "afuera" ? hoy : desde;
         const vuelta = paso.vueltaPrevista ?? sumarHabiles(salida, paso.plazoDias, cal);
         t.fechaPlan = salida;
         t.finPlan = vuelta < hoy ? hoy : vuelta;
-        desde = sumarHabiles(t.finPlan, 1, cal);
-      } else {
-        if (!t.fijada) {
-          const aj = e.ajustes.get(t.clave);
-          const inicio = aj?.fecha && aj.fecha >= desde ? ajustarAHabil(aj.fecha, cal) : desde;
-          ubicarInterno(t, inicio, aj?.centroId ?? t.centroId!, aj?.operarioId ?? null, cap, cal, !!aj?.fecha);
-          t.movida = !!aj?.fecha || !!aj?.operarioId;
-        }
-        desde = sumarHabiles(t.finPlan!, 1, cal);
+      } else if (!t.fijada) {
+        const aj = e.ajustes.get(t.clave);
+        const inicio = aj?.fecha && aj.fecha >= desde ? ajustarAHabil(aj.fecha, cal) : desde;
+        ubicarInterno(t, inicio, aj?.centroId ?? t.centroId!, aj?.operarioId ?? null, cap, cal, !!aj?.fecha);
+        t.movida = !!aj?.fecha || !!aj?.operarioId;
       }
       t.tarde = !!t.finPlan && t.finPlan > t.fechaLimite;
-      ultimoFin = t.finPlan!;
+      if (t.tarde && !origenAtraso.has(pz.otPiezaId)) origenAtraso.set(pz.otPiezaId, { t, porLiberar });
+      const registro = finPaso.get(t.posicion) ?? { fin: t.finPlan!, lotes: [], conLote: !!t.lote };
+      if (t.lote) registro.lotes[t.lote.n - 1] = t.finPlan!;
+      if (t.finPlan! > registro.fin) registro.fin = t.finPlan!;
+      finPaso.set(t.posicion, registro);
+      if (t.finPlan! > ultimoFin) ultimoFin = t.finPlan!;
     }
     finPieza.set(pz.otPiezaId, ultimoFin);
   }
 
-  // Proyectos: montaje hacia adelante y fecha estimada de fin.
+  /** La causa de una pieza que se atrasa: su primera tarea tarde (compra, tercerizado, capacidad o falta liberar). */
+  const causaDePieza = (p: ProyectoEntrada, pz: PiezaEntrada, conjuntoNombre: string): Causa | null => {
+    if (pz.compraEntera && !pz.compraEntera.recibida) {
+      const c = compraDe.get(`${pz.otPiezaId}::compra`);
+      return { tipo: "comercial", conjunto: conjuntoNombre, pieza: pz.nombre, pedirAntes: c?.pedirAntes ?? hoy, pedido: pz.compraEntera.pedido, llegada: pz.compraEntera.llegadaPrevista, pedirYa: !!c?.pedirYa };
+    }
+    const o = origenAtraso.get(pz.otPiezaId);
+    if (!o) return null;
+    const { t } = o;
+    if (t.tipo === "compras") {
+      const c = compraDe.get(t.clave);
+      return { tipo: "compra", conjunto: conjuntoNombre, pieza: pz.nombre, pedirAntes: c?.pedirAntes ?? t.inicioMasTardio, pedido: !!c?.pedido, llegada: c?.llegadaPrevista ?? null, pedirYa: !!c?.pedirYa };
+    }
+    if (t.tipo === "tercerizado") return { tipo: "tercerizado", conjunto: conjuntoNombre, pieza: pz.nombre, paso: t.paso, vuelta: t.finPlan ?? hoy };
+    if (o.porLiberar && !pz.liberada) return { tipo: "sin_liberar", conjunto: conjuntoNombre, pieza: pz.nombre };
+    return { tipo: "capacidad", conjunto: conjuntoNombre, pieza: pz.nombre, centroId: t.centroId ?? "", centro: centros.get(t.centroId ?? "")?.nombre ?? "un centro", desde: t.fechaPlan ?? hoy };
+  };
+  const claveCausa = (c: Causa) => `${c.tipo}:${"centroId" in c ? c.centroId : c.conjunto}`;
+
+  // Proyectos: montaje hacia adelante, fecha estimada de fin y causa raíz de los atrasos.
   const proyectos: ProyectoPlan[] = e.proyectos.map((p) => {
     const atras = atrasPorProyecto.get(p.id)!;
     const esMaquina = p.tipo === "maquina";
-    const orden = [...p.conjuntos].sort((a, b) => a.orden - b.orden);
+    const tramos = [...Map.groupBy(p.conjuntos, (c) => c.orden).entries()].sort(([a], [b]) => a - b);
     const tareasP = tareas.filter((t) => t.proyectoId === p.id);
     let finAnterior = hoy;
-    const conjuntos: ConjuntoPlan[] = orden.map((c) => {
-      const piezasC = p.piezas.filter((x) => x.conjuntoId === c.id);
-      const listas = piezasC.map((x) => finPieza.get(x.otPiezaId) ?? hoy).sort().at(-1) ?? hoy;
-      const inicioEst = [esMaquina ? sumarHabiles(listas, p.margenDias, cal) : listas, finAnterior].sort().at(-1)!;
-      const finEst = sumarHabiles(inicioEst, esMaquina ? c.dias : 0, cal);
-      finAnterior = finEst;
-      const lim = atras.conjuntos.get(c.id)!;
-      const atraso = habilesEntre(lim.inicio, inicioEst, cal);
-      const tc = tareasP.filter((t) => t.conjuntoId === c.id);
-      const tarde = tc.filter((t) => t.tarde);
-      const motivo =
-        atraso <= 0
-          ? null
-          : tarde.some((t) => t.tipo === "compras")
-            ? "Compra"
-            : tarde.some((t) => t.tipo === "tercerizado")
-              ? "Tercerizado"
-              : tarde.length
-                ? `Capacidad de ${tarde[0].centroId ?? "un centro"}`
-                : "Secuencia de montaje";
-      const estadoPieza = (x: PiezaEntrada) => {
-        const ts = tc.filter((t) => t.otPiezaId === x.otPiezaId);
-        if (ts.every((t) => t.estado === "terminada")) return "terminadas";
-        if (ts.some((t) => t.estado === "trabada")) return "trabadas";
-        if (ts.some((t) => t.estado === "en_curso" || t.estado === "pausada")) return "enCurso";
-        if (ts.some((t) => t.estado === "lista")) return "listas";
-        return ts.some((t) => t.estado === "liberada") ? "listas" : "futuras";
-      };
-      const resumen = { total: piezasC.length, terminadas: 0, enCurso: 0, listas: 0, trabadas: 0, futuras: 0 };
-      for (const x of piezasC) resumen[estadoPieza(x) as keyof typeof resumen]++;
-      const desdeFab = tc.map((t) => t.fechaPlan).filter((f): f is string => !!f).sort()[0] ?? null;
-      return {
-        id: c.id,
-        nombre: c.nombre,
-        codigo: c.codigo,
-        orden: c.orden,
-        dias: c.dias,
-        montajeInicioLimite: lim.inicio,
-        montajeFinLimite: lim.fin,
-        piezasListas: listas,
-        montajeInicioEstimado: inicioEst,
-        montajeFinEstimado: finEst,
-        atrasoDias: atraso,
-        motivoAtraso: motivo,
-        fabricacionDesde: desdeFab,
-        piezas: resumen,
-      };
-    });
+    let tramoAnterior: ConjuntoEntrada | null = null;
+    const conjuntos: ConjuntoPlan[] = [];
+    for (const [, grupo] of tramos) {
+      // Los alternativos (mismo orden) se montan en el mismo tramo: empiezan juntos, después del tramo anterior.
+      const finesGrupo: string[] = [];
+      let masLargo: ConjuntoEntrada = grupo[0];
+      for (const c of grupo) {
+        const piezasC = p.piezas.filter((x) => x.conjuntoId === c.id);
+        const critica = [...piezasC].sort((a, b) => (finPieza.get(b.otPiezaId) ?? hoy).localeCompare(finPieza.get(a.otPiezaId) ?? hoy))[0];
+        const listas = critica ? (finPieza.get(critica.otPiezaId) ?? hoy) : hoy;
+        const porPiezas = esMaquina ? sumarHabiles(listas, p.margenDias, cal) : listas;
+        const inicioEst = [porPiezas, finAnterior].sort().at(-1)!;
+        const finEst = sumarHabiles(inicioEst, esMaquina ? c.dias : 0, cal);
+        finesGrupo.push(finEst);
+        if (c.dias > masLargo.dias) masLargo = c;
+        const lim = atras.conjuntos.get(c.id)!;
+        const atraso = habilesEntre(lim.inicio, inicioEst, cal);
+        const tc = tareasP.filter((t) => t.conjuntoId === c.id);
+        // Si espera al anterior, la causa no es "secuencia de montaje": es lo que atrasa al anterior (§1.5).
+        const esperaAnterior = atraso > 0 && finAnterior > porPiezas && !!tramoAnterior;
+        const causa = atraso > 0 && !esperaAnterior && critica ? causaDePieza(p, critica, c.nombre) : null;
+        const motivo =
+          atraso <= 0
+            ? null
+            : esperaAnterior
+              ? `Espera a ${tramoAnterior!.codigo} ${tramoAnterior!.nombre}`
+              : causa?.tipo === "compra" || causa?.tipo === "comercial"
+                ? "Compra"
+                : causa?.tipo === "tercerizado"
+                  ? "Tercerizado"
+                  : causa?.tipo === "sin_liberar"
+                    ? "Falta liberar piezas"
+                    : causa?.tipo === "capacidad"
+                      ? `Capacidad de ${causa.centro}`
+                      : "Capacidad";
+        const estadoPieza = (x: PiezaEntrada) => {
+          const ts = tc.filter((t) => t.otPiezaId === x.otPiezaId);
+          if (ts.every((t) => t.estado === "terminada")) return "terminadas";
+          if (ts.some((t) => t.estado === "trabada")) return "trabadas";
+          if (ts.some((t) => t.estado === "en_curso" || t.estado === "pausada")) return "enCurso";
+          if (ts.some((t) => t.estado === "lista")) return "listas";
+          return ts.some((t) => t.estado === "liberada") ? "listas" : "futuras";
+        };
+        const resumen = { total: piezasC.length, terminadas: 0, enCurso: 0, listas: 0, trabadas: 0, futuras: 0 };
+        for (const x of piezasC) resumen[estadoPieza(x) as keyof typeof resumen]++;
+        const desdeFab = tc.map((t) => t.fechaPlan).filter((f): f is string => !!f).sort()[0] ?? null;
+        conjuntos.push({
+          id: c.id,
+          nombre: c.nombre,
+          codigo: c.codigo,
+          orden: c.orden,
+          dias: c.dias,
+          montajeInicioLimite: lim.inicio,
+          montajeFinLimite: lim.fin,
+          piezasListas: listas,
+          montajeInicioEstimado: inicioEst,
+          montajeFinEstimado: finEst,
+          atrasoDias: atraso,
+          motivoAtraso: motivo,
+          esperaA: esperaAnterior ? { codigo: tramoAnterior!.codigo, nombre: tramoAnterior!.nombre } : null,
+          causa,
+          fabricacionDesde: desdeFab,
+          piezas: resumen,
+        });
+      }
+      finAnterior = finesGrupo.sort().at(-1) ?? finAnterior;
+      tramoAnterior = masLargo;
+    }
     const finEstimado = esMaquina ? sumarHabiles(finAnterior, p.montajeFinalDias, cal) : finAnterior;
     const internas = tareasP.filter((t) => t.tipo === "interno");
     const horasTotales = internas.reduce((s, t) => s + t.horas, 0);
     const horasHechas = internas.filter((t) => t.estado === "terminada").reduce((s, t) => s + t.horas, 0);
+    const diferenciaDias = habilesEntre(ajustarAHabil(p.entrega, cal, true), finEstimado, cal);
+    // Causa raíz: se sigue la cadena "espera a…" desde el último tramo hasta el conjunto que se atrasa por sí mismo.
+    const causas: ProyectoPlan["causas"] = [];
+    if (diferenciaDias > 0) {
+      // Desde el último tramo hacia atrás: mientras "espera al anterior", se pasa al tramo anterior.
+      const ultimoDelTramo = (orden: number) => conjuntos.filter((c) => c.orden === orden).sort((a, b) => b.montajeFinEstimado.localeCompare(a.montajeFinEstimado))[0];
+      const ordenes = [...new Set(conjuntos.map((c) => c.orden))].sort((a, b) => a - b);
+      let k = ordenes.length - 1;
+      let principal: ConjuntoPlan | undefined;
+      while (k >= 0) {
+        const c = ultimoDelTramo(ordenes[k]);
+        if (c.esperaA) {
+          k--;
+          continue;
+        }
+        if (c.causa && c.atrasoDias > 0) principal = c;
+        break;
+      }
+      principal ??= conjuntos.filter((c) => c.causa && c.atrasoDias > 0).sort((a, b) => b.atrasoDias - a.atrasoDias)[0];
+      if (principal) causas.push({ causa: principal.causa!, dias: diferenciaDias });
+      const otra = conjuntos
+        .filter((c) => c.causa && c.atrasoDias > 0 && c !== principal && claveCausa(c.causa) !== claveCausa(principal!.causa!))
+        .sort((a, b) => b.atrasoDias - a.atrasoDias)[0];
+      if (otra) causas.push({ causa: otra.causa!, dias: otra.atrasoDias });
+    }
     return {
       id: p.id,
       codigo: p.codigo,
@@ -596,7 +778,7 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
       entrega: p.entrega,
       montajeFinalLimite: atras.montajeFinalInicio,
       finEstimado,
-      diferenciaDias: habilesEntre(ajustarAHabil(p.entrega, cal, true), finEstimado, cal),
+      diferenciaDias,
       horasTotales,
       horasHechas,
       avancePct: horasTotales ? Math.round((horasHechas / horasTotales) * 100) : 0,
@@ -604,30 +786,38 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
       conjuntos,
       piezasCubiertasConStock: p.piezasCubiertasConStock,
       piezasSinRuta: p.piezas.filter((x) => x.sinRuta).length,
+      causas,
     };
   });
 
   // Capacidad de todos los centros para los próximos 60 días hábiles (para la carga y las grillas).
   for (let k = 0, d = hoy; k < 60; k++, d = sumarHabiles(d, 1, cal)) for (const c of e.centros) cap.total(c.id, d);
-  return { tareas, compras, proyectos, carga: cap.usado, capacidad: cap.disponible, tandas };
+  return { tareas, compras, proyectos, carga: cap.usado, capacidad: cap.disponible, tandas, cargaOperario: cap.porOperario };
 }
 
-/** Ubica un paso interno desde `inicio` en su centro: consume horas día por día hasta completar la duración. */
+/**
+ * Ubica un paso interno desde `inicio` en su centro: consume horas día por día
+ * hasta completar la duración, sin pasar ni la capacidad del centro ni las
+ * horas del operario (§1.7). Forzada (movida o fijada a mano): va ese día
+ * aunque sobrecargue — el plan lo marca en rojo.
+ */
 function ubicarInterno(t: Tarea, inicio: string, centroId: string, operarioFijo: string | null, cap: Capacidad, cal: Calendario, forzarInicio: boolean) {
   let dia = inicio;
   let resto = t.horas;
   t.horasPorDia = {};
   t.centroId = centroId;
-  // Si la fecha no está forzada, se busca el primer día con lugar.
-  if (!forzarInicio) for (let k = 0; k < 400 && cap.libre(centroId, dia) <= 0.01; k++) dia = sumarHabiles(dia, 1, cal);
+  const lugar = (d: string) => Math.min(cap.libre(centroId, d), cap.elegirOperario(centroId, d, operarioFijo ?? t.operarioId).libre);
+  // Si la fecha no está forzada, se busca el primer día con lugar en el centro y en la persona.
+  if (!forzarInicio) for (let k = 0; k < 400 && lugar(dia) <= 0.01; k++) dia = sumarHabiles(dia, 1, cal);
   t.fechaPlan = dia;
   for (let k = 0; k < 400 && resto > 0.001; k++) {
-    // Forzada (movida o fijada a mano): va ese día aunque sobrecargue el centro — el plan lo marca en rojo.
-    const usa = forzarInicio ? Math.min(resto, cap.total(centroId, dia) || resto) : Math.min(resto, Math.max(0, cap.libre(centroId, dia)));
+    const op = cap.elegirOperario(centroId, dia, operarioFijo ?? t.operarioId);
+    const usa = forzarInicio ? Math.min(resto, cap.total(centroId, dia) || resto) : Math.min(resto, Math.max(0, Math.min(cap.libre(centroId, dia), op.libre)));
     if (usa > 0) {
       cap.usar(centroId, dia, usa);
+      cap.asignarOperario(op.id, dia, usa);
       t.horasPorDia[dia] = (t.horasPorDia[dia] ?? 0) + usa;
-      t.operarioId = cap.operario(centroId, dia, usa, operarioFijo ?? t.operarioId);
+      t.operarioId = op.id;
       resto -= usa;
     }
     if (resto > 0.001) dia = sumarHabiles(dia, 1, cal);

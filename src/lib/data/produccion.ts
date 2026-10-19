@@ -28,6 +28,7 @@ import {
   remito,
   remitoItem,
   movimientoStock,
+  tareaLote,
 } from "@/lib/db/schema";
 import type { CentroTrabajo, OtPieza } from "@/lib/db/schema";
 
@@ -585,4 +586,73 @@ export async function getPendientesDePlanificar(asignadas: Set<string>): Promise
 export async function contarPiezasSinCentro(): Promise<number> {
   const filas = (await getFilasConPosicionActual()).filter(({ fila }) => fila.otPieza.enviadaProduccionAt);
   return filas.filter(({ routing, posActual }) => routing[posActual].tipo === "interno" && !routing[posActual].centroTrabajoId).length;
+}
+
+/**
+ * v2 — Avance con lotes (mejoras de usabilidad §1.6). Sin lotes, igual que
+ * siempre: un cierre completa el paso. Desde el primer paso con lotes, cada
+ * paso se completa recién cuando se declaró todo lo que le entró, y el paso
+ * siguiente ya puede arrancar con las piezas OK del lote terminado.
+ */
+export function avancePasos(
+  rutaIds: string[],
+  cantidadAFabricar: number,
+  cierres: CierrePaso[],
+  conLote: Set<string>,
+): { completados: Set<string>; disponibles: string[] } {
+  const completados = new Set<string>();
+  const declaradas = (id: string) => cierres.filter((c) => c.operacionId === id).reduce((s, c) => s + (c.piezasOk ?? 0) + (c.piezasRechazadas ?? 0), 0);
+  const ok = (id: string) => cierres.filter((c) => c.operacionId === id).reduce((s, c) => s + (c.piezasOk ?? 0), 0);
+  let flujo = false;
+  const enFlujo: boolean[] = [];
+  let anteriorHecho = true;
+  rutaIds.forEach((id, j) => {
+    flujo = flujo || conLote.has(id);
+    enFlujo[j] = flujo;
+    const cerrado = cierres.some((c) => c.operacionId === id);
+    let hecho: boolean;
+    if (!flujo) hecho = cerrado;
+    else {
+      const entra = cantidadQueEntraAlPaso(rutaIds, j, cantidadAFabricar, cierres);
+      hecho = anteriorHecho && (entra > 0 ? declaradas(id) >= entra : cerrado);
+    }
+    if (hecho) completados.add(id);
+    anteriorHecho = hecho;
+  });
+  const disponibles: string[] = [];
+  const primero = rutaIds.findIndex((id) => !completados.has(id));
+  if (primero >= 0) {
+    disponibles.push(rutaIds[primero]);
+    for (let k = primero + 1; k < rutaIds.length; k++) {
+      const previo = rutaIds[k - 1];
+      if (completados.has(rutaIds[k]) || !enFlujo[k - 1]) continue;
+      if (ok(previo) > declaradas(rutaIds[k])) disponibles.push(rutaIds[k]);
+      else break;
+    }
+  }
+  return { completados, disponibles };
+}
+
+/** Pasos con lotes de cada orden de pieza: el lote elegido a mano en el plan, o el de la pieza si la cantidad lo supera. */
+export async function getPasosConLote(piezas: { id: string; piezaId: string; cantidadAFabricar: number }[]): Promise<Map<string, Set<string>>> {
+  const res = new Map<string, Set<string>>();
+  if (!piezas.length) return res;
+  const ids = piezas.map((p) => p.id);
+  const piezaIds = [...new Set(piezas.map((p) => p.piezaId))];
+  const [manuales, pzs, ops] = await Promise.all([
+    db.select().from(tareaLote).where(inArray(tareaLote.otPiezaId, ids)),
+    db.select({ id: pieza.id, lote: pieza.tamanoLote }).from(pieza).where(inArray(pieza.id, piezaIds)),
+    db.select({ id: operacion.id, piezaId: operacion.piezaId }).from(operacion).where(inArray(operacion.piezaId, piezaIds)),
+  ]);
+  for (const p of piezas) {
+    const set = new Set<string>();
+    const lotePieza = pzs.find((x) => x.id === p.piezaId)?.lote;
+    if (lotePieza && p.cantidadAFabricar > lotePieza) for (const o of ops.filter((x) => x.piezaId === p.piezaId)) set.add(o.id);
+    for (const m of manuales.filter((x) => x.otPiezaId === p.id)) {
+      if (m.tamano > 0 && m.tamano < p.cantidadAFabricar) set.add(m.operacionId);
+      else set.delete(m.operacionId);
+    }
+    if (set.size) res.set(p.id, set);
+  }
+  return res;
 }

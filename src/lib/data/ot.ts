@@ -9,6 +9,7 @@
  */
 import { eq, inArray, and, desc, asc, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
+import { avancePasos, getPasosConLote } from "./produccion";
 import { otMaquina, otConjunto, otPieza, registroOperacion, cliente, operacion, proceso, configuracion, pieza } from "@/lib/db/schema";
 import type { OtMaquina, OtPieza } from "@/lib/db/schema";
 import {
@@ -39,6 +40,8 @@ export type EstadoYOperacion = {
   operacionActual: OperacionConDetalle | null;
   /** Hoja de ruta completa, ya cargada — evita que el caller la vuelva a pedir. */
   routing: OperacionConDetalle[];
+  /** v2 — pasos que se pueden empezar ya (con lotes, puede haber más de uno). */
+  operacionesDisponibles?: OperacionConDetalle[];
 };
 
 /** Estado + operación actual de una OT de pieza, derivados siempre del
@@ -57,14 +60,21 @@ export async function getEstadoYOperacionActual(pieza: OtPieza): Promise<EstadoY
     .from(registroOperacion)
     .where(and(eq(registroOperacion.otPiezaId, pieza.id), eq(registroOperacion.tipo, "ejecucion")));
 
-  const operacionesCompletadas = new Set(registros.filter((r) => r.fin).map((r) => r.operacionId));
+  // v2 — con lotes, un paso se completa por cantidad y el siguiente puede arrancar con el lote terminado.
+  const conLote = (await getPasosConLote([pieza])).get(pieza.id) ?? new Set<string>();
+  const { completados: operacionesCompletadas, disponibles } = avancePasos(
+    routing.map((r) => r.id),
+    pieza.cantidadAFabricar,
+    registros.filter((r) => r.fin),
+    conLote,
+  );
   const hayAbierto = registros.some((r) => !r.fin);
   const operacionActual = routing.find((op) => !operacionesCompletadas.has(op.id)) ?? null;
 
   const estado: EstadoCalculado =
     operacionesCompletadas.size >= routing.length ? "terminada" : operacionesCompletadas.size > 0 || hayAbierto ? "en_curso" : "pendiente";
 
-  return { estado, sinRouting: false, operacionActual, routing };
+  return { estado, sinRouting: false, operacionActual, routing, operacionesDisponibles: routing.filter((r) => disponibles.includes(r.id)) };
 }
 
 async function estadoDePieza(pieza: OtPieza): Promise<{ estado: EstadoCalculado; sinRouting: boolean }> {
@@ -108,10 +118,11 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
       .where(inArray(operacion.piezaId, piezaIds))
       .orderBy(asc(operacion.piezaId), asc(operacion.secuencia)),
     db
-      .select({ otPiezaId: registroOperacion.otPiezaId, operacionId: registroOperacion.operacionId, fin: registroOperacion.fin })
+      .select({ otPiezaId: registroOperacion.otPiezaId, operacionId: registroOperacion.operacionId, fin: registroOperacion.fin, piezasOk: registroOperacion.piezasOk, piezasRechazadas: registroOperacion.piezasRechazadas })
       .from(registroOperacion)
       .where(and(inArray(registroOperacion.otPiezaId, otPiezaIds), eq(registroOperacion.tipo, "ejecucion"))),
   ]);
+  const lotes = await getPasosConLote(piezas);
 
   const rutaPorPieza = new Map<string, { id: string; nombre: string }[]>();
   for (const o of operaciones) {
@@ -138,7 +149,10 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
       resultado.set(p.id, { estado: "pendiente", sinRouting: true, pasos: [] });
       continue;
     }
-    const completadasSet = completadasPorOtPieza.get(p.id) ?? new Set<string>();
+    const conLote = lotes.get(p.id);
+    const completadasSet = conLote
+      ? avancePasos(ruta.map((r) => r.id), p.cantidadAFabricar, registros.filter((r) => r.otPiezaId === p.id && r.fin), conLote).completados
+      : (completadasPorOtPieza.get(p.id) ?? new Set<string>());
     const pasos = ruta.map((r) => ({ id: r.id, nombre: r.nombre, completado: completadasSet.has(r.id) }));
     const completadas = pasos.filter((x) => x.completado).length;
     const abierta = abiertaPorOtPieza.has(p.id);

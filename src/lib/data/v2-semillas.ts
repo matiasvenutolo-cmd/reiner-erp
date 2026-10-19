@@ -15,7 +15,7 @@ import { db } from "@/lib/db/client";
 import {
   proceso, feriado, montajeConjunto, configuracion, conjunto, parametro, pieza, operacion, otMaquina, otConjunto, otPieza,
   registroOperacion, parada, reservaStock, asignacionTrabajo, planAjuste, proyectoEvento, pedidoCompra, movimientoStock,
-  remitoItem, ausencia, tipoParada, cliente, proveedor, proveedorServicio, articuloStock, solicitudCompra, tareaRevision, usuario,
+  remitoItem, ausencia, tipoParada, tareaLote, tareaBloqueo, tareaAdelanto, avisoPlanta, cliente, proveedor, proveedorServicio, articuloStock, solicitudCompra, tareaRevision, usuario,
 } from "@/lib/db/schema";
 import { FERIADOS_AR, sumarHabiles } from "@/lib/planning/calendario";
 import { generarOtMaquina, generarOrdenSuelta, enviarAProduccion } from "./ot";
@@ -216,6 +216,20 @@ export async function cargarDemo(usuarioId: string): Promise<string[]> {
     }
   }
 
+  // 3b. La orden para stock es una tarea grande (150 u.): se parte en lotes de 30 (mejoras de usabilidad §1.6).
+  const [stockDemo] = await db.select().from(otMaquina).where(eq(otMaquina.codigo, `OTS${REF_STOCK_DEMO}`));
+  if (stockDemo) {
+    const filas = await db
+      .select({ otPiezaId: otPieza.id, operacionId: operacion.id })
+      .from(otPieza)
+      .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
+      .innerJoin(operacion, eq(operacion.piezaId, otPieza.piezaId))
+      .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
+      .where(and(eq(otConjunto.otMaquinaId, stockDemo.id), eq(proceso.tipo, "interno")));
+    if (filas.length) await db.insert(tareaLote).values(filas.map((f) => ({ ...f, tamano: 30 }))).onConflictDoNothing();
+    log.push(`lotes de 30 u. en la orden para stock: ${filas.length} pasos`);
+  }
+
   // 4. Una ausencia, condiciones de servicio y plazos de proveedores, materia prima y consumibles.
   const [nico] = await db.select().from(usuario).where(eq(usuario.id, "nico"));
   const ausente = await db.select().from(ausencia).where(like(ausencia.motivo, "%(demo)"));
@@ -267,6 +281,10 @@ export async function borrarDemo(): Promise<string[]> {
       await db.delete(registroOperacion).where(inArray(registroOperacion.otPiezaId, pid));
       await db.delete(asignacionTrabajo).where(inArray(asignacionTrabajo.otPiezaId, pid));
       await db.delete(planAjuste).where(inArray(planAjuste.otPiezaId, pid));
+      await db.delete(tareaLote).where(inArray(tareaLote.otPiezaId, pid));
+      await db.delete(tareaBloqueo).where(inArray(tareaBloqueo.otPiezaId, pid));
+      await db.delete(tareaAdelanto).where(inArray(tareaAdelanto.otPiezaId, pid));
+      await db.delete(avisoPlanta).where(inArray(avisoPlanta.otPiezaId, pid));
       await db.update(solicitudCompra).set({ anuladaAt: new Date() }).where(inArray(solicitudCompra.otPiezaId, pid));
       await db.delete(tareaRevision).where(inArray(tareaRevision.otPiezaId, pid));
       await db.delete(movimientoStock).where(inArray(movimientoStock.otPiezaId, pid));
