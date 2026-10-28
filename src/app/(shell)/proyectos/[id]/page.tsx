@@ -81,9 +81,14 @@ export default async function ProyectoPage({
       }
       descripcion={[fila.cliente, fila.config, m.tipo === "suelta" ? m.numeroSerie : `Serie ${m.numeroSerie}`].filter(Boolean).join(" · ")}
       acciones={
-        <Link href={`/ot/${m.id}`} className="btn-secundario">
-          Detalle de la orden
-        </Link>
+        <>
+          <Link href={`/ot/${m.id}/que-hace-falta`} className="btn">
+            Ver qué hace falta
+          </Link>
+          <Link href={`/ot/${m.id}`} className="btn-secundario">
+            Detalle de la orden
+          </Link>
+        </>
       }
     />
   );

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { notFound } from "next/navigation";
@@ -82,6 +83,11 @@ export default async function OtMaquinaPage({ params }: { params: Promise<{ id: 
         descripcion={[configuracion?.nombre, otMaquina.tipo === "suelta" ? otMaquina.numeroSerie : `Serie ${otMaquina.numeroSerie}`, clienteNombre]
           .filter(Boolean)
           .join(" · ")}
+        acciones={
+          <Link href={`/ot/${otMaquina.id}/que-hace-falta`} className="btn">
+            Ver qué hace falta
+          </Link>
+        }
       />
 
       {sinEnviar > 0 && (

@@ -1,160 +1,231 @@
-import { Aviso } from "@/components/ui/Aviso";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { getConfiguraciones, getModelos, getConjuntos, getPiezasPorConfiguracion } from "@/lib/data/maestros";
-import { getUsuarioActual } from "@/lib/session";
-import { getClientes } from "@/lib/data/clientes";
-import { crearOtMaquinaAction } from "@/app/actions/ot";
-import { FormTabs } from "@/components/ot/FormTabs";
-import { OrdenSueltaForm } from "@/components/ot/OrdenSueltaForm";
-import { sql } from "drizzle-orm";
+import Link from "next/link";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { getCalendario } from "@/lib/planning/datos";
-import { sumarHabiles } from "@/lib/planning/calendario";
-import { hoyISO } from "@/lib/fecha";
+import { configuracion, conjunto, pieza, piezaConfiguracion, cliente } from "@/lib/db/schema";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Aviso } from "@/components/ui/Aviso";
+import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
+import { Paso1, type DatosPaso1 } from "@/components/asistente/Paso1";
+import { QueHaceFalta } from "@/components/asistente/QueHaceFalta";
+import { getBorrador, queHaceFaltaDeBorrador } from "@/lib/data/que-hace-falta";
+import { descartarBorradorAction, stockRevisadoAction } from "@/app/actions/borrador";
+import { capitalizar, fechaCorta, numero } from "@/lib/formato";
 
 export const dynamic = "force-dynamic";
 
-export default async function NuevaOtPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string; tipo?: string; destino?: string; pieza?: string; cantidad?: string; motivo?: string }>;
-}) {
-  const { error, tipo, destino, pieza: piezaInicial, cantidad, motivo } = await searchParams;
-  const [configuraciones, modelos, usuario, clientes, conjuntosTodos] = await Promise.all([
-    getConfiguraciones(),
-    getModelos(),
-    getUsuarioActual(),
-    getClientes(),
-    getConjuntos(),
-  ]);
-  const nombreConjunto = new Map(conjuntosTodos.map((c) => [c.id, c.nombre]));
+const PASOS = ["Qué", "Qué hace falta", "Cuándo"];
 
-  const piezasPorConfiguracionEntries = await Promise.all(
-    configuraciones.map(async (c) => [c.id, await getPiezasPorConfiguracion(c.id)] as const),
-  );
-  const piezasPorConfiguracion: Record<string, { id: string; codigo: string; nombre: string; conjuntoId: string }[]> = {};
-  const conjuntosPorConfiguracion: Record<string, { id: string; nombre: string }[]> = {};
-  for (const [configuracionId, piezas] of piezasPorConfiguracionEntries) {
-    piezasPorConfiguracion[configuracionId] = piezas.map((p) => ({
-      id: p.id,
-      codigo: p.codigo,
-      nombre: p.nombre,
-      conjuntoId: p.conjuntoId,
-    }));
-    const conjuntoIds = [...new Set(piezas.map((p) => p.conjuntoId))];
-    conjuntosPorConfiguracion[configuracionId] = conjuntoIds
-      .map((id) => ({ id, nombre: nombreConjunto.get(id) ?? id }))
-      .sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }
-
-  // v2 — precarga desde la ficha de Stock ("Fabricar") o la alerta de mínimo de Hoy.
-  const configInicial = piezaInicial ? Object.entries(piezasPorConfiguracion).find(([, ps]) => ps.some((p) => p.id === piezaInicial))?.[0] : undefined;
-  const libres = await db.execute<{ pieza_id: string; libre: number }>(sql`
-    select s.pieza_id, (s.cantidad_disponible - coalesce((select sum(r.cantidad) from reserva_stock r where r.pieza_id = s.pieza_id), 0))::int libre
-    from stock_pieza s where s.cantidad_disponible > 0`);
-  const stockLibre = Object.fromEntries(libres.filter((l) => l.libre > 0).map((l) => [l.pieza_id, l.libre]));
-  const fechaObjetivo = sumarHabiles(hoyISO(), 20, await getCalendario());
-
-  const formaMaquina = (
-    <div>
-      <p className="text-sm text-foreground-muted mb-4">
-        Se explota automáticamente a OT de conjunto y OT de pieza, cruzando contra el stock
-        disponible. La cantidad a fabricar propuesta queda editable en el detalle.
-      </p>
-      <form action={crearOtMaquinaAction} className="tarjeta p-5 space-y-4">
-        <Field label="Configuración de máquina">
-          <select name="configuracionId" required className="input">
-            <option value="">Seleccionar…</option>
-            {modelos.map((m) => (
-              <optgroup key={m.id} label={m.nombre}>
-                {configuraciones
-                  .filter((c) => c.modeloId === m.id)
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre}
-                    </option>
-                  ))}
-              </optgroup>
-            ))}
-          </select>
-        </Field>
-
-        <Field label="Número de serie">
-          <input name="numeroSerie" required placeholder="ej. 6" className="input" />
-        </Field>
-
-        <Field label="Cliente">
-          <select name="clienteId" required className="input">
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.razonSocial}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Orden de compra">
-            <input name="ordenCompra" placeholder="ej. 008" className="input" />
-          </Field>
-          <Field label="Plazo de entrega">
-            <input name="plazoEntrega" placeholder="ej. 4 meses" className="input" />
-          </Field>
-        </div>
-
-        <Field label="Emitido por">
-          <input name="emitidoPor" required defaultValue={usuario.nombre} className="input" />
-        </Field>
-
-        <button
-          type="submit"
-          className="w-full bg-accent text-accent-foreground font-medium text-sm py-2.5 rounded-md hover:opacity-90"
-        >
-          Generar OT
-        </button>
-      </form>
-    </div>
-  );
-
-  const formaSuelta = (
-    <div>
-      <p className="text-sm text-foreground-muted mb-4">
-        Para cuando un cliente compra un repuesto o pide un conjunto para mantenimiento, sin
-        que se trate de fabricar una máquina entera. No lleva número de serie real.
-      </p>
-      <OrdenSueltaForm
-        configuraciones={configuraciones.map((c) => ({ id: c.id, nombre: c.nombre }))}
-        clientes={clientes.map((c) => ({ id: c.id, razonSocial: c.razonSocial }))}
-        usuarioNombre={usuario.nombre}
-        conjuntosPorConfiguracion={conjuntosPorConfiguracion}
-        piezasPorConfiguracion={piezasPorConfiguracion}
-        inicial={{ destino: destino === "stock" ? "stock" : destino === "repuesto" ? "repuesto" : undefined, configuracionId: configInicial, piezaId: configInicial ? piezaInicial : undefined, cantidad: cantidad ? Number(cantidad) : undefined, motivo }}
-        fechaObjetivo={fechaObjetivo}
-        stockLibre={stockLibre}
-      />
-    </div>
-  );
-
+function Indicador({ paso, borradorId }: { paso: number; borradorId?: string }) {
   return (
-    <div className="max-w-xl space-y-6">
-      <PageHeader
-        migas={[{ href: "/proyectos", label: "Órdenes" }, { label: "Generar orden" }]}
-        titulo="Generar orden de trabajo"
-        descripcion="De una máquina completa, o sólo de un conjunto o una pieza (repuestos, mantenimiento). El sistema cruza con el stock y reserva lo que ya hay."
-      />
-
-      {error && <Aviso tipo="error">{error}</Aviso>}
-
-      <FormTabs maquina={formaMaquina} suelta={formaSuelta} inicial={tipo === "suelta" ? "suelta" : "maquina"} />
-    </div>
+    <ol className="flex flex-wrap items-center gap-2 text-sm mt-3" aria-label="Pasos">
+      {PASOS.map((l, i) => {
+        const n = i + 1;
+        const actual = n === paso;
+        const puede = borradorId ? n <= 3 : n === 1;
+        const contenido = (
+          <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 border ${actual ? "border-accent bg-accent text-accent-foreground font-semibold" : n < paso ? "border-accent text-accent" : "border-border text-foreground-muted"}`}>
+            <span className="tabular-nums">{n}</span> {l}
+          </span>
+        );
+        return (
+          <li key={l} className="flex items-center gap-2">
+            {i > 0 && <span className="text-foreground-muted" aria-hidden>›</span>}
+            {puede && !actual && borradorId ? <Link href={`/ot/nueva?borrador=${borradorId}&paso=${n}`}>{contenido}</Link> : contenido}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+/**
+ * "+ Generar orden" como asistente de tres pasos (simplificación §1): 1 Qué ·
+ * 2 Qué hace falta · 3 Cuándo. Hasta confirmar, la orden es un borrador: no
+ * reserva stock, no genera compras y no entra al plan. Se puede volver atrás
+ * sin perder lo cargado.
+ */
+export default async function GenerarOrdenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ borrador?: string; paso?: string; error?: string; ver?: string; tipo?: string; destino?: string; pieza?: string; cantidad?: string }>;
+}) {
+  const sp = await searchParams;
+  const borrador = sp.borrador ? await getBorrador(sp.borrador) : null;
+  const paso = borrador ? Math.min(3, Math.max(1, Number(sp.paso ?? 2))) : 1;
+  const borradorId = borrador && !borrador.otMaquinaId ? borrador.id : undefined;
+
+  const header = (
+    <PageHeader
+      migas={[{ href: "/proyectos", label: "Órdenes" }, { label: "Generar orden" }]}
+      titulo={borrador ? "Orden en borrador" : "Generar orden"}
+      acciones={
+        <Link href="/ot/nueva/anterior" className="btn-texto btn-sm">
+          Usar el formulario anterior
+        </Link>
+      }
+    >
+      <Indicador paso={paso} borradorId={borradorId} />
+    </PageHeader>
+  );
+
+  if (borrador?.otMaquinaId)
+    return (
+      <div className="space-y-4">
+        {header}
+        <Aviso tipo="info">
+          Este borrador ya se confirmó.{" "}
+          <Link href={`/proyectos/${borrador.otMaquinaId}`} className="underline">
+            Ver la orden
+          </Link>
+        </Aviso>
+      </div>
+    );
+
+  // ── Paso 1 ──
+  if (paso === 1) {
+    const [configs, conjRows, piezas, piezaCfg, clientes] = await Promise.all([
+      db.select().from(configuracion).orderBy(configuracion.codigo),
+      db
+        .selectDistinct({ cfg: piezaConfiguracion.configuracionId, id: conjunto.id, codigo: conjunto.codigo, nombre: conjunto.nombre })
+        .from(piezaConfiguracion)
+        .innerJoin(pieza, eq(pieza.id, piezaConfiguracion.piezaId))
+        .innerJoin(conjunto, eq(conjunto.id, pieza.conjuntoId))
+        .orderBy(asc(conjunto.codigo)),
+      db.select({ id: pieza.id, codigo: pieza.codigo, nombre: pieza.nombre }).from(pieza).orderBy(pieza.nombre),
+      db
+        .select({ cfg: piezaConfiguracion.configuracionId, id: pieza.id, codigo: pieza.codigo, nombre: pieza.nombre, conjunto: conjunto.nombre, conjuntoCodigo: conjunto.codigo })
+        .from(piezaConfiguracion)
+        .innerJoin(pieza, eq(pieza.id, piezaConfiguracion.piezaId))
+        .innerJoin(conjunto, eq(conjunto.id, pieza.conjuntoId))
+        .orderBy(asc(conjunto.codigo), asc(pieza.nombre)),
+      db.select({ id: cliente.id, nombre: cliente.razonSocial }).from(cliente).orderBy(cliente.razonSocial),
+    ]);
+    const nombreCfg = new Map(configs.map((c) => [c.id, c.nombre]));
+    const piezasPorConfig: Record<string, { id: string; codigo: string; nombre: string; conjunto: string }[]> = {};
+    for (const r of piezaCfg) (piezasPorConfig[r.cfg] ??= []).push({ id: r.id, codigo: r.codigo, nombre: r.nombre, conjunto: `${r.conjuntoCodigo} ${r.conjunto}` });
+    // Prefill desde "Fabricar para stock" (ficha de stock) o la alerta de mínimo.
+    const inicial: DatosPaso1 = borrador
+      ? {
+          id: borrador.id,
+          tipo: borrador.tipo as DatosPaso1["tipo"],
+          configuracionId: borrador.configuracionId,
+          conjunto: borrador.conjuntoId ? `${borrador.configuracionId}|${borrador.conjuntoId}` : null,
+          piezaId: borrador.piezaId,
+          cantidad: borrador.cantidad,
+          destino: borrador.destino as DatosPaso1["destino"],
+          clienteId: borrador.clienteId,
+          fechaCliente: borrador.fechaCliente,
+          numeroSerie: borrador.numeroSerie,
+          ordenCompra: borrador.ordenCompra,
+          motivoStock: borrador.motivoStock,
+          excluidas: borrador.excluidas ?? [],
+        }
+      : {
+          tipo: sp.pieza ? "pieza" : "maquina",
+          piezaId: sp.pieza ?? null,
+          cantidad: Number(sp.cantidad) > 0 ? Number(sp.cantidad) : 1,
+          destino: sp.destino === "stock" ? "stock" : "cliente",
+          excluidas: [],
+        };
+    return (
+      <div className="space-y-4">
+        {header}
+        {sp.error && <Aviso tipo="error">{sp.error}</Aviso>}
+        <Paso1
+          inicial={inicial}
+          configuraciones={configs.map((c) => ({ id: c.id, codigo: c.codigo, nombre: c.nombre }))}
+          conjuntos={conjRows.map((c) => ({ valor: `${c.cfg}|${c.id}`, etiqueta: `${c.codigo} ${c.nombre} — ${nombreCfg.get(c.cfg) ?? c.cfg}` }))}
+          piezas={piezas}
+          piezasPorConfig={piezasPorConfig}
+          clientes={clientes}
+        />
+      </div>
+    );
+  }
+
+  // Lo que se cargó en el paso 1, en una línea.
+  const [[cfg], [conj], [pz], [cli]] = await Promise.all([
+    borrador!.configuracionId ? db.select({ nombre: configuracion.nombre }).from(configuracion).where(eq(configuracion.id, borrador!.configuracionId)) : Promise.resolve([]),
+    borrador!.conjuntoId ? db.select({ codigo: conjunto.codigo, nombre: conjunto.nombre }).from(conjunto).where(eq(conjunto.id, borrador!.conjuntoId)) : Promise.resolve([]),
+    borrador!.piezaId ? db.select({ codigo: pieza.codigo, nombre: pieza.nombre }).from(pieza).where(eq(pieza.id, borrador!.piezaId)) : Promise.resolve([]),
+    borrador!.clienteId ? db.select({ nombre: cliente.razonSocial }).from(cliente).where(eq(cliente.id, borrador!.clienteId)) : Promise.resolve([]),
+  ]);
+  const que =
+    borrador!.tipo === "maquina" ? `Máquina ${cfg?.nombre ?? ""}` : borrador!.tipo === "conjunto" ? `Conjunto ${conj?.codigo ?? ""} ${conj?.nombre ?? ""} · ${cfg?.nombre ?? ""}` : `${capitalizar(pz?.nombre ?? "")} (${pz?.codigo ?? ""})`;
+  const resumen = (
+    <div className="tarjeta px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <div className="font-semibold">
+          {que} × {numero(borrador!.cantidad)}
+        </div>
+        <div className="text-sm text-foreground-muted">
+          {borrador!.destino === "stock" ? `Para stock · ${borrador!.motivoStock ?? ""}` : `Para ${cli?.nombre ?? "el cliente"}`}
+          {borrador!.fechaCliente ? ` · el cliente la quiere para el ${fechaCorta(borrador!.fechaCliente)}` : ""}
+          {` · borrador del ${fechaCorta(borrador!.createdAt.toISOString().slice(0, 10))}`}
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Link href={`/ot/nueva?borrador=${borrador!.id}&paso=1`} className="btn-secundario btn-sm">
+          ← Cambiar lo que se pide
+        </Link>
+        <form action={descartarBorradorAction}>
+          <input type="hidden" name="id" value={borrador!.id} />
+          <ConfirmarBoton mensaje="¿Descartar el borrador? No queda nada reservado ni pedido." className="btn-peligro btn-sm">
+            Descartar
+          </ConfirmarBoton>
+        </form>
+      </div>
+    </div>
+  );
+
+  // ── Paso 2 ──
+  if (paso === 2) {
+    const datos = await queHaceFaltaDeBorrador(borrador!);
+    // Si el stock cambió desde la última vez, se avisa y se marcan las piezas.
+    const visto = borrador!.stockVisto ?? {};
+    const cambiaron = new Set(Object.entries(datos.stockActual).filter(([id, n]) => id in visto && visto[id] !== n).map(([id]) => id));
+    const base = `/ot/nueva?borrador=${borrador!.id}&paso=2`;
+    return (
+      <div className="space-y-4">
+        {header}
+        {sp.error && <Aviso tipo="error">{sp.error}</Aviso>}
+        {resumen}
+        {cambiaron.size > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-naranja-borde bg-naranja-tenue px-4 py-3 text-sm text-naranja-fg">
+            <span>
+              <strong>El stock cambió desde la última vez:</strong> revisá las piezas marcadas ({cambiaron.size}).
+            </span>
+            <form action={stockRevisadoAction}>
+              <input type="hidden" name="id" value={borrador!.id} />
+              <button className="btn-secundario btn-sm">Ya lo revisé</button>
+            </form>
+          </div>
+        )}
+        <QueHaceFalta datos={datos} tipo={borrador!.tipo as "maquina" | "conjunto" | "pieza"} borradorId={borrador!.id} ver={sp.ver} base={base} cambiaron={cambiaron} />
+        <div className="flex flex-wrap justify-between gap-2">
+          <Link href={`/ot/nueva?borrador=${borrador!.id}&paso=1`} className="btn-secundario">
+            ← Volver al paso 1
+          </Link>
+          <Link href={`/ot/nueva?borrador=${borrador!.id}&paso=3`} className="btn">
+            Ver cuándo puede estar →
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Paso 3 (se completa en la etapa C) ──
   return (
-    <label className="block">
-      <span className="block text-xs font-medium text-foreground-muted mb-1">{label}</span>
-      {children}
-    </label>
+    <div className="space-y-4">
+      {header}
+      {resumen}
+      <div className="tarjeta p-5 space-y-2">
+        <h2 className="text-lg font-semibold">Cuándo puede estar</h2>
+        <p className="text-sm text-foreground-muted">La confirmación de la orden (fecha, reserva de stock y compras) se habilita en la próxima etapa. Mientras tanto, el borrador queda guardado en Órdenes → Borradores y no reserva ni pide nada.</p>
+      </div>
+      <Link href={`/ot/nueva?borrador=${borrador!.id}&paso=2`} className="btn-secundario">
+        ← Volver a Qué hace falta
+      </Link>
+    </div>
   );
 }

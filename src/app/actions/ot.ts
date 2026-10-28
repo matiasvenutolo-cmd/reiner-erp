@@ -18,7 +18,7 @@ import { otMaquina } from "@/lib/db/schema";
 import { hoyISO } from "@/lib/fecha";
 
 function volverANuevaCon(mensaje: string): never {
-  redirect(`/ot/nueva?error=${encodeURIComponent(mensaje)}`);
+  redirect(`/ot/nueva/anterior?error=${encodeURIComponent(mensaje)}`);
 }
 
 export async function crearOtMaquinaAction(formData: FormData) {

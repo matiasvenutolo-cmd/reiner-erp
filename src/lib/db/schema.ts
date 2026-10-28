@@ -23,6 +23,7 @@ import {
   numeric,
   primaryKey,
   pgEnum,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 const id = () =>
@@ -1055,6 +1056,40 @@ export const semanaConfirmada = pgTable("semana_confirmada", {
   confirmadaAt: timestamp("confirmada_at").notNull().defaultNow(),
   tareas: integer("tareas").notNull().default(0),
 });
+
+// ── v2 · simplificación "Qué hace falta" ────────────────────────────────────
+
+/**
+ * Orden en borrador del asistente "+ Generar orden" (simplificación §1): lo que
+ * se cargó en el paso 1 y lo decidido en el paso 2. Mientras es borrador no hay
+ * ninguna fila en ot_maquina: no reserva stock, no genera compras y no entra al
+ * plan. Recién al confirmar (paso 3) se crea la orden con la generación de siempre.
+ */
+export const ordenBorrador = pgTable("orden_borrador", {
+  id: id(),
+  tipo: text("tipo").notNull(), // maquina | conjunto | pieza
+  configuracionId: text("configuracion_id"),
+  conjuntoId: text("conjunto_id"),
+  piezaId: text("pieza_id"),
+  cantidad: integer("cantidad").notNull().default(1),
+  destino: text("destino").notNull().default("cliente"), // cliente | stock
+  clienteId: text("cliente_id"),
+  fechaCliente: date("fecha_cliente"), // "El cliente la quiere para…": referencia, no compromiso
+  numeroSerie: text("numero_serie"),
+  ordenCompra: text("orden_compra"),
+  motivoStock: text("motivo_stock"),
+  /** Piezas que este pedido no lleva (variantes). */
+  excluidas: jsonb("excluidas").$type<string[]>().notNull().default([]),
+  /** Decisiones del paso 2: piezas a fabricar igual aunque haya stock, y compras que no se confirman. */
+  decisiones: jsonb("decisiones").$type<{ fabricarIgual: string[]; noComprar: string[] }>().notNull().default({ fabricarIgual: [], noComprar: [] }),
+  /** Stock libre por pieza la última vez que se miró el paso 2 (para avisar si cambió). */
+  stockVisto: jsonb("stock_visto").$type<Record<string, number>>(),
+  usuarioId: text("usuario_id").notNull(),
+  otMaquinaId: text("ot_maquina_id"), // la orden creada al confirmar
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+export type OrdenBorrador = typeof ordenBorrador.$inferSelect;
 
 export type StockPieza = typeof stockPieza.$inferSelect;
 export type WipPieza = typeof wipPieza.$inferSelect;
