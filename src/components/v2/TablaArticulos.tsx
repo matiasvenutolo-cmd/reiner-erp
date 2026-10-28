@@ -22,7 +22,7 @@ export async function TablaArticulos({ tipo }: { tipo: "materia_prima" | "consum
       <p className="text-sm">
         <strong>{plural(filas.length, "artículo")}</strong>
         {bajo > 0 && <span className="text-rojo-fg font-semibold"> · {bajo} debajo del mínimo</span>}
-        {!esMP && <span className="text-foreground-muted"> · los consumibles no se asignan a proyectos: sólo se registra el retiro.</span>}
+        {!esMP && <span className="text-foreground-muted"> · los consumibles no se reservan para una orden: sólo se registra el retiro.</span>}
       </p>
       <div className="tarjeta overflow-x-auto">
         {filas.length === 0 ? (

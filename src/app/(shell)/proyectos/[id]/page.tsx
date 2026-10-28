@@ -8,7 +8,7 @@ import { habilesEntre } from "@/lib/planning/calendario";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Aviso } from "@/components/ui/Aviso";
 import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
-import { Holgura, EstadoTareaChip, fechaCorta, Estimado, CausaRaiz, textoCausa } from "@/components/v2/Plan";
+import { Holgura, EstadoTareaChip, fechaCorta, Estimado, CausaRaiz, textoCausa, margenEntrega } from "@/components/v2/Plan";
 import { Etiqueta } from "@/components/ui/Etiqueta";
 import { capitalizar, diasHabiles, numero, plural } from "@/lib/formato";
 import { activarProyectoAction, cambiarEntregaAction, pausarProyectoAction, liberarAction } from "@/app/actions/v2";
@@ -70,7 +70,7 @@ export default async function ProyectoPage({
 
   const header = (
     <PageHeader
-      migas={[{ href: "/proyectos", label: "Proyectos y órdenes" }, { label: m.codigo }]}
+      migas={[{ href: "/proyectos", label: "Órdenes" }, { label: m.codigo }]}
       titulo={
         <span className="flex flex-wrap items-center gap-2">
           {m.codigo}
@@ -306,9 +306,9 @@ export default async function ProyectoPage({
           <Grande titulo="Entrega comprometida" valor={fechaCorta(p.entrega, hoy)} />
           <Grande titulo="Fin estimado" valor={fechaCorta(p.finEstimado, hoy)} />
           <Grande
-            titulo="Diferencia"
-            valor={p.diferenciaDias > 0 ? `${diasHabiles(p.diferenciaDias)} tarde` : p.diferenciaDias === 0 ? "justo a tiempo" : `${diasHabiles(-p.diferenciaDias)} antes`}
-            color={p.diferenciaDias > 0 ? "text-rojo-fg" : p.diferenciaDias >= -3 ? "text-naranja-fg" : "text-verde-fg"}
+            titulo="Margen"
+            valor={margenEntrega(p.diferenciaDias).texto}
+            color={{ rojo: "text-rojo-fg", naranja: "text-naranja-fg", verde: "text-verde-fg" }[margenEntrega(p.diferenciaDias).tono as "rojo" | "naranja" | "verde"]}
           />
         </div>
         {p.causas.length > 0 ? <CausaRaiz codigo={p.codigo} causas={p.causas} hoy={hoy} /> : <p className="text-sm text-verde-fg">Llega a tiempo con el plan actual.</p>}
@@ -328,7 +328,7 @@ export default async function ProyectoPage({
             {tanda.otPiezaIds.map((pid) => (
               <input key={pid} type="hidden" name="otPiezaId" value={pid} />
             ))}
-            <ConfirmarBoton mensaje={`¿Liberar ${plural(tanda.otPiezaIds.length, "pieza")}? Entran al plan de la semana.`}>Liberar {plural(tanda.otPiezaIds.length, "pieza")}</ConfirmarBoton>
+            <ConfirmarBoton mensaje={`¿Pasar ${plural(tanda.otPiezaIds.length, "pieza")} al plan de la semana?`}>Pasar {plural(tanda.otPiezaIds.length, "pieza")} al plan</ConfirmarBoton>
           </form>
         )}
         <details className="tarjeta px-3 py-2">

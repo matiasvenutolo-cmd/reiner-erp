@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath } from "@/lib/revalidar";
 import { getUsuarioActual } from "@/lib/session";
 import { crearProveedor, actualizarProveedor, CAMPOS_PROVEEDOR, type DatosProveedor } from "@/lib/data/logistica";
 

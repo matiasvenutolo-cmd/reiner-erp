@@ -7,8 +7,8 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PestanasOt } from "@/components/ui/PestanasSecciones";
 import { Etiqueta } from "@/components/ui/Etiqueta";
 import { Vacio } from "@/components/ui/Aviso";
-import { fechaCorta, textoCausa } from "@/components/v2/Plan";
-import { diasHabiles, plural } from "@/lib/formato";
+import { fechaCorta, textoCausa, margenEntrega, MargenEntrega } from "@/components/v2/Plan";
+import { plural } from "@/lib/formato";
 import type { ProyectoPlan } from "@/lib/planning/motor";
 
 export const dynamic = "force-dynamic";
@@ -22,16 +22,14 @@ const GRUPOS = [
 ] as const;
 
 function Diferencia({ p }: { p: ProyectoPlan }) {
-  if (p.diferenciaDias > 0) return <Etiqueta tono="rojo">{diasHabiles(p.diferenciaDias)} tarde</Etiqueta>;
-  if (p.diferenciaDias >= -3) return <Etiqueta tono="naranja">{p.diferenciaDias === 0 ? "justo a tiempo" : `${diasHabiles(-p.diferenciaDias)} antes`}</Etiqueta>;
-  return <Etiqueta tono="verde">{diasHabiles(-p.diferenciaDias)} antes</Etiqueta>;
+  return <MargenEntrega dias={p.diferenciaDias} />;
 }
 
 /** Tarjeta de proyecto (§2.3): máquina y cliente en grande, avance en horas y la diferencia con la entrega. */
 function TarjetaProyecto({ x, p, hoy }: { x: Fila; p: ProyectoPlan; hoy: string }) {
   const causa = p.causas[0] ? textoCausa(p.causas[0].causa, hoy) : null;
   return (
-    <Link href={`/proyectos/${x.m.id}`} className={`tarjeta franja ${p.diferenciaDias > 0 ? "border-l-rojo" : "border-l-verde"} p-4 block hover:border-accent transition-colors`}>
+    <Link href={`/proyectos/${x.m.id}`} className={`tarjeta franja ${margenEntrega(p.diferenciaDias).franja} p-4 block hover:border-accent transition-colors`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="text-lg font-bold leading-tight">{x.cliente ?? x.config ?? x.m.codigo}</div>
@@ -77,7 +75,7 @@ export default async function ProyectosPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        titulo="Proyectos y órdenes"
+        titulo="Órdenes"
         descripcion="Cada máquina es un proyecto con fecha de entrega; debajo, todo se descompone en tareas con fecha. Los repuestos y las órdenes para stock funcionan igual, con un solo nivel."
         acciones={
           <Link href="/ot/nueva" className="btn">

@@ -22,7 +22,7 @@ export const getContadoresMenu = unstable_cache(
       "/admin/configuracion": pendientes,
     };
   },
-  ["contadores-menu"],
+  ["contadores-menu", process.env.VERCEL_DEPLOYMENT_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "local"],
   { revalidate: 60, tags: ["contadores"] },
 );
 

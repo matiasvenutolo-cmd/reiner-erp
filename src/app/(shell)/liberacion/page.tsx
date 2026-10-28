@@ -42,13 +42,13 @@ export default async function LiberacionPage({ searchParams }: { searchParams: P
   return (
     <div className="space-y-6">
       <PageHeader
-        titulo="Liberación de piezas"
-        descripcion={`Las piezas se liberan por tandas: el sistema propone las que tienen que empezar en los próximos ${horizonte} días hábiles. Revisá, destildá lo que no quieras y liberá. Lo liberado entra al plan de la semana.`}
+        titulo="Entrada al plan"
+        descripcion={`El sistema propone qué piezas pasan al plan: las que tienen que empezar en las próximas ${Math.round(horizonte / 5)} semanas. Revisá, destildá lo que no quieras y pasalas al plan.`}
       />
       {ok && <Aviso tipo="ok">{ok}</Aviso>}
       {error && <Aviso tipo="error">{error}</Aviso>}
 
-      {proyectos.length === 0 && <Vacio>No hay piezas para liberar: todo lo que tiene que empezar pronto ya está en producción.</Vacio>}
+      {proyectos.length === 0 && <Vacio>No hay piezas para pasar al plan: todo lo que tiene que empezar pronto ya está en el plan.</Vacio>}
 
       {proyectos.map(({ p, tanda, sinPlano, despues }) => {
         const info = proyectosInfo.get(p.id);
@@ -69,8 +69,8 @@ export default async function LiberacionPage({ searchParams }: { searchParams: P
               <form action={liberarAction}>
                 <input type="hidden" name="volver" value={`/liberacion#${p.id}`} />
                 <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-accent-soft/60 border-b border-border">
-                  <span className="text-sm">El sistema sugiere liberar {plural(tanda.length, "pieza")}: las que tienen que empezar en los próximos {horizonte} días hábiles.</span>
-                  <button className="btn">Liberar las {tanda.length}</button>
+                  <span className="text-sm">El sistema sugiere pasar {plural(tanda.length, "pieza")} al plan: las que tienen que empezar en las próximas {Math.round(horizonte / 5)} semanas.</span>
+                  <button className="btn">Pasar las {tanda.length} al plan</button>
                 </div>
                 <details className="group">
                   <summary className="px-4 py-2 text-sm text-accent cursor-pointer list-none hover:underline">Ver la lista para destildar excepciones</summary>
@@ -79,7 +79,7 @@ export default async function LiberacionPage({ searchParams }: { searchParams: P
                     {tanda.map((t) => (
                       <tr key={t.otPiezaId} className="border-t border-border first:border-t-0">
                         <td className="pl-4 py-2 w-8">
-                          <input type="checkbox" name="otPiezaId" value={t.otPiezaId} defaultChecked aria-label={`Liberar ${t.piezaNombre}`} />
+                          <input type="checkbox" name="otPiezaId" value={t.otPiezaId} defaultChecked aria-label={`Pasar al plan ${t.piezaNombre}`} />
                         </td>
                         <td className="px-2 py-2">
                           <div className="font-medium">
@@ -103,11 +103,11 @@ export default async function LiberacionPage({ searchParams }: { searchParams: P
                 </details>
               </form>
             ) : (
-              <p className="px-4 py-3 text-sm text-foreground-muted">Nada que liberar en este horizonte.</p>
+              <p className="px-4 py-3 text-sm text-foreground-muted">Nada para pasar al plan por ahora.</p>
             )}
             {sinPlano.length > 0 && (
               <div className="px-4 py-3 border-t border-border bg-naranja-tenue text-sm space-y-2">
-                <div className="font-semibold text-naranja-fg">No se pueden liberar todavía ({sinPlano.length}): les falta el plano o la revisión{exigirPlano ? "" : " (regla desactivada en Admin)"}.</div>
+                <div className="font-semibold text-naranja-fg">No pueden entrar al plan todavía ({sinPlano.length}): les falta el plano o la revisión{exigirPlano ? "" : " (regla desactivada en Admin)"}.</div>
                 <ul className="space-y-1.5">
                   {sinPlano.map((t) => (
                     <li key={t.otPiezaId} className="flex flex-wrap items-center justify-between gap-2">
@@ -117,7 +117,7 @@ export default async function LiberacionPage({ searchParams }: { searchParams: P
                       <form action={avisarAction}>
                         <input type="hidden" name="tipo" value="falta_plano" />
                         <input type="hidden" name="otPiezaId" value={t.otPiezaId} />
-                        <input type="hidden" name="texto" value={`Falta el plano o la revisión de ${t.piezaNombre} (${t.piezaCodigo}) para poder liberarla`} />
+                        <input type="hidden" name="texto" value={`Falta el plano o la revisión de ${t.piezaNombre} (${t.piezaCodigo}) para que pueda entrar al plan`} />
                         <input type="hidden" name="volver" value={`/liberacion#${p.id}`} />
                         <button className="btn-secundario btn-sm">Avisar a ingeniería</button>
                       </form>
@@ -128,7 +128,7 @@ export default async function LiberacionPage({ searchParams }: { searchParams: P
             )}
             {despues.length > 0 && (
               <details className="px-4 py-3 border-t border-border text-sm">
-                <summary className="cursor-pointer text-foreground-muted">Fuera del horizonte: {despues.length} piezas, la próxima empieza el {fechaCorta(despues[0].inicioMasTardio)}</summary>
+                <summary className="cursor-pointer text-foreground-muted">Más adelante: {despues.length} piezas, la próxima empieza el {fechaCorta(despues[0].inicioMasTardio)}</summary>
                 <ul className="mt-2 grid sm:grid-cols-2 gap-x-6 gap-y-1 text-xs">
                   {despues.map((t) => (
                     <li key={t.otPiezaId} className="flex justify-between gap-2">

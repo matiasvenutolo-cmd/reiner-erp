@@ -36,7 +36,7 @@ export function Holgura({ nivel, dias, corto, soloExcepcion }: { nivel: Nivel; d
 }
 
 const ESTADO: Record<EstadoTarea, [string, Tono, string]> = {
-  futura: ["Sin liberar", "gris", "reloj"],
+  futura: ["Todavía no entró al plan", "gris", "reloj"],
   liberada: ["Esperando el paso anterior", "gris", "reloj"],
   lista: ["Lista", "verde", "okCirculo"],
   en_curso: ["En curso", "naranja", "empezar"],
@@ -99,7 +99,7 @@ export function textoCausa(c: Causa, hoy: string): { texto: string; accion: stri
     case "capacidad":
       return { texto: `${c.centro} no tiene lugar para ${c.pieza} (${c.conjunto}) hasta el ${fc(c.desde, hoy)}`, accion: "Ver el plan", href: `/planificacion?centro=${encodeURIComponent(c.centroId)}`, hacer: `Hacer lugar en ${c.centro}` };
     case "sin_liberar":
-      return { texto: `faltan liberar las piezas de ${c.conjunto}`, accion: "Liberar piezas", href: "/liberacion", hacer: `Liberar las piezas de ${c.conjunto}` };
+      return { texto: `las piezas de ${c.conjunto} todavía no entraron al plan`, accion: "Pasar al plan", href: "/liberacion", hacer: `Pasar al plan las piezas de ${c.conjunto}` };
   }
 }
 
@@ -129,4 +129,20 @@ export function CausaRaiz({ codigo, causas, hoy, chico }: { codigo: string; caus
       })}
     </ul>
   );
+}
+
+/**
+ * Margen contra la entrega (simplificación §3): llegar antes nunca es rojo.
+ * Más de 3 días antes → verde · de 0 a 3 → naranja "Llega justo" · después → rojo.
+ * `dias` = días hábiles entre la entrega y el fin estimado (positivo = tarde).
+ */
+export function margenEntrega(dias: number): { texto: string; corto: string; tono: Tono; franja: string } {
+  if (dias > 0) return { texto: `Va ${dias} día${dias === 1 ? "" : "s"} tarde`, corto: `${dias} día${dias === 1 ? "" : "s"} tarde`, tono: "rojo", franja: "border-l-rojo" };
+  if (dias >= -3) return { texto: "Llega justo", corto: "llega justo", tono: "naranja", franja: "border-l-naranja" };
+  return { texto: `Llega con ${-dias} días de margen`, corto: `${-dias} días de margen`, tono: "verde", franja: "border-l-verde" };
+}
+
+export function MargenEntrega({ dias }: { dias: number }) {
+  const m = margenEntrega(dias);
+  return <Etiqueta tono={m.tono}>{m.texto}</Etiqueta>;
 }

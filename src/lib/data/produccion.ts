@@ -639,11 +639,14 @@ export async function getPasosConLote(piezas: { id: string; piezaId: string; can
   if (!piezas.length) return res;
   const ids = piezas.map((p) => p.id);
   const piezaIds = [...new Set(piezas.map((p) => p.piezaId))];
-  const [manuales, pzs, ops] = await Promise.all([
+  const [manuales, pzs] = await Promise.all([
     db.select().from(tareaLote).where(inArray(tareaLote.otPiezaId, ids)),
     db.select({ id: pieza.id, lote: pieza.tamanoLote }).from(pieza).where(inArray(pieza.id, piezaIds)),
-    db.select({ id: operacion.id, piezaId: operacion.piezaId }).from(operacion).where(inArray(operacion.piezaId, piezaIds)),
   ]);
+  // Las operaciones sólo hacen falta si alguna pieza tiene lote por defecto (lo normal es que ninguna).
+  const conLotePieza = pzs.filter((x) => x.lote).map((x) => x.id);
+  const ops = conLotePieza.length ? await db.select({ id: operacion.id, piezaId: operacion.piezaId }).from(operacion).where(inArray(operacion.piezaId, conLotePieza)) : [];
+  if (!manuales.length && !ops.length) return res;
   for (const p of piezas) {
     const set = new Set<string>();
     const lotePieza = pzs.find((x) => x.id === p.piezaId)?.lote;

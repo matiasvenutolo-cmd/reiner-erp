@@ -9,7 +9,7 @@ export function PestanasOt({ actual }: { actual: string }) {
     <Pestanas
       actual={actual}
       items={[
-        { href: "/proyectos", label: "Proyectos" },
+        { href: "/proyectos", label: "Por fecha de entrega" },
         { href: "/ot", label: "Órdenes por tipo" },
         { href: "/ot/piezas", label: "Todas las piezas" },
       ]}

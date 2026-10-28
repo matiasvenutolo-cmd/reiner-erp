@@ -33,7 +33,7 @@ export default async function StockFinalizadoPage({
     <div className="space-y-6">
       <PageHeader
         titulo="Stock"
-        descripcion={`Almacén: existencias físicas reales. ${piezas.length} pieza${piezas.length === 1 ? "" : "s"} distinta${piezas.length === 1 ? "" : "s"} · ${totalUnidades} unidades, ${totalComprometido} asignadas a una orden.`}
+        descripcion={`Almacén: existencias físicas reales. ${piezas.length} pieza${piezas.length === 1 ? "" : "s"} distinta${piezas.length === 1 ? "" : "s"} · ${totalUnidades} unidades, ${totalComprometido} reservadas para una orden.`}
       >
         <PestanasStock actual={tipoFiltro ? `/stock/finalizado?tipo=${tipoFiltro}` : "/stock/finalizado"} />
       </PageHeader>
@@ -45,7 +45,7 @@ export default async function StockFinalizadoPage({
 
       {estado && (
         <p className="text-sm">
-          Mostrando sólo lo {estado === "libre" ? "libre" : "asignado a una orden"}.{" "}
+          Mostrando sólo lo {estado === "libre" ? "libre" : "reservado para una orden"}.{" "}
           <Link href={`/stock/finalizado${tipoFiltro ? `?tipo=${tipoFiltro}` : ""}`} className="text-accent hover:underline">
             Ver todo
           </Link>

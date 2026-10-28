@@ -82,7 +82,7 @@ export default async function PedirPage({ searchParams }: { searchParams: Promis
 
   const sinPedir = r.compras.filter((c) => !c.pedido).sort((a, b) => a.pedirAntes.localeCompare(b.pedirAntes));
   const grupos: { id: string; titulo: string; ayuda: string; tono: "naranja" | "rojo" | "azul" | "gris"; items: Compra[] }[] = [
-    { id: "ya", titulo: "Pedir ya", ayuda: "Cuando se creó el proyecto ya había pasado el día para pedirlas: cuanto antes, mejor.", tono: "naranja", items: sinPedir.filter((c) => c.pedirYa) },
+    { id: "ya", titulo: "Pedir ya", ayuda: "Cuando se cargó la orden ya había pasado el día para pedirlas: cuanto antes, mejor.", tono: "naranja", items: sinPedir.filter((c) => c.pedirYa) },
     { id: "vencidas", titulo: "Vencidas", ayuda: "Tenían fecha y no se pidieron a tiempo: cada día de demora atrasa la máquina.", tono: "rojo", items: sinPedir.filter((c) => !c.pedirYa && c.pedirAntes < hoy) },
     { id: "semana", titulo: "Esta semana", ayuda: `Hay que pedirlas antes del ${fechaCorta(viernes, hoy)}.`, tono: "azul", items: sinPedir.filter((c) => !c.pedirYa && c.pedirAntes >= hoy && c.pedirAntes <= viernes) },
     { id: "proximas", titulo: "Próximas 2 semanas", ayuda: "Para ir cotizando.", tono: "gris", items: sinPedir.filter((c) => !c.pedirYa && c.pedirAntes > viernes && c.pedirAntes <= dosSemanas) },

@@ -84,7 +84,7 @@ export default async function HoyPage() {
           <strong>{p.codigo}</strong> termina {diasHabiles(p.diferenciaDias)} después de la entrega{c ? `: ${c.texto}` : ""}.
         </>
       ),
-      boton: c?.accion ?? "Ver proyecto",
+      boton: c?.accion ?? "Ver la orden",
       href: c?.href ?? `/proyectos/${p.id}`,
       dias: p.diferenciaDias,
       tipo: "entrega",
@@ -98,7 +98,7 @@ export default async function HoyPage() {
   if (comprasSemana.length) decisiones.push({ texto: `${plural(comprasSemana.length, "compra")} hay que pedir${comprasSemana.length === 1 ? "la" : "las"} esta semana.`, boton: "Ir a pedir", href: "/pedir", dias: 3, tipo: "entrega" });
   for (const t of r.tandas.filter((x) => x.otPiezaIds.length)) {
     const p = r.proyectos.find((x) => x.id === t.proyectoId);
-    decisiones.push({ texto: `${plural(t.otPiezaIds.length, "pieza")} de ${p?.codigo} entran en el horizonte.`, boton: `Liberar ${t.otPiezaIds.length}`, href: `/liberacion#${t.proyectoId}`, dias: 2, tipo: "entrega" });
+    decisiones.push({ texto: `${plural(t.otPiezaIds.length, "pieza")} de ${p?.codigo} tendrían que entrar al plan en las próximas semanas.`, boton: `Pasar ${t.otPiezaIds.length} al plan`, href: `/liberacion#${t.proyectoId}`, dias: 2, tipo: "entrega" });
   }
   for (const [desde, cuando] of [[lunes, "esta semana"], [sumarHabiles(viernes, 1, cal), "la semana que viene"]] as const) {
     for (const c of centros) {
@@ -187,7 +187,7 @@ export default async function HoyPage() {
         {[
           { label: "Tareas de hoy", n: deHoy.length, href: "#hoy", tono: "" },
           { label: "Trabadas", n: trabadas.length + paradasLargas.length, href: "#trabado", tono: trabadas.length ? "text-rojo-fg" : "" },
-          { label: "Proyectos en riesgo", n: enRiesgo.length, href: "/llegamos", tono: enRiesgo.length ? "text-rojo-fg" : "" },
+          { label: "Órdenes en riesgo", n: enRiesgo.length, href: "/llegamos", tono: enRiesgo.length ? "text-rojo-fg" : "" },
         ].map((x) => (
           <Link key={x.label} href={x.href} className="tarjeta p-4 hover:border-accent">
             <div className={`text-[32px] font-bold tabular-nums leading-none ${x.tono}`}>{x.n}</div>
@@ -366,7 +366,7 @@ export default async function HoyPage() {
 
       {configPendiente > 0 && (
         <p className="text-sm text-foreground-muted">
-          Hay {plural(configPendiente, "tema")} de configuración pendiente{configPendiente === 1 ? "" : "s"}.{" "}
+          Hay {plural(configPendiente, "tema")} de datos por completar{configPendiente === 1 ? "" : "s"}.{" "}
           <Link href="/admin/configuracion" className="text-accent hover:underline">
             Ver →
           </Link>

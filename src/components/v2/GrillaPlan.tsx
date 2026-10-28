@@ -96,7 +96,7 @@ export function GrillaPlan({ dias, filas, feriados, nombresDia, volver, vista }:
       className={`relative w-full text-left rounded-md border border-border franja ${NIVEL[t.nivel].borde} bg-surface pl-2 pr-5 py-1.5 text-xs shadow-sm ${t.fijada || f.sinLimite ? "" : "cursor-grab active:cursor-grabbing"} ${t.futura ? "opacity-60" : ""} ${t.resaltada ? "ring-2 ring-accent" : ""} hover:border-foreground-muted`}
       title={`${t.titulo} · ${t.proyecto} · ${NIVEL[t.nivel].label}${t.tarde ? " · termina después de su fecha límite" : ""}`}
     >
-      <span className={`absolute top-1 right-1 w-2.5 h-2.5 rounded-sm ${t.colorProyecto}`} aria-label={`Proyecto ${t.proyecto}`} />
+      <span className={`absolute top-1 right-1 w-2.5 h-2.5 rounded-sm ${t.colorProyecto}`} aria-label={`Orden ${t.proyecto}`} />
       <span className="block font-semibold leading-tight">
         {t.titulo} × {t.cantidad}
       </span>
@@ -240,7 +240,7 @@ export function GrillaPlan({ dias, filas, feriados, nombresDia, volver, vista }:
             </div>
             <dl className="grid grid-cols-2 gap-2 text-sm">
               <div>
-                <dt className="text-xs text-foreground-muted">Proyecto</dt>
+                <dt className="text-xs text-foreground-muted">Orden</dt>
                 <dd className="font-medium flex items-center gap-1.5">
                   <span className={`w-2.5 h-2.5 rounded-sm ${abierta.t.colorProyecto}`} />
                   {abierta.t.proyecto}

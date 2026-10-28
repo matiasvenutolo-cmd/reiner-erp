@@ -109,7 +109,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                           <div className="text-foreground-muted">se necesita el {formatearFecha(compraDe.get(n.otPiezaId)!.llegadaNecesaria)}</div>
                         </>
                       ) : (
-                        <span className="text-foreground-muted">{n.primeraPlanificada ? `1ª operación el ${formatearFecha(n.primeraPlanificada)}` : "Sin fecha: el proyecto no está activo"}</span>
+                        <span className="text-foreground-muted">{n.primeraPlanificada ? `1ª operación el ${formatearFecha(n.primeraPlanificada)}` : "Sin fecha: la orden no está activa"}</span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-right">

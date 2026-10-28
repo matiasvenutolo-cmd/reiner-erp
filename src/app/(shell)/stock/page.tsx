@@ -27,7 +27,7 @@ export default async function StockPage() {
 
   const tarjetas = [
     { label: "libres para usar", n: libre, href: "/stock/finalizado?estado=libre", tono: "verde" as const },
-    { label: "asignadas a una orden", n: resumen.unidadesComprometidas, href: "/stock/finalizado?estado=asignada", tono: "azul" as const },
+    { label: "reservadas para una orden", n: resumen.unidadesComprometidas, href: "/stock/finalizado?estado=asignada", tono: "azul" as const },
     { label: "en fabricación", n: enFabricacion, href: "/stock/en-proceso", tono: "naranja" as const },
     { label: "pedidas, por llegar", n: pedidos.length, href: "/pedir?vista=llegar", tono: "gris" as const },
   ];

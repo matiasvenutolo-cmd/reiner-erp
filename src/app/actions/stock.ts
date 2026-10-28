@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath } from "@/lib/revalidar";
 import { getUsuarioDePlanta } from "@/lib/session";
 import { ajustarStock, retirarStock } from "@/lib/data/stock";
 import { marcarPedido, cancelarPedido, registrarLlegadaPedido } from "@/lib/data/compras";

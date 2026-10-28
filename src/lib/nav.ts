@@ -74,7 +74,7 @@ const NAV_ITEMS: NavEntry[] = [
 
   { href: "/planificacion", label: "Plan de la semana", roles: STAFF, grupo: "produccion", ayuda: "Qué se hace en cada centro esta semana" },
   { href: "/centros-trabajo", label: "Colas por centro", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/planificacion" },
-  { href: "/proyectos", label: "Proyectos y órdenes", roles: STAFF, grupo: "produccion", ayuda: "Cada máquina con su fecha de entrega" },
+  { href: "/proyectos", label: "Órdenes", roles: STAFF, grupo: "produccion", ayuda: "Cada máquina con su fecha de entrega" },
   { href: "/ot", label: "Órdenes de trabajo", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/proyectos" },
   { href: "/tercerizados", label: "Tercerizados", roles: STAFF, grupo: "produccion", ayuda: "Para mandar, afuera y vueltas" },
   { href: "/llegamos", label: "¿Llegamos?", roles: STAFF, grupo: "produccion", ayuda: "¿Cada máquina llega a su fecha?" },
@@ -88,9 +88,9 @@ const NAV_ITEMS: NavEntry[] = [
   { href: "/stock", label: "Stock", roles: STAFF, grupo: "stock", ayuda: "Materia prima, insumos, en proceso y terminados" },
 
   { href: "/maestros", label: "Piezas y hojas de ruta", roles: STAFF, grupo: "ingenieria", ayuda: "Máquinas, conjuntos, piezas, rutas y tiempos" },
-  { href: "/liberacion", label: "Liberación de piezas", roles: STAFF, grupo: "ingenieria", ayuda: "Qué piezas entran al plan" },
+  { href: "/liberacion", label: "Entrada al plan", roles: STAFF, grupo: "ingenieria", ayuda: "Qué piezas entran al plan" },
 
-  { href: "/admin/configuracion", label: "Configuración pendiente", roles: STAFF, grupo: "admin", ayuda: "Datos que faltan cargar para que el plan sea confiable" },
+  { href: "/admin/configuracion", label: "Datos por completar", roles: STAFF, grupo: "admin", ayuda: "Datos que faltan cargar para que el plan sea confiable" },
   { href: "/operaciones", label: "Operaciones y centros", roles: STAFF, grupo: "admin", ayuda: "Tiempos por proceso y capacidad" },
   { href: "/admin/calendario", label: "Calendario", roles: STAFF, grupo: "admin", ayuda: "Feriados, cierres y ausencias" },
   { href: "/admin/montaje", label: "Secuencias de montaje", roles: STAFF, grupo: "admin" },

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath } from "@/lib/revalidar";
 import { getUsuarioDePlanta } from "@/lib/session";
 import { asignarTrabajo, eliminarAsignacion } from "@/lib/data/planificacion";
 

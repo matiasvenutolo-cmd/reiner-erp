@@ -80,7 +80,7 @@ export default async function StockPiezaPage({
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <Dato label="En almacén" value={almacen} />
         <Dato label="Libre" value={libre} destacado />
-        <Dato label="Asignado" value={comprometido} />
+        <Dato label="Reservado para una orden" value={comprometido} />
         <Dato label="En fabricación" value={enFabricacion} />
         <Dato label="Pedido, por llegar" value={pedido} />
       </div>
@@ -118,9 +118,9 @@ export default async function StockPiezaPage({
 
       <div className="grid sm:grid-cols-2 gap-4 items-start">
         <div>
-          <h2 className="text-sm font-semibold mb-2">Asignado a</h2>
+          <h2 className="text-sm font-semibold mb-2">Reservado para</h2>
           {reservas.length === 0 ? (
-            <p className="text-sm text-foreground-muted">Nada asignado: todo lo que hay está libre.</p>
+            <p className="text-sm text-foreground-muted">Nada reservado: todo lo que hay está libre.</p>
           ) : (
             <ul className="text-sm space-y-2">
               {reservas.map((r) => (
@@ -136,7 +136,7 @@ export default async function StockPiezaPage({
                     <input type="hidden" name="reservaId" value={r.id} />
                     <input name="cantidad" type="number" min={1} max={r.cantidad} defaultValue={r.cantidad} className="input text-xs py-0.5 w-14" aria-label="Cantidad" />
                     <button name="accion" value="liberar" className="btn-secundario btn-sm">
-                      Liberar
+                      Dejar libre
                     </button>
                     <span className="text-foreground-muted">o pasar a</span>
                     <select name="destinoOtMaquinaId" className="input text-xs py-0.5 w-28" aria-label="Orden destino">
@@ -157,7 +157,7 @@ export default async function StockPiezaPage({
           )}
         </div>
         <form action={moverReservaAction} className="tarjeta p-3 space-y-2 text-sm">
-          <h2 className="text-sm font-semibold">Asignar unidades libres</h2>
+          <h2 className="text-sm font-semibold">Reservar unidades libres para una orden</h2>
           <input type="hidden" name="piezaId" value={pieza.id} />
           <input type="hidden" name="accion" value="asignar" />
           <div className="flex flex-wrap items-end gap-2">

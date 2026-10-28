@@ -10,6 +10,7 @@
  * genérica "Fabricar" en Taller. Todo lo supuesto queda marcado.
  */
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
@@ -45,8 +46,24 @@ export type ContextoPlan = {
   ms: number;
 };
 
-/** El plan completo, calculado una vez por request. */
-export const getPlan = cache(() => construirPlan());
+// El plan guardado (simplificación §4.6): se calcula al cambiar algo, no en cada carga de página.
+// Se guarda como texto porque el caché de Next sólo guarda JSON; los Map y Set se reconstruyen al leerlo.
+const aTexto = (_k: string, v: unknown) => (v instanceof Map ? { __mapa: [...v] } : v instanceof Set ? { __conjunto: [...v] } : v);
+const deTexto = (_k: string, v: unknown) => {
+  if (v && typeof v === "object" && "__mapa" in v) return new Map((v as { __mapa: [unknown, unknown][] }).__mapa);
+  if (v && typeof v === "object" && "__conjunto" in v) return new Set((v as { __conjunto: unknown[] }).__conjunto);
+  return v;
+};
+// El día va como argumento sólo para que forme parte de la clave del caché (un plan por día).
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const planGuardado = unstable_cache(async (_dia: string) => JSON.stringify(await construirPlan(), aTexto), ["plan-v2", process.env.VERCEL_DEPLOYMENT_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "local"], {
+  tags: ["plan"],
+  // Red de seguridad: aunque nada cambie, se recalcula cada 10 minutos. Y el día forma parte de la clave.
+  revalidate: 600,
+});
+
+/** El plan completo: guardado entre cargas e invalidado por cada acción que cambia datos (ver src/lib/revalidar.ts). */
+export const getPlan = cache(async (): Promise<ContextoPlan> => JSON.parse(await planGuardado(hoyISO()), deTexto));
 
 /** Para el diálogo de "plan factible" (§1.4): un proyecto en borrador, simulado como si se activara con esa entrega. */
 export type Simulacion = { id: string; entrega: string; prioridad: "normal" | "alta" };

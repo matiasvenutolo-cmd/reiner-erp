@@ -3,9 +3,8 @@ import { getPlan } from "@/lib/planning/datos";
 import { proximosHabiles, habilesEntre } from "@/lib/planning/calendario";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Vacio } from "@/components/ui/Aviso";
-import { Etiqueta } from "@/components/ui/Etiqueta";
-import { fechaCorta, Estimado, CausaRaiz } from "@/components/v2/Plan";
-import { diasHabiles, numero } from "@/lib/formato";
+import { fechaCorta, Estimado, CausaRaiz, margenEntrega, MargenEntrega } from "@/components/v2/Plan";
+import { numero } from "@/lib/formato";
 import type { ProyectoPlan } from "@/lib/planning/motor";
 
 export const dynamic = "force-dynamic";
@@ -62,8 +61,8 @@ export default async function LlegamosPage() {
       />
 
       {proyectos.length === 0 ? (
-        <Vacio neutro accion={<Link href="/proyectos" className="btn-texto btn-sm">Ver proyectos →</Link>}>
-          No hay proyectos activos: activá uno cargando su fecha de entrega.
+        <Vacio neutro accion={<Link href="/proyectos" className="btn-texto btn-sm">Ver órdenes →</Link>}>
+          No hay órdenes activas: cargá una desde Órdenes → + Generar orden.
         </Vacio>
       ) : (
         <div className="grid lg:grid-cols-2 gap-4 [&>*]:min-w-0">
@@ -72,7 +71,7 @@ export default async function LlegamosPage() {
             const terminadas = p.conjuntos.reduce((s, c) => s + c.piezas.terminadas, 0);
             const piezas = p.conjuntos.reduce((s, c) => s + c.piezas.total, 0);
             return (
-              <article key={p.id} className={`tarjeta franja ${p.diferenciaDias > 0 ? "border-l-rojo" : p.diferenciaDias >= -3 ? "border-l-naranja" : "border-l-verde"} p-5`}>
+              <article key={p.id} className={`tarjeta franja ${margenEntrega(p.diferenciaDias).franja} p-5`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <Link href={`/proyectos/${p.id}`} className="text-lg font-bold hover:text-accent hover:underline">
@@ -83,11 +82,7 @@ export default async function LlegamosPage() {
                       {info?.esDemo && <span className="badge-estado bg-demo-bg text-demo-fg ml-2">demo</span>}
                     </div>
                   </div>
-                  {p.diferenciaDias > 0 ? (
-                    <Etiqueta tono="rojo">{diasHabiles(p.diferenciaDias)} tarde</Etiqueta>
-                  ) : (
-                    <Etiqueta tono={p.diferenciaDias >= -3 ? "naranja" : "verde"}>{p.diferenciaDias === 0 ? "justo a tiempo" : `${diasHabiles(-p.diferenciaDias)} antes`}</Etiqueta>
-                  )}
+                  <MargenEntrega dias={p.diferenciaDias} />
                 </div>
                 <LineaDeTiempo p={p} hoy={hoy} total={total} />
                 <div className="mt-3">

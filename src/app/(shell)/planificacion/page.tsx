@@ -273,7 +273,7 @@ export default async function PlanSemanaPage({
       </p>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-foreground-muted">Proyecto:</span>
+        <span className="text-foreground-muted">Orden:</span>
         {proyectos.map((p) => (
           <Link key={p.id} href={con({ proyecto: proyecto === p.id ? undefined : p.id })} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 ${proyecto === p.id ? "border-accent bg-accent-soft" : "border-border bg-surface hover:border-foreground-muted"}`}>
             <span className={`w-2.5 h-2.5 rounded-sm ${color.get(p.id)?.fondo}`} />

@@ -24,7 +24,7 @@ export default async function OtPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        titulo="Proyectos y órdenes"
+        titulo="Órdenes"
         descripcion="Cada orden nace en ingeniería; cuando está lista se envía a producción y recién ahí aparece para planificar y en el taller."
         acciones={
           <Link href="/ot/nueva" className="btn">

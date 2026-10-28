@@ -34,7 +34,7 @@ export default async function OtPiezasPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        titulo="Proyectos y órdenes"
+        titulo="Órdenes"
         descripcion={`Todas las piezas a fabricar, de máquinas, conjuntos y órdenes sueltas: ${filtradas.length} de ${todas.length} con los filtros elegidos.`}
       >
         <PestanasOt actual="/ot/piezas" />

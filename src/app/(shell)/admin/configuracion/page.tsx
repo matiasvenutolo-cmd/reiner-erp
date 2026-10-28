@@ -79,7 +79,7 @@ export default async function ConfiguracionPendientePage({ searchParams }: { sea
 
   return (
     <div className="max-w-4xl space-y-6">
-      <PageHeader titulo="Configuración pendiente" descripcion="Datos que faltan cargar para que el plan sea confiable. No es trabajo del día: se completa de a poco y el plan mejora solo." />
+      <PageHeader titulo="Datos por completar" descripcion="Datos que faltan cargar para que el plan sea confiable. No es trabajo del día: se completa de a poco y el plan mejora solo." />
       {ok && <Aviso tipo="ok">{ok}</Aviso>}
       {error && <Aviso tipo="error">{error}</Aviso>}
 

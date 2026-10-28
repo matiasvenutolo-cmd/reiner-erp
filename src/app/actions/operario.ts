@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "@/lib/revalidar";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { tareaBloqueo, tareaAdelanto, avisoPlanta, otPieza, otConjunto, proyectoEvento, usuario, pieza } from "@/lib/db/schema";
@@ -128,7 +128,7 @@ export async function avisarAction(fd: FormData) {
   });
 }
 
-/** "Hacer esta antes": cambia el orden de la cola, con motivo; queda en la bitácora del proyecto. */
+/** "Hacer esta antes": cambia el orden de la cola, con motivo; queda en la bitácora de la orden. */
 export async function adelantarAction(fd: FormData) {
   await correr(fd, async (u) => {
     const motivo = t(fd, "motivo");

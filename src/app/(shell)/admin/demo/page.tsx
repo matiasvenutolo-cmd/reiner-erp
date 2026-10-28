@@ -8,8 +8,8 @@ import { demoAction, guardarParametroAction } from "@/app/actions/v2";
 export const dynamic = "force-dynamic";
 
 const ETIQUETA: Record<string, string> = {
-  horizonte_liberacion: "Horizonte de liberación (días hábiles)",
-  exigir_plano: "Exigir plano para liberar una pieza (si / no)",
+  horizonte_liberacion: "Cuántos días hábiles antes de empezar entra una pieza al plan",
+  exigir_plano: "Exigir plano para que una pieza entre al plan (si / no)",
 };
 
 /** Datos de demo y parámetros: carga un escenario para mostrar el sistema funcionando y lo borra sin tocar los datos reales. */

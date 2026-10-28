@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { plural } from "@/lib/formato";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "@/lib/revalidar";
 import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
@@ -51,7 +51,7 @@ export async function liberarAction(fd: FormData) {
   await correr(t(fd, "volver") || "/liberacion", async () => {
     if (!ids.length) throw new Error("Tildá al menos una pieza.");
     const nLib = await enviarAProduccion(ids, u.id);
-    return `${nLib} pieza${nLib === 1 ? "" : "s"} liberada${nLib === 1 ? "" : "s"}: ya entran al plan de la semana.`;
+    return `${nLib} pieza${nLib === 1 ? "" : "s"} entr${nLib === 1 ? "ó" : "aron"} al plan de la semana.`;
   });
 }
 
@@ -178,7 +178,7 @@ export async function activarProyectoAction(fd: FormData) {
   }
   await correr(`/proyectos/${id}`, async () => {
     const entrega = t(fd, "fechaEntrega");
-    if (!entrega) throw new Error("La fecha de entrega comprometida es obligatoria para activar el proyecto.");
+    if (!entrega) throw new Error("La fecha de entrega comprometida es obligatoria para confirmar la orden.");
     const quitar = [...fd.getAll("quitarOtPiezaId").map(String), ...t(fd, "quitar").split(",")].filter(Boolean);
     if (quitar.length) await db.update(otPieza).set({ cantidadAFabricar: 0 }).where(inArray(otPieza.id, quitar));
     await db
@@ -186,7 +186,7 @@ export async function activarProyectoAction(fd: FormData) {
       .set({ fechaEntrega: entrega, prioridad: t(fd, "prioridad") === "alta" ? "alta" : "normal", estadoProyecto: "activo", fechaInicioProyecto: hoyISO(), destino: (t(fd, "destino") as "maquina") || undefined })
       .where(eq(otMaquina.id, id));
     await db.insert(proyectoEvento).values({ otMaquinaId: id, tipo: "activado", texto: `Activado con entrega ${entrega}${quitar.length ? ` · ${plural(quitar.length, "pieza")} destildada${quitar.length === 1 ? "" : "s"} (variantes)` : ""}`, usuarioId: u.id });
-    return "Proyecto activo: ya tiene tareas y compras con fecha.";
+    return "Orden activa: ya tiene tareas y compras con fecha.";
   });
 }
 
@@ -197,7 +197,7 @@ export async function cambiarEntregaAction(fd: FormData) {
     const fecha = t(fd, "fechaEntrega");
     const motivo = t(fd, "motivo");
     if (!fecha) throw new Error("Falta la nueva fecha.");
-    if (!motivo) throw new Error("El cambio de fecha de entrega pide un motivo: queda en la bitácora del proyecto.");
+    if (!motivo) throw new Error("El cambio de fecha de entrega pide un motivo: queda en la bitácora de la orden.");
     const [p] = await db.select({ f: otMaquina.fechaEntrega }).from(otMaquina).where(eq(otMaquina.id, id));
     await db.update(otMaquina).set({ fechaEntrega: fecha }).where(eq(otMaquina.id, id));
     await db.insert(proyectoEvento).values({ otMaquinaId: id, tipo: "fecha", texto: `Entrega ${p?.f ?? "—"} → ${fecha}. Motivo: ${motivo}`, usuarioId: u.id });
@@ -211,10 +211,10 @@ export async function pausarProyectoAction(fd: FormData) {
   const pausar = t(fd, "pausar") === "1";
   await correr(`/proyectos/${id}`, async () => {
     const motivo = t(fd, "motivo");
-    if (pausar && !motivo) throw new Error("Para pausar un proyecto hace falta un motivo.");
+    if (pausar && !motivo) throw new Error("Para pausar una orden hace falta un motivo.");
     await db.update(otMaquina).set({ estadoProyecto: pausar ? "pausado" : "activo" }).where(eq(otMaquina.id, id));
     await db.insert(proyectoEvento).values({ otMaquinaId: id, tipo: pausar ? "pausa" : "reactivado", texto: pausar ? `Pausado: ${motivo}` : "Reactivado", usuarioId: u.id });
-    return pausar ? "Proyecto pausado: sus tareas salen del plan." : "Proyecto reactivado.";
+    return pausar ? "Orden pausada: sus tareas salen del plan." : "Orden reactivada.";
   });
 }
 

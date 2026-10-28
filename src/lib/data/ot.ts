@@ -50,18 +50,20 @@ export type EstadoYOperacion = {
  * docs/05-backlog-release-2.md §9). Único lugar que hace este cálculo: antes
  * vivía duplicado acá y en /taller/[otPiezaId]. */
 export async function getEstadoYOperacionActual(pieza: OtPieza): Promise<EstadoYOperacion> {
-  const routing = await getRoutingPieza(pieza.piezaId);
+  const [routing, registros, lotes] = await Promise.all([
+    getRoutingPieza(pieza.piezaId),
+    db
+      .select()
+      .from(registroOperacion)
+      .where(and(eq(registroOperacion.otPiezaId, pieza.id), eq(registroOperacion.tipo, "ejecucion"))),
+    getPasosConLote([pieza]),
+  ]);
   if (routing.length === 0) {
     return { estado: "pendiente", sinRouting: true, operacionActual: null, routing };
   }
 
-  const registros = await db
-    .select()
-    .from(registroOperacion)
-    .where(and(eq(registroOperacion.otPiezaId, pieza.id), eq(registroOperacion.tipo, "ejecucion")));
-
   // v2 — con lotes, un paso se completa por cantidad y el siguiente puede arrancar con el lote terminado.
-  const conLote = (await getPasosConLote([pieza])).get(pieza.id) ?? new Set<string>();
+  const conLote = lotes.get(pieza.id) ?? new Set<string>();
   const { completados: operacionesCompletadas, disponibles } = avancePasos(
     routing.map((r) => r.id),
     pieza.cantidadAFabricar,
@@ -104,7 +106,7 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
   const piezaIds = [...new Set(piezas.map((p) => p.piezaId))];
   const otPiezaIds = piezas.map((p) => p.id);
 
-  const [operaciones, registros] = await Promise.all([
+  const [operaciones, registros, lotes] = await Promise.all([
     db
       .select({
         piezaId: operacion.piezaId,
@@ -121,8 +123,8 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
       .select({ otPiezaId: registroOperacion.otPiezaId, operacionId: registroOperacion.operacionId, fin: registroOperacion.fin, piezasOk: registroOperacion.piezasOk, piezasRechazadas: registroOperacion.piezasRechazadas })
       .from(registroOperacion)
       .where(and(inArray(registroOperacion.otPiezaId, otPiezaIds), eq(registroOperacion.tipo, "ejecucion"))),
+    getPasosConLote(piezas),
   ]);
-  const lotes = await getPasosConLote(piezas);
 
   const rutaPorPieza = new Map<string, { id: string; nombre: string }[]>();
   for (const o of operaciones) {
@@ -563,12 +565,16 @@ export async function getOtMaquinaDetalle(id: string) {
     .leftJoin(cliente, eq(cliente.id, otMaquina.clienteId))
     .where(eq(otMaquina.id, id));
   if (!row) return null;
-  const configuracion = await getConfiguracion(row.otMaquina.configuracionId);
-
-  const conjuntosOt = await db.select().from(otConjunto).where(eq(otConjunto.otMaquinaId, id));
-  const conjuntoIds = conjuntosOt.map((c) => c.id);
-  const [piezasTodas, conjuntosMaestro] = await Promise.all([
-    conjuntoIds.length ? db.select().from(otPieza).where(inArray(otPieza.otConjuntoId, conjuntoIds)) : Promise.resolve([]),
+  // Simplificación §4.6: lo que no depende entre sí va en paralelo (antes eran 5 consultas en fila).
+  const [configuracion, conjuntosOt, piezasTodas, conjuntosMaestro] = await Promise.all([
+    getConfiguracion(row.otMaquina.configuracionId),
+    db.select().from(otConjunto).where(eq(otConjunto.otMaquinaId, id)),
+    db
+      .select({ p: otPieza })
+      .from(otPieza)
+      .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
+      .where(eq(otConjunto.otMaquinaId, id))
+      .then((r) => r.map((x) => x.p)),
     getConjuntos().then((todos) => new Map(todos.map((c) => [c.id, c]))),
   ]);
   const estados = await getEstadosBatch(piezasTodas);

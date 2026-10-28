@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath } from "@/lib/revalidar";
 import { getUsuarioDePlanta } from "@/lib/session";
 import { generarRemito, type GenerarRemitoInput } from "@/lib/data/remitos";
 import { buscarPiezas } from "@/lib/data/maestros";

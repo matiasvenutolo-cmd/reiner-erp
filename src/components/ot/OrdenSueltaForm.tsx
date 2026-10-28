@@ -229,7 +229,7 @@ export function OrdenSueltaForm({
           <option value="normal">Normal</option>
         </select>
       </Field>
-      <p className="text-xs text-foreground-muted -mt-2">Con fecha, la orden entra sola al plan. Sin fecha queda en borrador, para activarla después desde Proyectos.</p>
+      <p className="text-xs text-foreground-muted -mt-2">Con fecha, la orden entra sola al plan. Sin fecha queda en borrador, para confirmarla después desde Órdenes.</p>
 
       <Field label="Emitido por">
         <input name="emitidoPor" required defaultValue={usuarioNombre} className="input" />

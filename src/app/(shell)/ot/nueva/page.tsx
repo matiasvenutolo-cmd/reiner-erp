@@ -138,7 +138,7 @@ export default async function NuevaOtPage({
   return (
     <div className="max-w-xl space-y-6">
       <PageHeader
-        migas={[{ href: "/proyectos", label: "Proyectos y órdenes" }, { label: "Generar orden" }]}
+        migas={[{ href: "/proyectos", label: "Órdenes" }, { label: "Generar orden" }]}
         titulo="Generar orden de trabajo"
         descripcion="De una máquina completa, o sólo de un conjunto o una pieza (repuestos, mantenimiento). El sistema cruza con el stock y reserva lo que ya hay."
       />

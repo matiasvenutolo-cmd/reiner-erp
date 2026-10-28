@@ -703,7 +703,7 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
                 : causa?.tipo === "tercerizado"
                   ? "Tercerizado"
                   : causa?.tipo === "sin_liberar"
-                    ? "Falta liberar piezas"
+                    ? "Todavía no entró al plan"
                     : causa?.tipo === "capacidad"
                       ? `Capacidad de ${causa.centro}`
                       : "Capacidad";

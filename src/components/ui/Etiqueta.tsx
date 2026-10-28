@@ -35,6 +35,6 @@ export function Punto({ tono, title }: { tono: Tono; title?: string }) {
 /** Estados de stock con el mismo color en todo el sistema (§2.6). */
 export const ESTADO_STOCK = {
   libre: { tono: "verde" as Tono, label: "libre" },
-  asignada: { tono: "azul" as Tono, label: "asignada" },
+  asignada: { tono: "azul" as Tono, label: "reservada para una orden" },
   cuarentena: { tono: "naranja" as Tono, label: "en cuarentena" },
 };
