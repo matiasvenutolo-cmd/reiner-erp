@@ -5,6 +5,7 @@ import { configuracion, conjunto, pieza, piezaConfiguracion, cliente } from "@/l
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Aviso } from "@/components/ui/Aviso";
 import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
+import { BotonEnviar } from "@/components/ui/BotonEnviar";
 import { Paso1, type DatosPaso1 } from "@/components/asistente/Paso1";
 import { QueHaceFalta } from "@/components/asistente/QueHaceFalta";
 import { getBorrador, queHaceFaltaDeBorrador } from "@/lib/data/que-hace-falta";
@@ -273,9 +274,9 @@ export default async function GenerarOrdenPage({
           <Link href={`/ot/nueva?borrador=${borrador!.id}&paso=2`} className="btn-secundario">
             ← Volver a Qué hace falta
           </Link>
-          <button className="btn" disabled={variasMaquinas}>
+          <BotonEnviar disabled={variasMaquinas} enviando="Confirmando: reservando stock y armando el plan…">
             Confirmar orden
-          </button>
+          </BotonEnviar>
         </div>
       </form>
     </div>
