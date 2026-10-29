@@ -6,7 +6,7 @@ import { Icono } from "./Icono";
  * El tono tiene significado fijo: rojo atrasado, naranja urgente, verde en
  * plazo, gris futuro, amarillo estimado, violeta demo, azul información.
  */
-export type Tono = "rojo" | "naranja" | "verde" | "gris" | "estimado" | "demo" | "azul";
+export type Tono = "rojo" | "naranja" | "verde" | "gris" | "estimado" | "demo" | "azul" | "azulFuerte";
 
 export const TONO: Record<Tono, { chip: string; franja: string; punto: string; icono: string }> = {
   rojo: { chip: "bg-rojo-bg text-rojo-fg", franja: "border-l-rojo", punto: "bg-rojo", icono: "error" },
@@ -16,6 +16,8 @@ export const TONO: Record<Tono, { chip: string; franja: string; punto: string; i
   estimado: { chip: "bg-estimado-bg text-estimado-fg", franja: "border-l-estimado-borde", punto: "bg-estimado-borde", icono: "info" },
   demo: { chip: "bg-demo-bg text-demo-fg", franja: "border-l-demo-fg", punto: "bg-demo-fg", icono: "demo" },
   azul: { chip: "bg-accent-soft text-accent-hover", franja: "border-l-accent", punto: "bg-accent", icono: "info" },
+  // v2 — "En curso" (simplificación §4.2): el mismo azul de "Lista", más intenso.
+  azulFuerte: { chip: "bg-accent text-accent-foreground", franja: "border-l-accent", punto: "bg-accent-hover", icono: "empezar" },
 };
 
 export function Etiqueta({ tono, children, icono, title, sinIcono }: { tono: Tono; children: React.ReactNode; icono?: string; title?: string; sinIcono?: boolean }) {

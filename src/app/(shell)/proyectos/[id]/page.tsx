@@ -1,18 +1,21 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { otMaquina, otConjunto, otPieza, pieza, conjunto, configuracion, cliente, proyectoEvento, usuario } from "@/lib/db/schema";
+import { otMaquina, otConjunto, otPieza, pieza, conjunto, configuracion, cliente, proyectoEvento, usuario, pedidoCompra, proveedor } from "@/lib/db/schema";
 import { getPlan } from "@/lib/planning/datos";
 import { habilesEntre } from "@/lib/planning/calendario";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Aviso } from "@/components/ui/Aviso";
 import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
-import { Holgura, EstadoTareaChip, fechaCorta, Estimado, CausaRaiz, textoCausa, margenEntrega } from "@/components/v2/Plan";
+import { Holgura, fechaCorta, Estimado, CausaRaiz, textoCausa, margenEntrega } from "@/components/v2/Plan";
+import { EstadoPiezaChip } from "@/components/v2/EstadoPieza";
+import { estadoDePieza, type EstadoDePieza, type EstadoVisible } from "@/lib/estado-pieza";
+import { getEsperaMaterialDeOrden } from "@/lib/data/gestion-compras";
 import { Etiqueta } from "@/components/ui/Etiqueta";
 import { capitalizar, diasHabiles, numero, plural } from "@/lib/formato";
 import { activarProyectoAction, cambiarEntregaAction, pausarProyectoAction, liberarAction } from "@/app/actions/v2";
-import type { Tarea, Causa } from "@/lib/planning/motor";
+import type { Causa } from "@/lib/planning/motor";
 
 export const dynamic = "force-dynamic";
 
@@ -31,15 +34,31 @@ function sugerirEntrega(emision: Date | null, plazo: string | null): string {
   return d.toISOString().slice(0, 10);
 }
 
-const ORDEN_ESTADO = ["terminadas", "enCurso", "listas", "trabadas", "futuras"] as const;
-const LABEL_ESTADO: Record<(typeof ORDEN_ESTADO)[number], string> = { terminadas: "Terminadas", enCurso: "En curso", listas: "Listas o liberadas", trabadas: "Trabadas", futuras: "Futuras" };
+// Un estado por pieza, de cinco (simplificación §4.2): lo que frena primero.
+const ORDEN_ESTADO: EstadoVisible[] = ["trabada", "falta_material", "en_curso", "lista", "terminada"];
+const LABEL_ESTADO: Record<EstadoVisible, string> = { trabada: "Trabadas", falta_material: "Falta material", en_curso: "En curso", lista: "Listas", terminada: "Terminadas" };
 
-function estadoDePieza(ts: Tarea[]): (typeof ORDEN_ESTADO)[number] {
-  if (ts.every((t) => t.estado === "terminada")) return "terminadas";
-  if (ts.some((t) => t.estado === "trabada")) return "trabadas";
-  if (ts.some((t) => t.estado === "en_curso" || t.estado === "pausada")) return "enCurso";
-  if (ts.some((t) => t.estado === "lista" || t.estado === "liberada")) return "listas";
-  return "futuras";
+type PiezaOrden = { id: string; otConjuntoId: string; nombre: string; cant: number; e: EstadoDePieza };
+
+/** Una pieza con su estado y su paso actual. El margen se muestra sólo si es urgente o está atrasada. */
+function FilaPieza({ x, hoy }: { x: PiezaOrden; hoy: string }) {
+  const a = x.e.actual;
+  return (
+    <li className="flex flex-wrap items-center gap-2 text-xs">
+      <span className="font-medium">
+        {capitalizar(x.nombre)} × {numero(x.cant)}
+      </span>
+      <EstadoPiezaChip estado={x.e.estado} />
+      {x.e.motivo && <span className={x.e.estado === "trabada" ? "text-rojo-fg" : "text-foreground-muted"}>{x.e.motivo}</span>}
+      {a && x.e.estado !== "terminada" && (
+        <span className="text-foreground-muted">
+          paso {a.posicion}/{a.totalPasos}: {a.paso}
+          {a.fechaPlan ? ` · plan ${fechaCorta(a.fechaPlan, hoy)}` : ""}
+        </span>
+      )}
+      {a && (a.nivel === "atrasada" || a.nivel === "urgente") && <Holgura nivel={a.nivel} dias={a.holgura} corto />}
+    </li>
+  );
 }
 
 export default async function ProyectoPage({
@@ -211,10 +230,163 @@ export default async function ProyectoPage({
     );
   }
 
-  // ── Activo: el proyecto, conjunto por conjunto ────────────────────────
+  // ── Activo ─────────────────────────────────────────────────────────────
   const tareas = plan.resultado.tareas.filter((t) => t.proyectoId === id);
   const tanda = plan.resultado.tandas.find((t) => t.proyectoId === id);
-  const nombres = new Map(tareas.map((t) => [t.otPiezaId, `${t.piezaNombre} × ${t.cantidad}`]));
+  const [filasPiezas, esperaMaterial, llegadas] = await Promise.all([
+    db
+      .select({ id: otPieza.id, otConjuntoId: otPieza.otConjuntoId, nombre: pieza.nombre, cant: otPieza.cantidadAFabricar })
+      .from(otPieza)
+      .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
+      .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
+      .where(eq(otConjunto.otMaquinaId, id)),
+    getEsperaMaterialDeOrden(id),
+    db
+      .select({ id: pedidoCompra.id, otPiezaId: pedidoCompra.otPiezaId, recibidoAt: pedidoCompra.recibidoAt, cantidad: pedidoCompra.cantidad, proveedor: proveedor.razonSocial })
+      .from(pedidoCompra)
+      .innerJoin(otPieza, eq(otPieza.id, pedidoCompra.otPiezaId))
+      .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
+      .leftJoin(proveedor, eq(proveedor.id, pedidoCompra.proveedorId))
+      .where(and(eq(otConjunto.otMaquinaId, id), isNotNull(pedidoCompra.recibidoAt))),
+  ]);
+  const compraDePieza = new Map(plan.resultado.compras.filter((c) => c.proyectoId === id).map((c) => [c.otPiezaId, c]));
+  const piezasOrden: PiezaOrden[] = filasPiezas
+    .filter((x) => x.cant > 0)
+    .map((x) => ({ ...x, e: estadoDePieza(tareas.filter((t) => t.otPiezaId === x.id), compraDePieza.get(x.id), esperaMaterial.get(x.id)) }));
+  const cuenta = (ps: PiezaOrden[]) => Object.fromEntries(ORDEN_ESTADO.map((e) => [e, ps.filter((x) => x.e.estado === e).length])) as Record<EstadoVisible, number>;
+
+  // ── Pieza o conjunto suelto: pantalla simple (simplificación §4.1) ─────
+  if (m.tipo === "suelta") {
+    const margen = margenEntrega(p.diferenciaDias);
+    const comprasOrden = plan.resultado.compras.filter((c) => c.proyectoId === id);
+    const nombreDe = new Map(filasPiezas.map((x) => [x.id, x.nombre]));
+    return (
+      <div className="space-y-6 max-w-4xl">
+        {header}
+        {ok && <Aviso tipo="ok">{ok}</Aviso>}
+        {error && <Aviso tipo="error">{error}</Aviso>}
+        <section className="tarjeta p-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <Grande titulo="Para" valor={fila.cliente ?? (m.destino === "stock" ? "Stock" : "—")} />
+            <Grande titulo="Entrega comprometida" valor={fechaCorta(p.entrega, hoy)} />
+            <Grande titulo="Margen" valor={margen.texto} color={{ rojo: "text-rojo-fg", naranja: "text-naranja-fg", verde: "text-verde-fg" }[margen.tono as "rojo" | "naranja" | "verde"]} />
+          </div>
+          {p.causas.length > 0 && (
+            <div className="mt-4">
+              <CausaRaiz codigo={p.codigo} causas={p.causas} hoy={hoy} />
+            </div>
+          )}
+        </section>
+
+        <section className="tarjeta p-4">
+          <h2 className="font-semibold mb-2">{piezasOrden.length === 1 ? "La pieza" : `Las piezas (${piezasOrden.length})`}</h2>
+          {piezasOrden.length === 0 ? (
+            <p className="text-sm text-foreground-muted">Todo sale del stock: no hay nada para fabricar ni comprar.</p>
+          ) : (
+            <ul className="space-y-2">
+              {[...piezasOrden]
+                .sort((a, b) => ORDEN_ESTADO.indexOf(a.e.estado) - ORDEN_ESTADO.indexOf(b.e.estado))
+                .map((x) => (
+                  <FilaPieza key={x.id} x={x} hoy={hoy} />
+                ))}
+            </ul>
+          )}
+          {tanda && tanda.otPiezaIds.length > 0 && (
+            <form action={liberarAction} className="mt-3">
+              <input type="hidden" name="volver" value={`/proyectos/${id}`} />
+              {tanda.otPiezaIds.map((pid) => (
+                <input key={pid} type="hidden" name="otPiezaId" value={pid} />
+              ))}
+              <ConfirmarBoton mensaje={`¿Pasar ${plural(tanda.otPiezaIds.length, "pieza")} al plan de la semana?`} className="btn btn-sm">
+                Pasar {plural(tanda.otPiezaIds.length, "pieza")} al plan
+              </ConfirmarBoton>
+            </form>
+          )}
+        </section>
+
+        <section className="tarjeta p-4">
+          <h2 className="font-semibold mb-2">Compras de la orden</h2>
+          {comprasOrden.length + llegadas.length === 0 ? (
+            <p className="text-sm text-foreground-muted">Esta orden no necesita compras.</p>
+          ) : (
+            <ul className="text-sm divide-y divide-border">
+              {comprasOrden.map((c) => (
+                <li key={c.clave} className="py-1.5 flex flex-wrap justify-between gap-2">
+                  <span>
+                    {c.esMaterial ? "Material para " : ""}
+                    {c.piezaNombre} × {c.cantidad}
+                  </span>
+                  {c.pedido ? (
+                    <Etiqueta tono="azul">Pedida{c.llegadaPrevista ? ` · llega el ${fechaCorta(c.llegadaPrevista, hoy)}` : ""}</Etiqueta>
+                  ) : c.pedirYa || c.pedirAntes < hoy ? (
+                    <Etiqueta tono="naranja">Pedir ya</Etiqueta>
+                  ) : (
+                    <span className="text-xs text-foreground-muted">Falta pedir · antes del {fechaCorta(c.pedirAntes, hoy)}</span>
+                  )}
+                </li>
+              ))}
+              {llegadas.map((l) => (
+                <li key={l.id} className="py-1.5 flex flex-wrap justify-between gap-2">
+                  <span>
+                    {capitalizar(nombreDe.get(l.otPiezaId) ?? "")} × {l.cantidad}
+                    {l.proveedor ? <span className="text-foreground-muted"> · {l.proveedor}</span> : null}
+                  </span>
+                  <Etiqueta tono="verde">Llegó el {fechaCorta(l.recibidoAt!.toISOString().slice(0, 10), hoy)}</Etiqueta>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link href="/pedir" className="text-sm text-accent hover:underline inline-block mt-2">
+            Pedir esta semana →
+          </Link>
+        </section>
+
+        <div className="flex flex-wrap gap-2 items-start">
+          <details className="tarjeta px-3 py-2">
+            <summary className="cursor-pointer text-sm font-semibold">Cambiar fecha de entrega</summary>
+            <form action={cambiarEntregaAction} className="mt-2 flex flex-wrap items-end gap-2">
+              <input type="hidden" name="id" value={id} />
+              <label className="block">
+                <span className="etiqueta">Nueva fecha</span>
+                <input type="date" name="fechaEntrega" required defaultValue={p.entrega} className="input" />
+              </label>
+              <label className="block">
+                <span className="etiqueta">Motivo *</span>
+                <input name="motivo" required placeholder="ej. el cliente adelantó la entrega" className="input w-72" />
+              </label>
+              <button className="btn btn-sm">Cambiar y recalcular</button>
+            </form>
+          </details>
+          <details className="tarjeta px-3 py-2">
+            <summary className="cursor-pointer text-sm font-semibold">Pausar</summary>
+            <form action={pausarProyectoAction} className="mt-2 flex flex-wrap items-end gap-2">
+              <input type="hidden" name="id" value={id} />
+              <input type="hidden" name="pausar" value="1" />
+              <input name="motivo" required placeholder="Motivo" className="input w-64" />
+              <ConfirmarBoton mensaje="¿Pausar la orden? Sus tareas salen del plan hasta reactivarla." className="btn-peligro btn-sm">
+                Pausar
+              </ConfirmarBoton>
+            </form>
+          </details>
+          <details className="tarjeta px-3 py-2">
+            <summary className="cursor-pointer text-sm font-semibold">Bitácora ({eventos.length})</summary>
+            <ul className="text-sm mt-2 space-y-1.5">
+              {eventos.map(({ e, nombre }) => (
+                <li key={e.id}>
+                  <span className="text-xs text-foreground-muted">
+                    {e.fecha.toLocaleDateString("es-AR")} · {nombre ?? e.usuarioId}
+                  </span>
+                  <div>{e.texto}</div>
+                </li>
+              ))}
+            </ul>
+          </details>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Máquina completa: conjunto por conjunto ────────────────────────────
   const inicioEje = [hoy, ...p.conjuntos.map((c) => c.fabricacionDesde ?? hoy)].sort()[0];
   const finEje = [p.finEstimado, p.entrega].sort().at(-1)!;
   const total = Math.max(1, habilesEntre(inicioEje, finEje, cal));
@@ -224,21 +396,20 @@ export default async function ProyectoPage({
   // Conjuntos con problemas arriba y desplegados; los que están en plazo, colapsados (§2.3).
   const conPiezas = p.conjuntos.filter((c) => c.piezas.total > 0);
   const sinPiezas = p.conjuntos.filter((c) => c.piezas.total === 0);
-  const conAtraso = conPiezas.filter((c) => c.atrasoDias > 0 || c.piezas.trabadas > 0);
+  const piezasDe = (otConjuntoId: string) => piezasOrden.filter((x) => x.otConjuntoId === otConjuntoId);
+  const conAtraso = conPiezas.filter((c) => c.atrasoDias > 0 || piezasDe(c.id).some((x) => x.e.estado === "trabada"));
   const enPlazo = conPiezas.filter((c) => !conAtraso.includes(c));
   const filaConjunto = (c: (typeof p.conjuntos)[number], abierto: boolean) => {
-            const ts = tareas.filter((t) => t.conjuntoId === c.id);
-            const porPieza = new Map<string, Tarea[]>();
-            for (const t of ts) porPieza.set(t.otPiezaId, [...(porPieza.get(t.otPiezaId) ?? []), t]);
-            const grupos = new Map<string, string[]>();
-            for (const [pid, tp] of porPieza) grupos.set(estadoDePieza(tp), [...(grupos.get(estadoDePieza(tp)) ?? []), pid]);
+            const delConjunto = piezasDe(c.id);
+            const grupos = new Map<EstadoVisible, PiezaOrden[]>();
+            for (const x of delConjunto) grupos.set(x.e.estado, [...(grupos.get(x.e.estado) ?? []), x]);
             return (
               <details key={c.id} className="group border-t border-border" open={abierto && !c.esperaA}>
                 <summary className="flex items-center cursor-pointer py-1.5 list-none">
                   <div className="w-48 shrink-0 pr-2 text-sm">
                     <span className="text-foreground-muted group-open:rotate-90 inline-block transition-transform mr-1">›</span>
                     <span className="font-medium">{c.codigo}</span> {c.nombre}
-                    <BarraEstados piezas={c.piezas} />
+                    <BarraEstados piezas={cuenta(delConjunto)} total={delConjunto.length} />
                     <div className="text-[11px] pl-3">
                       {c.esperaA ? (
                         <span className="text-gris">Espera a {c.esperaA.codigo} {c.esperaA.nombre}</span>
@@ -272,26 +443,9 @@ export default async function ProyectoPage({
                         {LABEL_ESTADO[e]} ({grupos.get(e)!.length})
                       </summary>
                       <ul className="mt-1 ml-4 space-y-1">
-                        {grupos.get(e)!.map((pid) => {
-                          const tp = porPieza.get(pid)!;
-                          const actual = tp.find((t) => t.estado !== "terminada");
-                          return (
-                            <li key={pid} className="flex flex-wrap items-center gap-2 text-xs">
-                              <span className="font-medium">{nombres.get(pid)}</span>
-                              {actual && (
-                                <>
-                                  <span className="text-foreground-muted">
-                                    paso {actual.posicion}/{actual.totalPasos}: {actual.paso}
-                                    {actual.fechaPlan ? ` · plan ${fechaCorta(actual.fechaPlan)}` : ""}
-                                  </span>
-                                  <EstadoTareaChip estado={actual.estado} />
-                                  <Holgura nivel={actual.nivel} dias={actual.holgura} corto />
-                                  {actual.motivoTraba && <span className="text-rojo-fg">{actual.motivoTraba}</span>}
-                                </>
-                              )}
-                            </li>
-                          );
-                        })}
+                        {grupos.get(e)!.map((x) => (
+                          <FilaPieza key={x.id} x={x} hoy={hoy} />
+                        ))}
                       </ul>
                     </details>
                   ))}
@@ -467,25 +621,25 @@ function Grande({ titulo, valor, color }: { titulo: string; valor: string; color
   );
 }
 
-/** Barra de piezas por estado del conjunto (terminadas · en curso · listas · trabadas · futuras). */
-function BarraEstados({ piezas }: { piezas: { total: number; terminadas: number; enCurso: number; listas: number; trabadas: number; futuras: number } }) {
-  const tramos = [
-    ["terminadas", "bg-verde", "terminadas"],
-    ["enCurso", "bg-naranja", "en curso"],
-    ["listas", "bg-accent", "listas"],
-    ["trabadas", "bg-rojo", "trabadas"],
-    ["futuras", "bg-gris/50", "futuras"],
-  ] as const;
-  const titulo = tramos.filter(([k]) => piezas[k]).map(([k, , l]) => `${piezas[k]} ${l}`).join(" · ");
+/** Barra de piezas del conjunto por estado, con los cinco estados de pieza. */
+function BarraEstados({ piezas, total }: { piezas: Record<EstadoVisible, number>; total: number }) {
+  const tramos: [EstadoVisible, string][] = [
+    ["terminada", "bg-verde"],
+    ["en_curso", "bg-accent-hover"],
+    ["lista", "bg-accent/50"],
+    ["falta_material", "bg-naranja"],
+    ["trabada", "bg-rojo"],
+  ];
+  if (!total) return null;
+  const titulo = tramos.filter(([k]) => piezas[k]).map(([k]) => `${piezas[k]} ${LABEL_ESTADO[k].toLowerCase()}`).join(" · ");
   return (
     <div className="pl-3 mt-0.5 flex items-center gap-1.5" title={titulo}>
       <div className="flex h-1.5 w-24 rounded-full overflow-hidden bg-surface-muted">
-        {tramos.map(([k, c]) => (piezas[k] ? <div key={k} className={c} style={{ width: `${(piezas[k] / piezas.total) * 100}%` }} /> : null))}
+        {tramos.map(([k, c]) => (piezas[k] ? <div key={k} className={c} style={{ width: `${(piezas[k] / total) * 100}%` }} /> : null))}
       </div>
       <span className="text-[11px] text-foreground-muted">
-        {piezas.terminadas}/{piezas.total}
+        {piezas.terminada}/{total}
       </span>
     </div>
   );
 }
-

@@ -34,7 +34,7 @@ function FilaPieza({ f, grupo, borradorId, ver }: { f: Fila; grupo: Grupo; borra
               {m}
             </Etiqueta>
           ))}
-          {f.estadoActual && <Etiqueta tono="azul" sinIcono>{f.estadoActual}</Etiqueta>}
+          {f.estadoActual && <Etiqueta tono={f.estadoActual.tono} sinIcono>{f.estadoActual.texto}</Etiqueta>}
         </div>
       </div>
       <div className="text-xs text-foreground-muted tabular-nums w-28">
@@ -108,7 +108,7 @@ export function QueHaceFalta({ datos, tipo, borradorId, ver, base, cambiaron }: 
               {m}
             </Etiqueta>
           ))}
-          {f.estadoActual && <Etiqueta tono="azul" sinIcono>{f.estadoActual}</Etiqueta>}
+          {f.estadoActual && <Etiqueta tono={f.estadoActual.tono} sinIcono>{f.estadoActual.texto}</Etiqueta>}
         </div>
         {f.resto > 0 && f.grupo !== "compro" && <p className="text-sm">{horas(f.horas)} de taller{f.plazoDias && f.grupo === "falta_material" ? ` · el material tarda ${f.plazoDias} días${f.plazoSupuesto ? " (plazo supuesto)" : ""}` : ""}.</p>}
         {f.resto > 0 && f.grupo === "compro" && <p className="text-sm">{f.proveedor ?? "Sin proveedor habitual"} · {f.plazoDias} días{f.plazoSupuesto ? " (plazo supuesto)" : ""}.</p>}

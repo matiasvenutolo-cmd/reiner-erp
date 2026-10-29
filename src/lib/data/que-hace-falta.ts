@@ -25,6 +25,7 @@ import {
 } from "@/lib/db/schema";
 import type { OrdenBorrador } from "@/lib/db/schema";
 import { normalizarBusqueda } from "@/lib/formato";
+import type { Tono } from "@/components/ui/Etiqueta";
 
 const DEFAULT = { setupMin: 30, minPorUnidad: 15, plazoCompra: 10, plazoComercial: 20 };
 
@@ -66,7 +67,7 @@ export type Fila = {
   claveCompra: string | null;
   comprar: boolean;
   /** Estado al día (sólo en una orden ya confirmada). */
-  estadoActual?: string | null;
+  estadoActual?: { texto: string; tono: Tono } | null;
 };
 
 export type MaterialSumado = { clave: string; nombre: string; unidad: string | null; necesario: number; libre: number; faltante: number; piezas: string[]; especificado: boolean };
@@ -267,7 +268,7 @@ export async function queHaceFaltaDeBorrador(b: OrdenBorrador) {
  * "Ver qué hace falta" en una orden ya confirmada (modo consulta): lo cubierto por stock es lo que se
  * reservó para la orden, y cada fila suma su estado al día (terminada, pedido, recibido…).
  */
-export async function queHaceFaltaDeOrden(otMaquinaId: string, estados: Map<string, string>) {
+export async function queHaceFaltaDeOrden(otMaquinaId: string, estados: Map<string, { texto: string; tono: Tono }>) {
   const ops = await db
     .select({ op: otPieza, conjuntoId: otConjunto.conjuntoId })
     .from(otPieza)

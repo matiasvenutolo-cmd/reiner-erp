@@ -2,19 +2,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { otMaquina, configuracion, cliente } from "@/lib/db/schema";
+import { otMaquina, otConjunto, otPieza, configuracion, cliente } from "@/lib/db/schema";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { QueHaceFalta } from "@/components/asistente/QueHaceFalta";
 import { queHaceFaltaDeOrden } from "@/lib/data/que-hace-falta";
 import { getPlan } from "@/lib/planning/datos";
-import { fechaCorta } from "@/lib/formato";
+import { estadoDePieza, ESTADO_VISIBLE } from "@/lib/estado-pieza";
+import { getEsperaMaterialDeOrden } from "@/lib/data/gestion-compras";
+import type { Tono } from "@/components/ui/Etiqueta";
 
 export const dynamic = "force-dynamic";
 
 /**
  * "Ver qué hace falta" de una orden ya confirmada (simplificación §1 y §2,
  * "Volver a mirar"): la misma pantalla, en modo consulta y con el estado al
- * día — qué se cubrió con stock, qué ya se fabricó, qué está pedido o falta pedir.
+ * día — qué se cubrió con stock y en qué estado está cada pieza.
  */
 export default async function QueHaceFaltaOrdenPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ver?: string }> }) {
   const [{ id }, { ver }] = await Promise.all([params, searchParams]);
@@ -29,19 +31,19 @@ export default async function QueHaceFaltaOrdenPage({ params, searchParams }: { 
   ]);
   if (!fila) notFound();
   const m = fila.m;
-  const hoy = plan.entrada.hoy;
 
-  // Estado al día de cada pieza, a partir del plan (lo fabricado) y de las compras (pedido o no).
-  const estados = new Map<string, string>();
+  // Estado al día de cada pieza, con los mismos cinco estados del detalle de la orden (simplificación §4.2).
+  const [ops, esperaMaterial] = await Promise.all([
+    db.select({ id: otPieza.id, piezaId: otPieza.piezaId }).from(otPieza).innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId)).where(eq(otConjunto.otMaquinaId, id)),
+    getEsperaMaterialDeOrden(id),
+  ]);
   const tareas = plan.resultado.tareas.filter((t) => t.proyectoId === id);
-  for (const codigo of new Set(tareas.map((t) => t.piezaCodigo))) {
-    const ts = tareas.filter((t) => t.piezaCodigo === codigo);
-    if (ts.every((t) => t.estado === "terminada")) estados.set(codigo, "Ya se fabricó");
-    else if (ts.some((t) => t.estado === "en_curso" || t.estado === "pausada")) estados.set(codigo, "En fabricación");
-  }
-  for (const c of plan.resultado.compras.filter((x) => x.proyectoId === id)) {
-    if (estados.has(c.piezaCodigo)) continue;
-    estados.set(c.piezaCodigo, c.pedido ? `Pedido${c.llegadaPrevista ? ` · llega el ${fechaCorta(c.llegadaPrevista, hoy)}` : ""}` : "Falta pedir");
+  const compras = new Map(plan.resultado.compras.filter((c) => c.proyectoId === id).map((c) => [c.otPiezaId, c]));
+  const estados = new Map<string, { texto: string; tono: Tono }>();
+  for (const op of ops) {
+    const e = estadoDePieza(tareas.filter((t) => t.otPiezaId === op.id), compras.get(op.id), esperaMaterial.get(op.id));
+    const v = ESTADO_VISIBLE[e.estado];
+    estados.set(op.piezaId, { texto: e.motivo ? `${v.label} · ${e.motivo}` : v.label, tono: v.tono });
   }
   const datos = await queHaceFaltaDeOrden(id, estados);
   const tipo = m.tipo === "suelta" ? (m.alcance === "pieza" ? "pieza" : "conjunto") : "maquina";

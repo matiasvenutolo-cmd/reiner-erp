@@ -747,3 +747,26 @@ export async function getSolicitudesAbiertasPorOtPieza(): Promise<Map<string, nu
     .where(and(isNotNull(solicitudCompra.otPiezaId), isNull(solicitudCompra.anuladaAt), isNull(solicitudCompra.confirmadaAt)));
   return new Map(filas.map((f) => [f.otPiezaId!, f.numero]));
 }
+
+/**
+ * Piezas de una orden que se confirmaron en "Falta material" y cuyo material todavía no llegó
+ * (simplificación §4.2): con qué texto mostrarlo. "No comprar" no cuenta: se decidió no pedirlo.
+ */
+export async function getEsperaMaterialDeOrden(otMaquinaId: string): Promise<Map<string, string>> {
+  const [necesidades, recibidas, solicitudes] = await Promise.all([
+    db
+      .select({ otPiezaId: necesidadCompraOrden.otPiezaId })
+      .from(necesidadCompraOrden)
+      .where(and(eq(necesidadCompraOrden.otMaquinaId, otMaquinaId), eq(necesidadCompraOrden.tipo, "material"), eq(necesidadCompraOrden.omitida, false))),
+    db.select({ otPiezaId: pedidoCompra.otPiezaId }).from(pedidoCompra).where(isNotNull(pedidoCompra.recibidoAt)),
+    db.select({ otPiezaId: solicitudCompra.otPiezaId, confirmada: solicitudCompra.confirmadaAt }).from(solicitudCompra).where(and(isNotNull(solicitudCompra.otPiezaId), isNull(solicitudCompra.anuladaAt))),
+  ]);
+  const llego = new Set(recibidas.map((r) => r.otPiezaId));
+  const enCompras = new Map(solicitudes.map((s) => [s.otPiezaId, s.confirmada]));
+  const r = new Map<string, string>();
+  for (const n of necesidades) {
+    if (llego.has(n.otPiezaId)) continue;
+    r.set(n.otPiezaId, enCompras.has(n.otPiezaId) ? (enCompras.get(n.otPiezaId) ? "Material: pedido al proveedor" : "Material: Compras lo está cotizando") : "Material: falta pedir");
+  }
+  return r;
+}
