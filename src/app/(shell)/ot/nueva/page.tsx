@@ -11,8 +11,9 @@ import { QueHaceFalta } from "@/components/asistente/QueHaceFalta";
 import { getBorrador, queHaceFaltaDeBorrador } from "@/lib/data/que-hace-falta";
 import { descartarBorradorAction, stockRevisadoAction, confirmarBorradorAction } from "@/app/actions/borrador";
 import { previaConfirmacion } from "@/lib/data/confirmar-orden";
-import { capitalizar, fechaCorta, numero, plural } from "@/lib/formato";
-import { hoyISO } from "@/lib/fecha";
+import { cuandoPuedeEstar } from "@/lib/planning/cuando-puede-estar";
+import { margenEntrega } from "@/components/v2/Plan";
+import { capitalizar, diasHabiles, fechaCorta, numero, plural } from "@/lib/formato";
 
 export const dynamic = "force-dynamic";
 
@@ -217,13 +218,16 @@ export default async function GenerarOrdenPage({
     );
   }
 
-  // ── Paso 3 — Cuándo (versión simple: la fecha se carga a mano) ──
-  const previa = await previaConfirmacion(borrador!);
-  const hoy = hoyISO();
+  // ── Paso 3 — Cuándo puede estar (simplificación §3): la fecha es un resultado ──
+  const [previa, cuando] = await Promise.all([previaConfirmacion(borrador!), cuandoPuedeEstar(borrador!)]);
+  const hoy = cuando.hoy;
   const esMaquina = borrador!.tipo === "maquina";
+  const paraStock = borrador!.destino === "stock";
   const variasMaquinas = esMaquina && borrador!.cantidad > 1;
   const sugerida = borrador!.numeroSerie ?? (esMaquina ? "" : `${(pz?.codigo ?? conj?.codigo ?? "").trim()}-${hoy.slice(8, 10)}${hoy.slice(5, 7)}`);
-  const fechaInicial = borrador!.fechaCliente && borrador!.fechaCliente >= hoy ? borrador!.fechaCliente : "";
+  const situacion: "sin_fecha" | "llega" | "no_llega" = cuando.cliente == null ? "sin_fecha" : (cuando.margenCliente ?? 0) >= 0 ? "llega" : "no_llega";
+  const margen = cuando.margenCliente != null ? margenEntrega(-cuando.margenCliente) : null;
+  const demoras = cuando.demoras;
   const lineas = [
     previa.reservadas > 0 && `Se reservan ${plural(previa.reservadas, "pieza")} del stock para esta orden.`,
     previa.compras > 0 && `${plural(previa.compras, "compra")} pasa${previa.compras === 1 ? "" : "n"} a Compras, con esta orden como origen.`,
@@ -240,14 +244,36 @@ export default async function GenerarOrdenPage({
       {resumen}
       <form action={confirmarBorradorAction} className="tarjeta p-5 space-y-5 max-w-3xl">
         <input type="hidden" name="id" value={borrador!.id} />
-        <h2 className="text-lg font-semibold">Cuándo puede estar</h2>
-        <p className="text-sm text-foreground-muted">Por ahora la fecha más temprana posible no se calcula: cargá a mano la fecha que se compromete.</p>
+        <input type="hidden" name="temprana" value={cuando.fecha} />
+        <div>
+          <div className="text-sm text-foreground-muted">Cuándo puede estar</div>
+          <div className="text-2xl sm:text-[32px] font-bold leading-tight">Puede estar el {fechaCorta(cuando.fecha, hoy)}</div>
+          {demoras.length > 0 && <p className="text-sm mt-1">Lo que más demora: {demoras.join(" y ")}.</p>}
+          <p className="text-xs text-foreground-muted mt-1">Calculado hacia adelante desde hoy, con la carga actual del taller: las órdenes activas van primero.</p>
+        </div>
+
+        {situacion === "llega" && margen && (
+          <div className={`rounded-lg border px-4 py-3 text-sm ${margen.tono === "verde" ? "border-verde/40 bg-verde-bg text-verde-fg" : "border-naranja-borde bg-naranja-tenue text-naranja-fg"}`}>
+            <strong>{margen.texto}</strong> para el {fechaCorta(cuando.cliente!, hoy)} que pidió el cliente. Se propone comprometer esa fecha.
+          </div>
+        )}
+        {situacion === "no_llega" && (
+          <div className="rounded-lg border border-naranja-borde bg-naranja-tenue px-4 py-3 text-sm text-naranja-fg space-y-1">
+            <div>
+              <strong>No llega: faltan {diasHabiles(-(cuando.margenCliente ?? 0))}</strong> para el {fechaCorta(cuando.cliente!, hoy)} que pidió el cliente.
+            </div>
+            {demoras.length > 0 && <div>Por qué: {demoras.join(" y ")}.</div>}
+          </div>
+        )}
+
         <div className="grid sm:grid-cols-3 gap-3">
-          <label className="block">
-            <span className="etiqueta">Fecha de entrega comprometida</span>
-            <input type="date" name="fechaEntrega" min={hoy} defaultValue={fechaInicial} required className="input" />
-            {borrador!.fechaCliente && <span className="block text-xs text-foreground-muted mt-1">El cliente la quiere para el {fechaCorta(borrador!.fechaCliente, hoy)}.</span>}
-          </label>
+          {situacion !== "no_llega" && (
+            <label className="block">
+              <span className="etiqueta">{situacion === "sin_fecha" ? `¿Comprometés el ${fechaCorta(cuando.fecha, hoy)}?` : "Fecha de entrega comprometida"}</span>
+              <input type="date" name="fechaEntrega" min={hoy} defaultValue={situacion === "llega" ? cuando.cliente! : paraStock ? "" : cuando.fecha} required={!paraStock} className="input" />
+              {paraStock && <span className="block text-xs text-foreground-muted mt-1">Para stock es opcional: si la dejás vacía, se compromete la más temprana con prioridad Normal.</span>}
+            </label>
+          )}
           <label className="block">
             <span className="etiqueta">Prioridad</span>
             <select name="prioridad" defaultValue="normal" className="input">
@@ -276,9 +302,20 @@ export default async function GenerarOrdenPage({
           <Link href={`/ot/nueva?borrador=${borrador!.id}&paso=2`} className="btn-secundario">
             ← Volver a Qué hace falta
           </Link>
-          <BotonEnviar disabled={variasMaquinas} enviando="Confirmando: reservando stock y armando el plan…">
-            Confirmar orden
-          </BotonEnviar>
+          {situacion === "no_llega" ? (
+            <span className="flex flex-wrap gap-2">
+              <BotonEnviar name="fechaEntrega" value={cuando.cliente!} className="btn-secundario" disabled={variasMaquinas} enviando="Confirmando…">
+                Comprometer el {fechaCorta(cuando.cliente!, hoy)} igual (en riesgo)
+              </BotonEnviar>
+              <BotonEnviar name="fechaEntrega" value={cuando.fecha} disabled={variasMaquinas} enviando="Confirmando: reservando stock y armando el plan…">
+                Comprometer el {fechaCorta(cuando.fecha, hoy)}
+              </BotonEnviar>
+            </span>
+          ) : (
+            <BotonEnviar disabled={variasMaquinas} enviando="Confirmando: reservando stock y armando el plan…">
+              Confirmar orden
+            </BotonEnviar>
+          )}
         </div>
       </form>
     </div>

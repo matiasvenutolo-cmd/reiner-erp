@@ -136,7 +136,7 @@ export async function confirmarBorradorAction(fd: FormData) {
   const id = t(fd, "id");
   let resultado: Awaited<ReturnType<typeof confirmarBorrador>>;
   try {
-    resultado = await confirmarBorrador(id, { fechaEntrega: t(fd, "fechaEntrega"), prioridad: t(fd, "prioridad") === "alta" ? "alta" : "normal", referencia: t(fd, "referencia") }, { id: u.id, nombre: u.nombre });
+    resultado = await confirmarBorrador(id, { fechaEntrega: t(fd, "fechaEntrega"), prioridad: t(fd, "prioridad") === "alta" ? "alta" : "normal", referencia: t(fd, "referencia"), temprana: /^\d{4}-\d{2}-\d{2}$/.test(t(fd, "temprana")) ? t(fd, "temprana") : undefined }, { id: u.id, nombre: u.nombre });
   } catch (e) {
     volverConError(id, 3, e instanceof Error ? e.message : "No se pudo confirmar la orden.");
   }

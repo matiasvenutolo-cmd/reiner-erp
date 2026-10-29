@@ -171,3 +171,16 @@ test("plan hacia adelante: compitiendo por un centro, va primero la de fecha com
   // La de entrega más cercana usa el día entero; la otra toma lo que sobra y termina después (aunque sea de prioridad alta).
   assert.ok(de("C").finPlan! < de("L").finPlan!);
 });
+
+test("orden nueva (cuándo puede estar): va detrás de las activas y compra hoy, aunque su entrega sea la más cercana", () => {
+  const pieza = (id: string, pasos: PasoEntrada[]) => ({ otPiezaId: id, codigo: id, nombre: id, cantidad: 4, conjuntoId: "C1", liberada: true, tienePlano: true, clase: "fabricada" as const, sinRuta: false, pasos });
+  const activa = proyecto([], { id: "P1", entrega: "2027-06-30", piezas: [pieza("A", [paso("A-1", { horas: 6 })])] });
+  const nueva = proyecto([], { id: "N", entrega: "2026-11-02", nueva: true, piezas: [pieza("N", [paso("N-C", { tipo: "compras", plazoDias: 10, centroId: null }), paso("N-1", { horas: 6 })])] });
+  const r = planificar({ ...entrada(activa), proyectos: [activa, nueva] });
+  const compra = r.tareas.find((t) => t.operacionId === "N-C")!;
+  assert.equal(compra.finPlan, sumarHabiles("2026-11-02", 10, cal)); // llega hoy + plazo
+  const sinCompra = proyecto([], { id: "N2", entrega: "2026-11-02", nueva: true, piezas: [pieza("M", [paso("M-1", { horas: 6 })])] });
+  const r2 = planificar({ ...entrada(activa), proyectos: [activa, sinCompra] });
+  const de = (id: string) => r2.tareas.find((t) => t.otPiezaId === id)!;
+  assert.ok(de("A").finPlan! < de("M").finPlan!); // la activa primero
+});

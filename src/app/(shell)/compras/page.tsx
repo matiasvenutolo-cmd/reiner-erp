@@ -103,10 +103,15 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                     <td className="px-4 py-2.5 text-xs">
                       {compraDe.get(n.otPiezaId) ? (
                         <>
-                          <div className={`text-sm font-semibold ${compraDe.get(n.otPiezaId)!.pedirAntes < hoy ? "text-rojo-fg" : ""}`}>
-                            {formatearFecha(compraDe.get(n.otPiezaId)!.pedirAntes)}
-                            {compraDe.get(n.otPiezaId)!.pedirAntes < hoy && " · vencida"}
-                          </div>
+                          {/* Nunca una fecha pasada (simplificación §3): lo que nació tarde es "Pedir ya"; "vencida" queda para lo que tenía fecha futura y no se pidió a tiempo. */}
+                          {compraDe.get(n.otPiezaId)!.pedirAntes < hoy && compraDe.get(n.otPiezaId)!.pedirYa ? (
+                            <div className="text-sm font-semibold text-naranja-fg">Pedir ya</div>
+                          ) : (
+                            <div className={`text-sm font-semibold ${compraDe.get(n.otPiezaId)!.pedirAntes < hoy ? "text-rojo-fg" : ""}`}>
+                              {formatearFecha(compraDe.get(n.otPiezaId)!.pedirAntes)}
+                              {compraDe.get(n.otPiezaId)!.pedirAntes < hoy && " · vencida"}
+                            </div>
+                          )}
                           <div className="text-foreground-muted">se necesita el {formatearFecha(compraDe.get(n.otPiezaId)!.llegadaNecesaria)}</div>
                         </>
                       ) : (

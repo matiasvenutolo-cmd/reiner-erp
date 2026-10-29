@@ -42,12 +42,14 @@ async function configuracionDe(b: { tipo: string; configuracionId: string | null
 
 export async function confirmarBorrador(
   borradorId: string,
-  datos: { fechaEntrega: string; prioridad: "normal" | "alta"; referencia: string },
+  datos: { fechaEntrega: string; prioridad: "normal" | "alta"; referencia: string; temprana?: string },
   usuario: { id: string; nombre: string },
 ): Promise<ResultadoConfirmacion> {
   const b = await getBorrador(borradorId);
   if (!b) throw new Error("Ese borrador ya no existe.");
   if (b.otMaquinaId) throw new Error("Este borrador ya se confirmó.");
+  // Para stock la fecha es opcional: sin fecha, la más temprana posible y prioridad Normal (simplificación §3).
+  if (!datos.fechaEntrega && b.destino === "stock" && datos.temprana) datos = { ...datos, fechaEntrega: datos.temprana, prioridad: "normal" };
   if (!datos.fechaEntrega) throw new Error("Falta la fecha de entrega comprometida.");
   if (datos.fechaEntrega < hoyISO()) throw new Error("La fecha comprometida no puede ser anterior a hoy.");
   const referencia = datos.referencia.trim();
@@ -168,6 +170,8 @@ export async function confirmarBorrador(
   const reservadas = [...cobertura.values()].filter((c) => c.cubre > 0).length;
   const compras = necesidades.filter((n) => !n.omitida).length;
   const partes = [`entrega ${datos.fechaEntrega}`, `${plural(reservadas, "pieza")} reservada${reservadas === 1 ? "" : "s"} del stock`, `${plural(compras, "compra")} a Compras`, `${plural(nAlPlan, "pieza")} al plan`];
+  // Comprometida antes de la fecha más temprana: queda en riesgo desde el inicio, y se anota.
+  if (datos.temprana && datos.fechaEntrega < datos.temprana) partes.push(`en riesgo desde el inicio: la fecha más temprana calculada era ${datos.temprana}`);
   if (b.excluidas?.length) partes.push(`${plural(b.excluidas.length, "pieza")} destildada${b.excluidas.length === 1 ? "" : "s"} (variantes)`);
   await db.insert(proyectoEvento).values({ otMaquinaId: orden.id, tipo: "activado", texto: `Confirmada desde Generar orden: ${partes.join(" · ")}`, usuarioId: usuario.id });
 

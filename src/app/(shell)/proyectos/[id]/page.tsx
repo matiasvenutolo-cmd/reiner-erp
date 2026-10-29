@@ -318,8 +318,10 @@ export default async function ProyectoPage({
                   </span>
                   {c.pedido ? (
                     <Etiqueta tono="azul">Pedida{c.llegadaPrevista ? ` · llega el ${fechaCorta(c.llegadaPrevista, hoy)}` : ""}</Etiqueta>
-                  ) : c.pedirYa || c.pedirAntes < hoy ? (
+                  ) : c.pedirYa ? (
                     <Etiqueta tono="naranja">Pedir ya</Etiqueta>
+                  ) : c.pedirAntes < hoy ? (
+                    <Etiqueta tono="rojo">Vencida · era el {fechaCorta(c.pedirAntes, hoy)}</Etiqueta>
                   ) : (
                     <span className="text-xs text-foreground-muted">Falta pedir · antes del {fechaCorta(c.pedirAntes, hoy)}</span>
                   )}

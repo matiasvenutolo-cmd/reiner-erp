@@ -24,7 +24,7 @@ import { sumarHabiles, type Calendario } from "./calendario";
 import { planificar, CENTRO_POR_DEFECTO, type EntradaMotor, type ProyectoEntrada, type PasoEntrada, type ResultadoMotor } from "./motor";
 
 export const ESTADOS_PLANIFICADOS = ["activo", "en_montaje"];
-const DEFAULT = { setupMin: 30, minPorUnidad: 15, plazoTercerizado: 5, plazoCompra: 10, plazoComercial: 20 };
+export const DEFAULT = { setupMin: 30, minPorUnidad: 15, plazoTercerizado: 5, plazoCompra: 10, plazoComercial: 20 };
 
 export async function getParametros(): Promise<{ horizonte: number; exigirPlano: boolean; entradaAutomatica: boolean; filas: { clave: string; valor: string; nota: string | null }[] }> {
   const filas = await db.select().from(parametro);
@@ -222,38 +222,23 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
           const { completados } = avancePasos(pasosRuta.map(({ o }) => o.id), cant, cerrados, conLote);
           const pasos: PasoEntrada[] = pasosRuta.length
             ? pasosRuta.map(({ o, pr }) => {
-                const tipoPaso = pr.tipo as PasoEntrada["tipo"];
-                const setup = o.setupMin ?? pr.setupMin ?? DEFAULT.setupMin;
-                const porUnidad = o.minPorUnidad ?? pr.minPorUnidad ?? DEFAULT.minPorUnidad;
+                const base = pasoDeRuta(o, pr, p, cant, servicios, plazoProveedor);
+                const tipoPaso = base.tipo;
+                const plazo = base.plazoDias;
                 const terminada = completados.has(o.id);
                 const delPaso = cerrados.filter((r) => r.operacionId === o.id);
                 const abierta = regs.find((r) => r.operacionId === o.id && !r.fin);
-                const servicio = servicios.find((s) => s.procesoId === pr.id && s.habitual);
-                const plazoTerc = o.plazoTercerizadoDias ?? servicio?.plazoDias ?? pr.plazoDias ?? null;
-                const plazoCompra = p.plazoCompraDias ?? plazoProveedor.get(p.proveedorHabitualId ?? "") ?? pr.plazoDias ?? null;
-                const plazo = tipoPaso === "tercerizado" ? (plazoTerc ?? DEFAULT.plazoTercerizado) : tipoPaso === "compras" ? (plazoCompra ?? DEFAULT.plazoCompra) : 0;
                 let estado: PasoEntrada["estado"] = terminada ? "terminada" : abierta ? (pausados.has(abierta.id) ? "pausada" : "en_curso") : "pendiente";
                 let vueltaPrevista: string | null = null;
                 if (!terminada && tipoPaso === "tercerizado" && remitoPaso) {
                   estado = "afuera";
                   vueltaPrevista = sumarHabiles(fechaISO(remitoPaso.fecha), plazo, calendario);
                 }
-                const estimado = o.tiempoOrigen ? o.tiempoOrigen === "estimado" : pr.tiempoOrigen !== "definido";
                 return {
-                  operacionId: o.id,
-                  nombre: o.descripcion?.trim() || pr.nombre,
-                  tipo: tipoPaso,
-                  centroId: o.centroTrabajoId ?? pr.centroTrabajoId,
-                  horas: tipoPaso === "interno" ? (setup + porUnidad * cant) / 60 : 0,
-                  setupHoras: setup / 60,
-                  porUnidadHoras: porUnidad / 60,
+                  ...base,
                   lote: loteDe(o.id, tipoPaso === "interno"),
                   declaradas: delPaso.reduce((n, r) => n + (r.piezasOk ?? 0) + (r.piezasRechazadas ?? 0), 0),
                   hechasOk: delPaso.reduce((n, r) => n + (r.piezasOk ?? 0), 0),
-                  plazoDias: plazo,
-                  esperaHoras: o.esperaHoras ?? 0,
-                  estimado,
-                  plazoSupuesto: (tipoPaso === "tercerizado" && plazoTerc == null) || (tipoPaso === "compras" && plazoCompra == null),
                   estado,
                   vueltaPrevista,
                   pedido: tipoPaso === "compras" ? !!pedidoAbierto : undefined,
@@ -305,6 +290,39 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
   };
   const resultado = planificar(entrada);
   return { entrada, resultado, centros, operarios, proyectosInfo, ms: Date.now() - t0 };
+}
+
+/**
+ * Lo fijo de un paso de la hoja de ruta: duración, centro y plazo, con los valores por defecto cuando
+ * falta el dato. Lo usan el plan y el cálculo de "cuándo puede estar" de una orden nueva.
+ */
+export function pasoDeRuta(
+  o: typeof operacion.$inferSelect,
+  pr: typeof proceso.$inferSelect,
+  p: { plazoCompraDias: number | null; proveedorHabitualId: string | null },
+  cant: number,
+  servicios: (typeof proveedorServicio.$inferSelect)[],
+  plazoProveedor: Map<string, number | null>,
+) {
+  const tipo = pr.tipo as PasoEntrada["tipo"];
+  const setup = o.setupMin ?? pr.setupMin ?? DEFAULT.setupMin;
+  const porUnidad = o.minPorUnidad ?? pr.minPorUnidad ?? DEFAULT.minPorUnidad;
+  const servicio = servicios.find((s) => s.procesoId === pr.id && s.habitual);
+  const plazoTerc = o.plazoTercerizadoDias ?? servicio?.plazoDias ?? pr.plazoDias ?? null;
+  const plazoCompra = p.plazoCompraDias ?? plazoProveedor.get(p.proveedorHabitualId ?? "") ?? pr.plazoDias ?? null;
+  return {
+    operacionId: o.id,
+    nombre: o.descripcion?.trim() || pr.nombre,
+    tipo,
+    centroId: o.centroTrabajoId ?? pr.centroTrabajoId,
+    horas: tipo === "interno" ? (setup + porUnidad * cant) / 60 : 0,
+    setupHoras: setup / 60,
+    porUnidadHoras: porUnidad / 60,
+    plazoDias: tipo === "tercerizado" ? (plazoTerc ?? DEFAULT.plazoTercerizado) : tipo === "compras" ? (plazoCompra ?? DEFAULT.plazoCompra) : 0,
+    esperaHoras: o.esperaHoras ?? 0,
+    estimado: o.tiempoOrigen ? o.tiempoOrigen === "estimado" : pr.tiempoOrigen !== "definido",
+    plazoSupuesto: (tipo === "tercerizado" && plazoTerc == null) || (tipo === "compras" && plazoCompra == null),
+  };
 }
 
 /** Motivos de "No puedo hacer esta", en palabras de la planta. */

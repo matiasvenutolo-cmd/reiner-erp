@@ -62,6 +62,8 @@ export type PiezaEntrada = {
   pasos: PasoEntrada[];
   /** Pieza comercial o a medida: se compra entera. */
   compraEntera?: { plazoDias: number; plazoSupuesto: boolean; llegadaPrevista: string | null; pedido: boolean; recibida: boolean } | null;
+  /** v2 — día en que llega su materia prima, si hay que comprarla y la ruta no tiene paso de Compras. */
+  materialDesde?: string | null;
 };
 
 export type ConjuntoEntrada = { id: string; nombre: string; orden: number; dias: number; codigo: string };
@@ -80,6 +82,11 @@ export type ProyectoEntrada = {
   piezasCubiertasConStock: number;
   /** v2 — fecha de alta del proyecto: lo que ya venía tarde al nacer "arranca tarde" o "pedir ya", no "atrasado". */
   inicio?: string;
+  /**
+   * v2 — orden todavía sin confirmar, para calcular cuándo puede estar (simplificación §3): va a la cola,
+   * detrás de las activas (que tienen prioridad por su fecha comprometida), y sus compras se piden hoy.
+   */
+  nueva?: boolean;
 };
 
 export type CentroEntrada = {
@@ -582,6 +589,7 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
   piezas.sort(
     (a, b) =>
       Number(!a.pz.liberada) - Number(!b.pz.liberada) ||
+      Number(!!a.p.nueva) - Number(!!b.p.nueva) ||
       a.p.entrega.localeCompare(b.p.entrega) ||
       Number(prioridad.get(b.p.id) === "alta") - Number(prioridad.get(a.p.id) === "alta") ||
       holguraActual(a.pz) - holguraActual(b.pz),
@@ -591,7 +599,7 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
   /** Por pieza: la primera tarea que terminó después de su fecha límite (de ahí sale la causa raíz). */
   const origenAtraso = new Map<string, { t: Tarea; porLiberar: boolean }>();
   const compraDe = new Map(compras.map((c) => [c.clave, c]));
-  for (const { pz } of piezas) {
+  for (const { p, pz } of piezas) {
     let desdeInicial = hoy;
     let porLiberar = false;
     // Con entrada automática, lo que no entró es porque espera material (lo encadena su paso de Compras)
@@ -608,6 +616,7 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
       }
       porLiberar = desdeInicial > hoy;
     }
+    if (pz.materialDesde && pz.materialDesde > desdeInicial) desdeInicial = pz.materialDesde;
     if (pz.compraEntera && !pz.compraEntera.recibida) {
       const llega = pz.compraEntera.llegadaPrevista ?? sumarHabiles(desdeInicial, pz.compraEntera.plazoDias, cal);
       finPieza.set(pz.otPiezaId, llega > hoy ? llega : hoy);
@@ -633,7 +642,8 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
       }
       if (t.tipo === "compras") {
         const compra = compraDe.get(t.clave);
-        const llega = paso.llegadaPrevista ?? sumarHabiles(compra && compra.pedirAntes > desde ? compra.pedirAntes : desde, paso.plazoDias, cal);
+        // Una orden nueva compra hoy; las activas, cuando lo pide su fecha ("pedir antes del…").
+        const llega = paso.llegadaPrevista ?? sumarHabiles(!p.nueva && compra && compra.pedirAntes > desde ? compra.pedirAntes : desde, paso.plazoDias, cal);
         t.fechaPlan = desde;
         t.finPlan = llega < hoy ? hoy : llega;
       } else if (t.tipo === "tercerizado") {
