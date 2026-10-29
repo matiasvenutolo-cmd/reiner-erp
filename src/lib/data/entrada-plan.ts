@@ -56,7 +56,7 @@ export async function entrarAlPlanSolas(
   if (!opciones.materialVerificado) {
     const ids = listas.map((c) => c.id);
     const piezaIds = [...new Set(listas.map((c) => c.piezaId))];
-    const [rutas, cerrados, esperan, llegaron] = await Promise.all([
+    const [rutas, cerrados, esperan, llegaron, omitidas] = await Promise.all([
       db
         .select({ piezaId: operacion.piezaId, id: operacion.id, secuencia: operacion.secuencia, tipo: proceso.tipo })
         .from(operacion)
@@ -68,12 +68,15 @@ export async function entrarAlPlanSolas(
         .from(necesidadCompraOrden)
         .where(and(inArray(necesidadCompraOrden.otPiezaId, ids), eq(necesidadCompraOrden.tipo, "material"), eq(necesidadCompraOrden.omitida, false))),
       db.select({ otPiezaId: pedidoCompra.otPiezaId }).from(pedidoCompra).where(and(inArray(pedidoCompra.otPiezaId, ids), isNotNull(pedidoCompra.recibidoAt))),
+      db.select({ otPiezaId: necesidadCompraOrden.otPiezaId }).from(necesidadCompraOrden).where(and(inArray(necesidadCompraOrden.otPiezaId, ids), eq(necesidadCompraOrden.omitida, true))),
     ]);
+    const sinCompra = new Set(omitidas.map((x) => x.otPiezaId));
     const llego = new Set(llegaron.map((x) => x.otPiezaId));
     const esperaMaterial = new Set(esperan.map((x) => x.otPiezaId).filter((x) => !llego.has(x)));
     const cerrado = new Set(cerrados.map((x) => `${x.otPiezaId}::${x.operacionId}`));
     listas = listas.filter((c) => {
       if (esperaMaterial.has(c.id)) return false;
+      if (sinCompra.has(c.id)) return true; // "No comprar": el material se consigue por otro lado
       const primero = rutas.filter((r) => r.piezaId === c.piezaId).sort((a, b) => a.secuencia - b.secuencia)[0];
       // Primer paso de Compras sin cerrar: el material todavía no llegó.
       return !(primero?.tipo === "compras" && !cerrado.has(`${c.id}::${primero.id}`) && !llego.has(c.id));

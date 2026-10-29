@@ -48,3 +48,8 @@ test("se compra hecha: Falta material hasta que llega, después Terminada", () =
   assert.equal(estadoDePieza([], compra()).estado, "falta_material");
   assert.equal(estadoDePieza([], null).estado, "terminada");
 });
+
+test("'No comprar' en un artículo: no queda esperando la compra; se ve terminada con el motivo", () => {
+  const e = estadoDePieza([], null, null, true);
+  assert.deepEqual([e.estado, e.motivo], ["terminada", "No se compra: se decidió al cargar la orden"]);
+});

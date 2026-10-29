@@ -184,3 +184,9 @@ test("orden nueva (cuándo puede estar): va detrás de las activas y compra hoy,
   const de = (id: string) => r2.tareas.find((t) => t.otPiezaId === id)!;
   assert.ok(de("A").finPlan! < de("M").finPlan!); // la activa primero
 });
+
+test("'No comprar': un artículo con la compra dada por resuelta no aparece en Pedir ni demora la orden", () => {
+  const comercial = { otPiezaId: "K", codigo: "K", nombre: "Reductor", cantidad: 1, conjuntoId: "C1", liberada: true, tienePlano: true, clase: "comercial" as const, sinRuta: false, pasos: [], compraEntera: { plazoDias: 25, plazoSupuesto: false, llegadaPrevista: null, pedido: false, recibida: true } };
+  const r = planificar(entrada(proyecto([], { piezas: [comercial] })));
+  assert.equal(r.compras.length, 0);
+});

@@ -8,7 +8,7 @@ import { QueHaceFalta } from "@/components/asistente/QueHaceFalta";
 import { queHaceFaltaDeOrden } from "@/lib/data/que-hace-falta";
 import { getPlan } from "@/lib/planning/datos";
 import { estadoDePieza, ESTADO_VISIBLE } from "@/lib/estado-pieza";
-import { getEsperaMaterialDeOrden } from "@/lib/data/gestion-compras";
+import { getEsperaMaterialDeOrden, getNoComprarDeOrden } from "@/lib/data/gestion-compras";
 import type { Tono } from "@/components/ui/Etiqueta";
 
 export const dynamic = "force-dynamic";
@@ -33,15 +33,16 @@ export default async function QueHaceFaltaOrdenPage({ params, searchParams }: { 
   const m = fila.m;
 
   // Estado al día de cada pieza, con los mismos cinco estados del detalle de la orden (simplificación §4.2).
-  const [ops, esperaMaterial] = await Promise.all([
+  const [ops, esperaMaterial, noComprar] = await Promise.all([
     db.select({ id: otPieza.id, piezaId: otPieza.piezaId }).from(otPieza).innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId)).where(eq(otConjunto.otMaquinaId, id)),
     getEsperaMaterialDeOrden(id),
+    getNoComprarDeOrden(id),
   ]);
   const tareas = plan.resultado.tareas.filter((t) => t.proyectoId === id);
   const compras = new Map(plan.resultado.compras.filter((c) => c.proyectoId === id).map((c) => [c.otPiezaId, c]));
   const estados = new Map<string, { texto: string; tono: Tono }>();
   for (const op of ops) {
-    const e = estadoDePieza(tareas.filter((t) => t.otPiezaId === op.id), compras.get(op.id), esperaMaterial.get(op.id));
+    const e = estadoDePieza(tareas.filter((t) => t.otPiezaId === op.id), compras.get(op.id), esperaMaterial.get(op.id), noComprar.has(op.id));
     const v = ESTADO_VISIBLE[e.estado];
     estados.set(op.piezaId, { texto: e.motivo ? `${v.label} · ${e.motivo}` : v.label, tono: v.tono });
   }

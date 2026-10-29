@@ -44,12 +44,15 @@ export type EstadoDePieza = {
  * `tareas`: los pasos de la pieza en el plan. `compra`: su compra pendiente en el plan, si la hay.
  * `esperaMaterial`: la orden se confirmó con esta pieza en "Falta material" y la compra todavía no llegó.
  */
-export function estadoDePieza(tareas: Tarea[], compra?: Compra | null, esperaMaterial?: string | null): EstadoDePieza {
+export function estadoDePieza(tareas: Tarea[], compra?: Compra | null, esperaMaterial?: string | null, noSeCompra?: boolean): EstadoDePieza {
   const pasos = [...tareas].sort((a, b) => a.posicion - b.posicion);
   const llegada = compra ? (compra.pedido ? `pedido${compra.llegadaPrevista ? `, llega el ${fechaCorta(compra.llegadaPrevista)}` : ""}` : "falta pedir") : null;
 
   // Se compra hecha: no tiene pasos.
-  if (!pasos.length) return compra ? { estado: "falta_material", motivo: `Artículo: ${llegada}`, actual: null } : { estado: "terminada", motivo: null, actual: null };
+  if (!pasos.length) {
+    if (compra) return { estado: "falta_material", motivo: `Artículo: ${llegada}`, actual: null };
+    return { estado: "terminada", motivo: noSeCompra ? "No se compra: se decidió al cargar la orden" : null, actual: null };
+  }
   if (pasos.every((t) => t.estado === "terminada")) return { estado: "terminada", motivo: null, actual: null };
 
   const empezado = pasos.find((t) => t.estado === "en_curso" || t.estado === "pausada");

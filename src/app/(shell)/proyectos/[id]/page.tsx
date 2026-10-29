@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { EsqueletoBloques } from "@/components/ui/EsqueletoBloques";
 import { notFound } from "next/navigation";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
@@ -11,7 +13,7 @@ import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
 import { Holgura, fechaCorta, Estimado, CausaRaiz, textoCausa, margenEntrega } from "@/components/v2/Plan";
 import { EstadoPiezaChip } from "@/components/v2/EstadoPieza";
 import { estadoDePieza, type EstadoDePieza, type EstadoVisible } from "@/lib/estado-pieza";
-import { getEsperaMaterialDeOrden } from "@/lib/data/gestion-compras";
+import { getEsperaMaterialDeOrden, getNoComprarDeOrden } from "@/lib/data/gestion-compras";
 import { Etiqueta } from "@/components/ui/Etiqueta";
 import { capitalizar, diasHabiles, numero, plural } from "@/lib/formato";
 import { activarProyectoAction, cambiarEntregaAction, pausarProyectoAction, liberarAction } from "@/app/actions/v2";
@@ -61,30 +63,25 @@ function FilaPieza({ x, hoy }: { x: PiezaOrden; hoy: string }) {
   );
 }
 
-export default async function ProyectoPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ ok?: string; error?: string; temprana?: string; entrega?: string; prioridad?: string; causas?: string; quitar?: string }>;
-}) {
-  const { id } = await params;
-  const { ok, error, temprana, entrega: entregaPedida, prioridad: prioridadPedida, causas: causasTexto, quitar } = await searchParams;
-  const [[fila], plan, eventos] = await Promise.all([
+type Params = { ok?: string; error?: string; temprana?: string; entrega?: string; prioridad?: string; causas?: string; quitar?: string };
+
+/**
+ * Detalle de una orden. Carga por bloques (simplificación §4.6): el encabezado sale de una consulta
+ * rápida y se muestra enseguida; lo que depende del plan aparece cuando el plan está listo.
+ */
+export default async function ProyectoPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Params> }) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
+  const [[fila], eventos] = await Promise.all([
     db
       .select({ m: otMaquina, config: configuracion.nombre, cliente: cliente.razonSocial })
       .from(otMaquina)
       .leftJoin(configuracion, eq(configuracion.id, otMaquina.configuracionId))
       .leftJoin(cliente, eq(cliente.id, otMaquina.clienteId))
       .where(eq(otMaquina.id, id)),
-    getPlan(),
     db.select({ e: proyectoEvento, nombre: usuario.nombre }).from(proyectoEvento).leftJoin(usuario, eq(usuario.id, proyectoEvento.usuarioId)).where(eq(proyectoEvento.otMaquinaId, id)).orderBy(desc(proyectoEvento.fecha)),
   ]);
   if (!fila) notFound();
   const m = fila.m;
-  const p = plan.resultado.proyectos.find((x) => x.id === id);
-  const cal = plan.entrada.calendario;
-  const hoy = plan.entrada.hoy;
   const tipo = TIPO[m.destino as keyof typeof TIPO] ?? m.destino;
 
   const header = (
@@ -114,6 +111,27 @@ export default async function ProyectoPage({
     />
   );
 
+  return (
+    <div className="space-y-6">
+      {header}
+      <Suspense fallback={<EsqueletoBloques />}>
+        <CuerpoOrden id={id} sp={sp} fila={fila} eventos={eventos} />
+      </Suspense>
+    </div>
+  );
+}
+
+type FilaOrden = { m: typeof otMaquina.$inferSelect; config: string | null; cliente: string | null };
+type Evento = { e: typeof proyectoEvento.$inferSelect; nombre: string | null };
+
+async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; fila: FilaOrden; eventos: Evento[] }) {
+  const { ok, error, temprana, entrega: entregaPedida, prioridad: prioridadPedida, causas: causasTexto, quitar } = sp;
+  const plan = await getPlan();
+  const m = fila.m;
+  const p = plan.resultado.proyectos.find((x) => x.id === id);
+  const cal = plan.entrada.calendario;
+  const hoy = plan.entrada.hoy;
+
   // ── Borrador: activar ──────────────────────────────────────────────────
   if (!p) {
     const piezas = await db
@@ -128,7 +146,6 @@ export default async function ProyectoPage({
     for (const x of aFabricar) porConjunto.set(`${x.conjuntoCodigo} ${x.conjunto}`, [...(porConjunto.get(`${x.conjuntoCodigo} ${x.conjunto}`) ?? []), x]);
     return (
       <div className="space-y-6 max-w-4xl">
-        {header}
         {error && <Aviso tipo="error">{error}</Aviso>}
         {temprana && entregaPedida && (
           // Plan factible (§1.4): antes de activar con una fecha que no llega, se pregunta.
@@ -235,7 +252,7 @@ export default async function ProyectoPage({
   // ── Activo ─────────────────────────────────────────────────────────────
   const tareas = plan.resultado.tareas.filter((t) => t.proyectoId === id);
   const tanda = plan.resultado.tandas.find((t) => t.proyectoId === id);
-  const [filasPiezas, esperaMaterial, llegadas] = await Promise.all([
+  const [filasPiezas, esperaMaterial, llegadas, noComprar] = await Promise.all([
     db
       .select({ id: otPieza.id, otConjuntoId: otPieza.otConjuntoId, nombre: pieza.nombre, cant: otPieza.cantidadAFabricar, necesaria: otPieza.cantidadNecesaria, conjunto: conjunto.nombre, conjuntoCodigo: conjunto.codigo })
       .from(otPieza)
@@ -251,11 +268,12 @@ export default async function ProyectoPage({
       .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
       .leftJoin(proveedor, eq(proveedor.id, pedidoCompra.proveedorId))
       .where(and(eq(otConjunto.otMaquinaId, id), isNotNull(pedidoCompra.recibidoAt))),
+    getNoComprarDeOrden(id),
   ]);
   const compraDePieza = new Map(plan.resultado.compras.filter((c) => c.proyectoId === id).map((c) => [c.otPiezaId, c]));
   const piezasOrden: PiezaOrden[] = filasPiezas
     .filter((x) => x.cant > 0)
-    .map((x) => ({ ...x, e: estadoDePieza(tareas.filter((t) => t.otPiezaId === x.id), compraDePieza.get(x.id), esperaMaterial.get(x.id)) }));
+    .map((x) => ({ ...x, e: estadoDePieza(tareas.filter((t) => t.otPiezaId === x.id), compraDePieza.get(x.id), esperaMaterial.get(x.id), noComprar.has(x.id)) }));
   const cuenta = (ps: PiezaOrden[]) => Object.fromEntries(ORDEN_ESTADO.map((e) => [e, ps.filter((x) => x.e.estado === e).length])) as Record<EstadoVisible, number>;
 
   // ── Pieza o conjunto suelto: pantalla simple (simplificación §4.1) ─────
@@ -272,7 +290,6 @@ export default async function ProyectoPage({
           : m.numeroSerie;
     return (
       <div className="space-y-6 max-w-4xl">
-        {header}
         {ok && <Aviso tipo="ok">{ok}</Aviso>}
         {error && <Aviso tipo="error">{error}</Aviso>}
         <section className="tarjeta p-5">
@@ -469,7 +486,6 @@ export default async function ProyectoPage({
 
   return (
     <div className="space-y-6">
-      {header}
       {ok && <Aviso tipo="ok">{ok}</Aviso>}
       {error && <Aviso tipo="error">{error}</Aviso>}
 

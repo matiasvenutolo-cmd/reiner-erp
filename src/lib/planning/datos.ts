@@ -16,7 +16,7 @@ import { db } from "@/lib/db/client";
 import {
   otMaquina, otConjunto, otPieza, pieza, conjunto, operacion, proceso, centroTrabajo, usuario, usuarioCentroTrabajo,
   registroOperacion, parada, remito, remitoItem, pedidoCompra, proveedor, proveedorServicio, feriado, ausencia,
-  montajeConjunto, configuracion, planAjuste, parametro, cliente, tareaBloqueo, tareaLote, asignacionTrabajo,
+  montajeConjunto, configuracion, planAjuste, parametro, cliente, tareaBloqueo, tareaLote, asignacionTrabajo, necesidadCompraOrden,
 } from "@/lib/db/schema";
 import { avancePasos } from "@/lib/data/produccion";
 import { hoyISO, fechaISO } from "@/lib/fecha";
@@ -148,7 +148,7 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
     ]);
     const piezaIds = [...new Set(piezaRows.map((r) => r.p.id))];
     const otPiezaIds = piezaRows.map((r) => r.op.id);
-    const [ruta, registros, abiertas, remitos, pedidos, servicios, proveedores, lotesManuales] = await Promise.all([
+    const [ruta, registros, abiertas, remitos, pedidos, servicios, proveedores, lotesManuales, noComprar] = await Promise.all([
       piezaIds.length
         ? db.select({ o: operacion, pr: proceso }).from(operacion).innerJoin(proceso, eq(proceso.id, operacion.procesoId)).where(inArray(operacion.piezaId, piezaIds)).orderBy(operacion.piezaId, operacion.secuencia)
         : [],
@@ -172,9 +172,14 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
       db.select().from(proveedorServicio),
       db.select({ id: proveedor.id, plazoDias: proveedor.plazoDias }).from(proveedor),
       otPiezaIds.length ? db.select().from(tareaLote).where(inArray(tareaLote.otPiezaId, otPiezaIds)) : [],
+      // "No comprar" (paso 2 del asistente): esa compra no se pide; el plan no la espera ni la muestra en Pedir.
+      otPiezaIds.length
+        ? db.select({ otPiezaId: necesidadCompraOrden.otPiezaId }).from(necesidadCompraOrden).where(and(inArray(necesidadCompraOrden.otPiezaId, otPiezaIds), eq(necesidadCompraOrden.omitida, true)))
+        : [],
     ]);
     const plazoProveedor = new Map(proveedores.map((p) => [p.id, p.plazoDias]));
     const pausados = new Set(abiertas.map((a) => a.registroId));
+    const sinCompra = new Set(noComprar.map((x) => x.otPiezaId));
     const rutaPorPieza = new Map<string, typeof ruta>();
     for (const r of ruta) rutaPorPieza.set(r.o.piezaId, [...(rutaPorPieza.get(r.o.piezaId) ?? []), r]);
 
@@ -202,7 +207,7 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
             return {
               otPiezaId: op.id, codigo: p.codigo, nombre: p.nombre, cantidad: cant, conjuntoId: op.otConjuntoId,
               liberada: !!op.enviadaProduccionAt, tienePlano: !!(p.numeroPlano && p.revision), clase: clase === "fabricada" ? "comercial" : clase, sinRuta: false, pasos: [],
-              compraEntera: { plazoDias: plazo, plazoSupuesto: p.plazoCompraDias == null && !plazoProveedor.get(p.proveedorHabitualId ?? ""), llegadaPrevista: llegadaPedido(plazo), pedido: !!pedidoAbierto, recibida: pedidosPieza.some((x) => x.recibidoAt) },
+              compraEntera: { plazoDias: plazo, plazoSupuesto: p.plazoCompraDias == null && !plazoProveedor.get(p.proveedorHabitualId ?? ""), llegadaPrevista: llegadaPedido(plazo), pedido: !!pedidoAbierto, recibida: sinCompra.has(op.id) || pedidosPieza.some((x) => x.recibidoAt) },
             };
           }
           const pasosRuta = rutaPorPieza.get(p.id) ?? [];
@@ -228,7 +233,8 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
                 const terminada = completados.has(o.id);
                 const delPaso = cerrados.filter((r) => r.operacionId === o.id);
                 const abierta = regs.find((r) => r.operacionId === o.id && !r.fin);
-                let estado: PasoEntrada["estado"] = terminada ? "terminada" : abierta ? (pausados.has(abierta.id) ? "pausada" : "en_curso") : "pendiente";
+                // Con "No comprar", el paso de Compras no se espera: el material se consigue por otro lado.
+                let estado: PasoEntrada["estado"] = terminada || (tipoPaso === "compras" && sinCompra.has(op.id)) ? "terminada" : abierta ? (pausados.has(abierta.id) ? "pausada" : "en_curso") : "pendiente";
                 let vueltaPrevista: string | null = null;
                 if (!terminada && tipoPaso === "tercerizado" && remitoPaso) {
                   estado = "afuera";

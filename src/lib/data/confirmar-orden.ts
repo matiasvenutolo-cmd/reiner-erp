@@ -17,7 +17,7 @@
  */
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { otMaquina, otConjunto, otPieza, ordenBorrador, piezaConfiguracion, pieza, proyectoEvento, necesidadCompraOrden } from "@/lib/db/schema";
+import { otMaquina, otConjunto, otPieza, ordenBorrador, piezaConfiguracion, pieza, proyectoEvento, necesidadCompraOrden, operacion, proceso, registroOperacion } from "@/lib/db/schema";
 import { getConfiguracion, getConjuntos } from "./maestros";
 import { reservarStockLibre } from "./stock";
 import { entrarAlPlanSolas, getModoEntrada } from "./entrada-plan";
@@ -143,6 +143,7 @@ export async function confirmarBorrador(
   const materialSumado = new Map(qhf.materiales.map((m) => [m.clave, m]));
   const necesidades: (typeof necesidadCompraOrden.$inferInsert)[] = [];
   const alPlan: string[] = [];
+  const sinComprar: { otPiezaId: string; piezaId: string; cantidad: number }[] = [];
   let esperanMaterial = 0;
   for (const op of piezasCreadas) {
     const f = filaDeCodigo.get(op.codigo)!;
@@ -150,7 +151,12 @@ export async function confirmarBorrador(
       alPlan.push(op.id);
       continue;
     }
-    if (f.grupo === "falta_material") esperanMaterial += 1;
+    // "No comprar" en Falta material: el material se consigue por otro lado, así que la pieza no espera
+    // ninguna compra. Se cierra su paso de Compras (como cuando llega una) y entra al plan.
+    if (f.grupo === "falta_material" && !f.comprar) {
+      sinComprar.push({ otPiezaId: op.id, piezaId: f.piezaId, cantidad: op.cantidad });
+      alPlan.push(op.id);
+    } else if (f.grupo === "falta_material") esperanMaterial += 1;
     const esMaterial = f.grupo === "falta_material";
     const m = f.material;
     const sumado = m ? materialSumado.get(m.clave) : undefined;
@@ -164,6 +170,20 @@ export async function confirmarBorrador(
     necesidades.push({ otPiezaId: op.id, otMaquinaId: orden.id, tipo: esMaterial ? "material" : "articulo", descripcion, cantidad: op.cantidad, observacion, omitida: !f.comprar });
   }
   if (necesidades.length) await db.insert(necesidadCompraOrden).values(necesidades);
+  if (sinComprar.length) {
+    const pasosCompra = await db
+      .select({ id: operacion.id, piezaId: operacion.piezaId })
+      .from(operacion)
+      .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
+      .where(and(inArray(operacion.piezaId, sinComprar.map((x) => x.piezaId)), eq(proceso.tipo, "compras")));
+    const ahora = new Date();
+    const cierres = sinComprar.flatMap((x) =>
+      pasosCompra
+        .filter((pc) => pc.piezaId === x.piezaId)
+        .map((pc) => ({ otPiezaId: x.otPiezaId, operacionId: pc.id, usuarioId: usuario.id, tipo: "ejecucion" as const, inicio: ahora, fin: ahora, duracionSeg: null, piezasOk: x.cantidad, observacion: "No se compra: se decidió al cargar la orden" })),
+    );
+    if (cierres.length) await db.insert(registroOperacion).values(cierres);
+  }
   // Entrada automática al plan (§4.3): lo que tiene material entra solo, con la regla del plano de ADMIN.
   const nAlPlan = await entrarAlPlanSolas({ otPiezaIds: alPlan }, usuario.id, { materialVerificado: true });
 
@@ -187,7 +207,7 @@ export async function previaConfirmacion(b: NonNullable<Awaited<ReturnType<typeo
   ]);
   const conResto = qhf.filas.filter((f) => f.resto > 0);
   const tienePlano = new Set(planos.filter((x) => x.plano && x.revision).map((x) => x.id));
-  const fabricoYa = conResto.filter((f) => f.grupo === "fabrico");
+  const fabricoYa = conResto.filter((f) => f.grupo === "fabrico" || (f.grupo === "falta_material" && !f.comprar));
   const sinPlano = modo.exigirPlano ? fabricoYa.filter((f) => !tienePlano.has(f.piezaId)).length : 0;
   return {
     manual: !modo.automatica,
@@ -196,6 +216,6 @@ export async function previaConfirmacion(b: NonNullable<Awaited<ReturnType<typeo
     compras: conResto.filter((f) => (f.grupo === "compro" || f.grupo === "falta_material") && f.comprar).length,
     noComprar: conResto.filter((f) => (f.grupo === "compro" || f.grupo === "falta_material") && !f.comprar).length,
     alPlan: modo.automatica ? fabricoYa.length - sinPlano : 0,
-    esperanMaterial: conResto.filter((f) => f.grupo === "falta_material").length,
+    esperanMaterial: conResto.filter((f) => f.grupo === "falta_material" && f.comprar).length,
   };
 }

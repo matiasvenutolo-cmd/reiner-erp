@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { EsqueletoBloques } from "@/components/ui/EsqueletoBloques";
+import { hoyISO } from "@/lib/fecha";
 import { db } from "@/lib/db/client";
 import { otMaquina, configuracion, cliente, conjunto, pieza } from "@/lib/db/schema";
 import { listarBorradores } from "@/lib/data/que-hace-falta";
@@ -61,8 +64,8 @@ function TarjetaProyecto({ x, p, hoy }: { x: Fila; p: ProyectoPlan; hoy: string 
 /** La máquina es un proyecto con fecha de entrega; los repuestos y las órdenes para stock usan el mismo modelo, con un solo nivel. */
 export default async function ProyectosPage({ searchParams }: { searchParams: Promise<{ ok?: string }> }) {
   const { ok } = await searchParams;
-  const [plan, todos, borradores, configs, conjs, piezasB, clientes] = await Promise.all([
-    getPlan(),
+  // Carga por bloques (simplificación §4.6): lo que no depende del plan se muestra enseguida.
+  const [todos, borradores, configs, conjs, piezasB, clientes] = await Promise.all([
     db
       .select({ m: otMaquina, config: configuracion.nombre, cliente: cliente.razonSocial })
       .from(otMaquina)
@@ -86,11 +89,7 @@ export default async function ProyectosPage({ searchParams }: { searchParams: Pr
           : capitalizar(nom(piezasB, b.piezaId)?.nombre ?? "Pieza");
     return `${que} × ${b.cantidad} · ${b.destino === "stock" ? "para stock" : (nom(clientes, b.clienteId)?.nombre ?? "cliente")}`;
   };
-  const hoy = plan.entrada.hoy;
-  const planDe = new Map(plan.resultado.proyectos.map((p) => [p.id, p]));
-  const activos = todos.filter((x) => planDe.has(x.m.id));
-  const paraActivar = todos.filter((x) => !planDe.has(x.m.id) && ["borrador", "pausado", "activo"].includes(x.m.estadoProyecto));
-  const cerrados = todos.filter((x) => ["terminado", "entregado"].includes(x.m.estadoProyecto));
+  const hoy = hoyISO();
 
   return (
     <div className="space-y-8">
@@ -134,6 +133,23 @@ export default async function ProyectosPage({ searchParams }: { searchParams: Pr
           </ul>
         </section>
       )}
+      <Suspense fallback={<EsqueletoBloques />}>
+        <OrdenesDelPlan todos={todos} />
+      </Suspense>
+    </div>
+  );
+}
+
+/** Lo que depende del plan: qué orden está activa, su margen y su fecha estimada. */
+async function OrdenesDelPlan({ todos }: { todos: { m: typeof otMaquina.$inferSelect; config: string | null; cliente: string | null }[] }) {
+  const plan = await getPlan();
+  const hoy = plan.entrada.hoy;
+  const planDe = new Map(plan.resultado.proyectos.map((p) => [p.id, p]));
+  const activos = todos.filter((x) => planDe.has(x.m.id));
+  const paraActivar = todos.filter((x) => !planDe.has(x.m.id) && ["borrador", "pausado", "activo"].includes(x.m.estadoProyecto));
+  const cerrados = todos.filter((x) => ["terminado", "entregado"].includes(x.m.estadoProyecto));
+  return (
+    <div className="space-y-8">
       {paraActivar.length > 0 && (
         <section className="space-y-2">
           <h2 className="text-lg font-semibold">Para activar ({paraActivar.length})</h2>
@@ -159,7 +175,7 @@ export default async function ProyectosPage({ searchParams }: { searchParams: Pr
         </section>
       )}
 
-      {activos.length === 0 && <Vacio neutro>No hay proyectos activos.</Vacio>}
+      {activos.length === 0 && <Vacio neutro>No hay órdenes activas.</Vacio>}
       {GRUPOS.map((g) => {
         const lista = activos.filter((x) => (x.m.destino ?? "maquina") === g.tipo);
         if (!lista.length) return null;

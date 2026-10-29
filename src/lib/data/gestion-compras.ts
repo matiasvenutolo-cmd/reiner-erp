@@ -770,3 +770,12 @@ export async function getEsperaMaterialDeOrden(otMaquinaId: string): Promise<Map
   }
   return r;
 }
+
+/** Piezas de una orden con "No comprar" (paso 2 del asistente): no esperan ninguna compra. */
+export async function getNoComprarDeOrden(otMaquinaId: string): Promise<Set<string>> {
+  const filas = await db
+    .select({ otPiezaId: necesidadCompraOrden.otPiezaId })
+    .from(necesidadCompraOrden)
+    .where(and(eq(necesidadCompraOrden.otMaquinaId, otMaquinaId), eq(necesidadCompraOrden.omitida, true)));
+  return new Set(filas.map((f) => f.otPiezaId));
+}

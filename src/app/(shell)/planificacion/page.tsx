@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { EsqueletoBloques } from "@/components/ui/EsqueletoBloques";
 import { eq, inArray, and } from "drizzle-orm";
 import { getUsuarioActual } from "@/lib/session";
 import { getPlan } from "@/lib/planning/datos";
@@ -36,12 +38,26 @@ const VISTAS = [
  * fija con candado y confirma. Tarjeta mínima con su panel, color por
  * proyecto, resumen arriba con links que filtran y un solo selector de vista.
  */
-export default async function PlanSemanaPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ semana?: string; vista?: string; ver?: string; ok?: string; error?: string; proyecto?: string; solo?: string; centro?: string }>;
-}) {
+type ParamsPlan = { semana?: string; vista?: string; ver?: string; ok?: string; error?: string; proyecto?: string; solo?: string; centro?: string };
+
+/** Plan de la semana. Carga por bloques (simplificación §4.6): el título sale enseguida; la grilla, cuando el plan está listo. */
+export default async function PlanSemanaPage({ searchParams }: { searchParams: Promise<ParamsPlan> }) {
   const sp = await searchParams;
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-4">
+          <PageHeader titulo="Plan de la semana" />
+          <EsqueletoBloques bloques={4} />
+        </div>
+      }
+    >
+      <PlanSemanaContenido sp={sp} />
+    </Suspense>
+  );
+}
+
+async function PlanSemanaContenido({ sp }: { sp: ParamsPlan }) {
   const { semana, vista = "centro", ver, ok, error, proyecto, solo, centro } = sp;
   const [usuarioActual, plan, feriados] = await Promise.all([getUsuarioActual(), getPlan(), db.select().from(feriado)]);
   const { resultado: r, entrada, centros, operarios } = plan;

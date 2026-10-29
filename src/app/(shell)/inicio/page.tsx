@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { EsqueletoBloques } from "@/components/ui/EsqueletoBloques";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getUsuarioActual } from "@/lib/session";
 import { getPlan, MOTIVO_BLOQUEO } from "@/lib/planning/datos";
@@ -36,7 +38,38 @@ type Decision = { texto: React.ReactNode; boton: string; href: string; dias: num
  * resumido por centro (se despliega), lo trabado y como mucho 3 decisiones.
  * Las tareas de carga de datos no van acá: van a Configuración pendiente (§1.3).
  */
-export default async function HoyPage() {
+/**
+ * Hoy. Carga por bloques (simplificación §4.6): el título y los accesos salen enseguida; lo que se calcula
+ * con el plan aparece cuando el plan está listo.
+ */
+export default function HoyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <PageHeader
+            titulo="Hoy"
+            acciones={
+              <>
+                <Link href="/planificacion" className="btn">
+                  Plan de la semana
+                </Link>
+                <Link href="/ot/nueva" className="btn-secundario">
+                  + Generar orden
+                </Link>
+              </>
+            }
+          />
+          <EsqueletoBloques bloques={4} />
+        </div>
+      }
+    >
+      <HoyContenido />
+    </Suspense>
+  );
+}
+
+async function HoyContenido() {
   const [usuarioActual, plan, stockBajo, paradas, configPendiente] = await Promise.all([getUsuarioActual(), getPlan(), getPiezasStockBajo(), getParadasActivas(), contarConfiguracionPendiente()]);
   const { resultado: r, entrada, centros, operarios } = plan;
   const cal = entrada.calendario;

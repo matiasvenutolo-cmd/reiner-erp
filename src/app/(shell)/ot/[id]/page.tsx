@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { EsqueletoBloques } from "@/components/ui/EsqueletoBloques";
 import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { notFound } from "next/navigation";
@@ -11,8 +13,24 @@ import { ConjuntosView } from "@/components/ot/ConjuntosView";
 import type { ConjuntoData } from "@/components/ot/ConjuntoAccordion";
 import { completarOtConjuntoAction, enviarAProduccionAction } from "@/app/actions/ot";
 
+/** Detalle de la orden (vista anterior). Carga por bloques (simplificación §4.6): se ve el marco enseguida y el detalle, cuando llega. */
 export default async function OtMaquinaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <PageHeader migas={[{ href: "/proyectos", label: "Órdenes" }, { label: "Detalle de la orden" }]} titulo="Detalle de la orden" />
+          <EsqueletoBloques bloques={5} />
+        </div>
+      }
+    >
+      <DetalleOrden id={id} />
+    </Suspense>
+  );
+}
+
+async function DetalleOrden({ id }: { id: string }) {
   const detalle = await getOtMaquinaDetalle(id);
   if (!detalle) notFound();
   const { otMaquina, clienteNombre, configuracion, conjuntos, estadoCalculado } = detalle;
