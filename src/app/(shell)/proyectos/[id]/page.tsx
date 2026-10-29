@@ -96,6 +96,8 @@ export default async function ProyectoPage({
           <span className="badge-estado bg-surface-muted text-foreground">{tipo}</span>
           {m.esDemo && <span className="badge-estado bg-demo-bg text-demo-fg">demo</span>}
           {m.prioridad === "alta" && <span className="badge-estado badge-alerta">Prioridad alta</span>}
+          {/* Comprometida antes de la fecha más temprana (simplificación §3): queda marcada desde el inicio. */}
+          {eventos.some(({ e }) => e.texto.includes("en riesgo desde el inicio")) && <span className="badge-estado bg-naranja-bg text-naranja-fg">En riesgo desde el inicio</span>}
         </span>
       }
       descripcion={[fila.cliente, fila.config, m.tipo === "suelta" ? m.numeroSerie : `Serie ${m.numeroSerie}`].filter(Boolean).join(" · ")}
@@ -170,14 +172,14 @@ export default async function ProyectoPage({
           <form action={pausarProyectoAction} className="tarjeta p-5 space-y-3">
             <input type="hidden" name="id" value={m.id} />
             <input type="hidden" name="pausar" value="0" />
-            <Aviso tipo="atencion">Este proyecto está pausado: sus tareas no entran en el plan.</Aviso>
-            <button className="btn">Reactivar el proyecto</button>
+            <Aviso tipo="atencion">Esta orden está pausada: sus tareas no entran en el plan.</Aviso>
+            <button className="btn">Reactivar la orden</button>
           </form>
         ) : (
           <form action={activarProyectoAction} className="tarjeta p-5 space-y-4">
             <input type="hidden" name="id" value={m.id} />
             <div>
-              <h2 className="text-lg font-semibold">Activar el proyecto</h2>
+              <h2 className="text-lg font-semibold">Activar la orden</h2>
               <p className="text-sm text-foreground-muted">
                 Al activarlo el sistema arma todas las tareas y compras con fecha, a partir de la entrega. Hasta entonces es un borrador.
               </p>
@@ -223,7 +225,7 @@ export default async function ProyectoPage({
                 <p className="text-xs text-foreground-muted mt-2">Tildado = no lo lleva este pedido (por ejemplo, otra variante del Cabezal).</p>
               </details>
             )}
-            <ConfirmarBoton mensaje="¿Activar el proyecto? Se generan sus tareas y compras con fecha.">Activar el proyecto</ConfirmarBoton>
+            <ConfirmarBoton mensaje="¿Activar la orden? Se generan sus tareas y compras con fecha.">Activar la orden</ConfirmarBoton>
           </form>
         )}
       </div>
@@ -235,9 +237,10 @@ export default async function ProyectoPage({
   const tanda = plan.resultado.tandas.find((t) => t.proyectoId === id);
   const [filasPiezas, esperaMaterial, llegadas] = await Promise.all([
     db
-      .select({ id: otPieza.id, otConjuntoId: otPieza.otConjuntoId, nombre: pieza.nombre, cant: otPieza.cantidadAFabricar })
+      .select({ id: otPieza.id, otConjuntoId: otPieza.otConjuntoId, nombre: pieza.nombre, cant: otPieza.cantidadAFabricar, necesaria: otPieza.cantidadNecesaria, conjunto: conjunto.nombre, conjuntoCodigo: conjunto.codigo })
       .from(otPieza)
       .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
+      .innerJoin(conjunto, eq(conjunto.id, otConjunto.conjuntoId))
       .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
       .where(eq(otConjunto.otMaquinaId, id)),
     getEsperaMaterialDeOrden(id),
@@ -260,12 +263,20 @@ export default async function ProyectoPage({
     const margen = margenEntrega(p.diferenciaDias);
     const comprasOrden = plan.resultado.compras.filter((c) => c.proyectoId === id);
     const nombreDe = new Map(filasPiezas.map((x) => [x.id, x.nombre]));
+    // Qué y cuánto (§4.1): la pieza con su cantidad, o el conjunto.
+    const que =
+      m.alcance === "pieza" && filasPiezas[0]
+        ? `${capitalizar(filasPiezas[0].nombre)} × ${numero(filasPiezas[0].necesaria)}`
+        : m.alcance === "conjunto" && filasPiezas[0]
+          ? `Conjunto ${filasPiezas[0].conjuntoCodigo} ${filasPiezas[0].conjunto}`
+          : m.numeroSerie;
     return (
       <div className="space-y-6 max-w-4xl">
         {header}
         {ok && <Aviso tipo="ok">{ok}</Aviso>}
         {error && <Aviso tipo="error">{error}</Aviso>}
         <section className="tarjeta p-5">
+          <div className="text-lg font-semibold mb-3">{que}</div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <Grande titulo="Para" valor={fila.cliente ?? (m.destino === "stock" ? "Stock" : "—")} />
             <Grande titulo="Entrega comprometida" valor={fechaCorta(p.entrega, hoy)} />
@@ -513,7 +524,7 @@ export default async function ProyectoPage({
             <input type="hidden" name="id" value={id} />
             <input type="hidden" name="pausar" value="1" />
             <input name="motivo" required placeholder="Motivo" className="input w-64" />
-            <ConfirmarBoton mensaje="¿Pausar el proyecto? Sus tareas salen del plan hasta reactivarlo." className="btn-peligro btn-sm">
+            <ConfirmarBoton mensaje="¿Pausar la orden? Sus tareas salen del plan hasta reactivarla." className="btn-peligro btn-sm">
               Pausar
             </ConfirmarBoton>
           </form>
@@ -593,7 +604,7 @@ export default async function ProyectoPage({
           </ul>
         </section>
         <section className="tarjeta p-4">
-          <h2 className="font-semibold">Bitácora del proyecto</h2>
+          <h2 className="font-semibold">Bitácora de la orden</h2>
           {eventos.length === 0 ? (
             <p className="text-sm text-foreground-muted mt-2">Sin cambios registrados.</p>
           ) : (

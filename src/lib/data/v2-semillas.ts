@@ -306,7 +306,7 @@ export async function borrarDemo(): Promise<string[]> {
   await db.delete(ausencia).where(like(ausencia.motivo, "%(demo)"));
   await db.delete(proveedorServicio).where(eq(proveedorServicio.esDemo, true));
   await db.delete(articuloStock).where(eq(articuloStock.esDemo, true));
-  return [`borrados ${ids.length} proyectos de demo y sus datos`];
+  return [`borradas ${ids.length} órdenes de demo y sus datos`];
 }
 
 /**

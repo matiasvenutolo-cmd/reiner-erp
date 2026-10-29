@@ -88,7 +88,12 @@ export function textoCausa(c: Causa, hoy: string): { texto: string; accion: stri
       const que = c.tipo === "compra" ? `el material de ${c.conjunto}` : `${c.pieza} (${c.conjunto})`;
       if (c.pedido) return { texto: `${que} llega ${c.llegada ? `el ${fc(c.llegada, hoy)}` : "sin fecha prometida"}`, accion: "Ver lo que está por llegar", href: "/pedir?vista=llegar", hacer: `Apurar ${que}` };
       return {
-        texto: c.pedirAntes < hoy ? `${que} se tenía que pedir antes del ${fc(c.pedirAntes, hoy)}` : `${que} hay que pedirlo antes del ${fc(c.pedirAntes, hoy)} y el plazo no alcanza`,
+        // Nunca una fecha pasada (simplificación §3): si nació tarde es "pedirlo ya", no "se tenía que pedir antes del…".
+        texto: c.pedirYa
+          ? `${que} hay que pedirlo ya: el plazo del proveedor no alcanza para la fecha comprometida`
+          : c.pedirAntes < hoy
+            ? `${que} se tenía que pedir antes del ${fc(c.pedirAntes, hoy)}`
+            : `${que} hay que pedirlo antes del ${fc(c.pedirAntes, hoy)} y el plazo no alcanza`,
         accion: "Ir a pedir",
         href: "/pedir",
         hacer: `Pedir ${que}`,

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { configuracion, conjunto, pieza, piezaConfiguracion, cliente } from "@/lib/db/schema";
+import { configuracion, conjunto, pieza, piezaConfiguracion, cliente, montajeConjunto } from "@/lib/db/schema";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Aviso } from "@/components/ui/Aviso";
 import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
@@ -87,7 +87,7 @@ export default async function GenerarOrdenPage({
 
   // ── Paso 1 ──
   if (paso === 1) {
-    const [configs, conjRows, piezas, piezaCfg, clientes] = await Promise.all([
+    const [configs, conjRows, piezas, piezaCfg, clientes, montaje] = await Promise.all([
       db.select().from(configuracion).orderBy(configuracion.codigo),
       db
         .selectDistinct({ cfg: piezaConfiguracion.configuracionId, id: conjunto.id, codigo: conjunto.codigo, nombre: conjunto.nombre })
@@ -103,7 +103,14 @@ export default async function GenerarOrdenPage({
         .innerJoin(conjunto, eq(conjunto.id, pieza.conjuntoId))
         .orderBy(asc(conjunto.codigo), asc(pieza.nombre)),
       db.select({ id: cliente.id, nombre: cliente.razonSocial }).from(cliente).orderBy(cliente.razonSocial),
+      db.select({ cfg: montajeConjunto.configuracionId, orden: montajeConjunto.orden, codigo: conjunto.codigo, nombre: conjunto.nombre }).from(montajeConjunto).innerJoin(conjunto, eq(conjunto.id, montajeConjunto.conjuntoId)),
     ]);
+    // Conjuntos alternativos: los que ocupan el mismo lugar en la secuencia de montaje de una configuración.
+    const alternativos: Record<string, string[]> = {};
+    for (const [clave, grupo] of Map.groupBy(montaje, (x) => `${x.cfg}|${x.orden}`)) {
+      if (grupo.length < 2) continue;
+      (alternativos[clave.split("|")[0]] ??= []).push(grupo.map((x) => `${x.codigo} ${x.nombre}`).join(" o "));
+    }
     const nombreCfg = new Map(configs.map((c) => [c.id, c.nombre]));
     const piezasPorConfig: Record<string, { id: string; codigo: string; nombre: string; conjunto: string }[]> = {};
     for (const r of piezaCfg) (piezasPorConfig[r.cfg] ??= []).push({ id: r.id, codigo: r.codigo, nombre: r.nombre, conjunto: `${r.conjuntoCodigo} ${r.conjunto}` });
@@ -142,6 +149,7 @@ export default async function GenerarOrdenPage({
           piezas={piezas}
           piezasPorConfig={piezasPorConfig}
           clientes={clientes}
+          alternativos={alternativos}
         />
       </div>
     );

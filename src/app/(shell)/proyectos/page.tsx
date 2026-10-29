@@ -96,7 +96,7 @@ export default async function ProyectosPage({ searchParams }: { searchParams: Pr
     <div className="space-y-8">
       <PageHeader
         titulo="Órdenes"
-        descripcion="Cada máquina es un proyecto con fecha de entrega; debajo, todo se descompone en tareas con fecha. Los repuestos y las órdenes para stock funcionan igual, con un solo nivel."
+        descripcion="Cada máquina es una orden con fecha de entrega; debajo, todo se descompone en tareas con fecha. Los repuestos y las órdenes para stock funcionan igual, con un solo nivel."
         acciones={
           <Link href="/ot/nueva" className="btn">
             + Generar orden

@@ -49,6 +49,7 @@ export function Paso1({
   piezas,
   piezasPorConfig,
   clientes,
+  alternativos,
 }: {
   inicial: DatosPaso1;
   configuraciones: Opcion[];
@@ -56,6 +57,8 @@ export function Paso1({
   piezas: Opcion[];
   piezasPorConfig: Record<string, { id: string; codigo: string; nombre: string; conjunto: string }[]>;
   clientes: { id: string; nombre: string }[];
+  /** Configuraciones con conjuntos alternativos (mismo lugar en el montaje): sólo ahí se eligen variantes. */
+  alternativos: Record<string, string[]>;
 }) {
   const [tipo, setTipo] = useState(inicial.tipo);
   const [configuracionId, setConfiguracionId] = useState(inicial.configuracionId ?? "");
@@ -67,7 +70,17 @@ export function Paso1({
   const q = normalizarBusqueda(texto);
   const elegida = piezas.find((p) => p.id === piezaId);
   const sugeridas = q.length >= 2 && (!elegida || elegida.nombre !== texto) ? indice.filter((p) => q.split(/\s+/).every((w) => p.clave.includes(w))).slice(0, 8) : [];
-  const variantes = useMemo(() => (tipo === "maquina" && configuracionId ? (piezasPorConfig[configuracionId] ?? []) : []), [tipo, configuracionId, piezasPorConfig]);
+  const [conjunto, setConjunto] = useState(inicial.conjunto ?? "");
+  const [textoConj, setTextoConj] = useState(() => conjuntos.find((c) => c.valor === inicial.conjunto)?.etiqueta ?? "");
+  const indiceConj = useMemo(() => conjuntos.map((c) => ({ ...c, clave: normalizarBusqueda(c.etiqueta) })), [conjuntos]);
+  const qc = normalizarBusqueda(textoConj);
+  const conjElegido = conjuntos.find((c) => c.valor === conjunto);
+  const sugeridosConj = qc.length >= 2 && (!conjElegido || conjElegido.etiqueta !== textoConj) ? indiceConj.filter((c) => qc.split(/\s+/).every((w) => c.clave.includes(w))).slice(0, 10) : [];
+  // Variantes (simplificación §1): sólo para configuraciones con piezas alternativas.
+  const variantes = useMemo(
+    () => (tipo === "maquina" && configuracionId && alternativos[configuracionId]?.length ? (piezasPorConfig[configuracionId] ?? []) : []),
+    [tipo, configuracionId, piezasPorConfig, alternativos],
+  );
   const porConjunto = useMemo(() => {
     const m = new Map<string, typeof variantes>();
     for (const v of variantes) m.set(v.conjunto, [...(m.get(v.conjunto) ?? []), v]);
@@ -107,15 +120,39 @@ export function Paso1({
           </Campo>
         )}
         {tipo === "conjunto" && (
-          <Campo label="Qué conjunto">
-            <select name="conjunto" defaultValue={inicial.conjunto ?? ""} required className="input">
-              <option value="">Elegí el conjunto…</option>
-              {conjuntos.map((c) => (
-                <option key={c.valor} value={c.valor}>
-                  {c.etiqueta}
-                </option>
-              ))}
-            </select>
+          <Campo label="Qué conjunto" ayuda={conjElegido ? `Elegido: ${conjElegido.etiqueta}` : "Buscá por código o por nombre."}>
+            <div className="relative">
+              <Icono nombre="buscar" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted" />
+              <input
+                value={textoConj}
+                onChange={(e) => {
+                  setTextoConj(e.target.value);
+                  setConjunto("");
+                }}
+                placeholder="ej. C13, caja reductora…"
+                className="input pl-9"
+                aria-label="Buscar conjunto"
+              />
+              <input type="hidden" name="conjunto" value={conjunto} />
+              {sugeridosConj.length > 0 && (
+                <ul className="absolute z-30 mt-1 w-full tarjeta py-1 max-h-72 overflow-y-auto">
+                  {sugeridosConj.map((c) => (
+                    <li key={c.valor}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConjunto(c.valor);
+                          setTextoConj(c.etiqueta);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-surface-muted"
+                      >
+                        {c.etiqueta}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </Campo>
         )}
         {tipo === "pieza" && (
@@ -220,6 +257,7 @@ export function Paso1({
           <summary className="cursor-pointer text-sm font-medium">
             Variantes: destildá las piezas que este pedido no lleva {quitar.size > 0 && <span className="text-foreground-muted">({quitar.size} quitadas)</span>}
           </summary>
+          <p className="text-xs text-foreground-muted mt-2">Esta máquina tiene conjuntos alternativos: {alternativos[configuracionId].join(" · ")}.</p>
           <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3 mt-3 max-h-96 overflow-y-auto">
             {porConjunto.map(([conj, ps]) => (
               <div key={conj}>

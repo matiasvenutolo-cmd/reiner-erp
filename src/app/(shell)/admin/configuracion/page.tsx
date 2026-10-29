@@ -136,7 +136,7 @@ export default async function ConfiguracionPendientePage({ searchParams }: { sea
         </p>
       )}
       <p className="text-xs text-foreground-muted">
-        Plan calculado en {numero(plan.ms)} ms · {plural(plan.resultado.tareas.length, "tarea")} de {plural(plan.resultado.proyectos.length, "proyecto")} activo{plan.resultado.proyectos.length === 1 ? "" : "s"}.
+        Plan calculado en {numero(plan.ms)} ms · {plural(plan.resultado.tareas.length, "tarea")} de {plural(plan.resultado.proyectos.length, "orden", "órdenes")} activa{plan.resultado.proyectos.length === 1 ? "" : "s"}.
       </p>
     </div>
   );
