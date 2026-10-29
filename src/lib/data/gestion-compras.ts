@@ -34,6 +34,8 @@ import {
   pieza,
   movimientoStock,
   asignacionTrabajo,
+  necesidadCompraOrden,
+  conjunto,
 } from "@/lib/db/schema";
 import type { SolicitudCompra, CotizacionCompra, PagoCompra } from "@/lib/db/schema";
 import { getPiezasCompraPendientes, type ItemCompraPendiente } from "./produccion";
@@ -251,7 +253,13 @@ async function siguienteNumero(): Promise<number> {
 
 // ── Necesidades que llegan de Producción ─────────────────────────────────
 
-export type NecesidadProduccion = ItemCompraPendiente & { primeraPlanificada: string | null };
+export type NecesidadProduccion = ItemCompraPendiente & {
+  primeraPlanificada: string | null;
+  /** Necesidad que dejó una orden confirmada desde el asistente: qué comprar, ya redactado. */
+  descripcion?: string;
+  observacion?: string | null;
+  esMaterial?: boolean;
+};
 
 /**
  * Lo que las órdenes de trabajo necesitan comprar y todavía no tomó Compras:
@@ -260,13 +268,22 @@ export type NecesidadProduccion = ItemCompraPendiente & { primeraPlanificada: st
  * una solicitud abierta o un pedido sin recibir hecho desde Stock.
  */
 export async function getNecesidadesProduccion(): Promise<NecesidadProduccion[]> {
-  const [pendientes, conSolicitud, conPedido] = await Promise.all([
+  const [pendientes, conSolicitud, conPedido, deOrden, recibidas] = await Promise.all([
     getPiezasCompraPendientes(),
     db.select({ otPiezaId: solicitudCompra.otPiezaId }).from(solicitudCompra).where(and(isNotNull(solicitudCompra.otPiezaId), isNull(solicitudCompra.anuladaAt))),
     db.select({ otPiezaId: pedidoCompra.otPiezaId }).from(pedidoCompra).where(isNull(pedidoCompra.recibidoAt)),
+    getNecesidadesDeOrden(),
+    db.select({ otPiezaId: pedidoCompra.otPiezaId }).from(pedidoCompra).where(isNotNull(pedidoCompra.recibidoAt)),
   ]);
   const tomadas = new Set([...conSolicitud.map((s) => s.otPiezaId), ...conPedido.map((p) => p.otPiezaId)]);
-  const libres = pendientes.filter((p) => !tomadas.has(p.otPiezaId));
+  // Lo que dejó una orden confirmada desde el asistente reemplaza a lo calculado para esa pieza
+  // (incluido "No comprar"); una vez recibida su compra, deja de ser necesidad.
+  const conRegistro = new Set(deOrden.map((n) => n.otPiezaId));
+  const yaRecibidas = new Set(recibidas.map((r) => r.otPiezaId));
+  const libres = [
+    ...pendientes.filter((p) => !conRegistro.has(p.otPiezaId)),
+    ...deOrden.filter((n) => !n.omitida && !yaRecibidas.has(n.otPiezaId)),
+  ].filter((p) => !tomadas.has(p.otPiezaId));
   if (!libres.length) return [];
   const planificadas = await db
     .select({ otPiezaId: asignacionTrabajo.otPiezaId, fecha: min(asignacionTrabajo.fecha) })
@@ -276,9 +293,54 @@ export async function getNecesidadesProduccion(): Promise<NecesidadProduccion[]>
   return libres.map((l) => ({ ...l, primeraPlanificada: planificadas.find((p) => p.otPiezaId === l.otPiezaId)?.fecha ?? null }));
 }
 
+/** Necesidades que dejaron las órdenes confirmadas desde el asistente, con su orden y pieza de origen. */
+async function getNecesidadesDeOrden(): Promise<(ItemCompraPendiente & { omitida: boolean; descripcion: string; observacion: string | null; esMaterial: boolean })[]> {
+  const filas = await db
+    .select({ n: necesidadCompraOrden, otPiezaCodigo: otPieza.codigo, piezaCodigo: pieza.codigo, piezaNombre: pieza.nombre, conjuntoNombre: conjunto.nombre, otMaquinaCodigo: otMaquina.codigo })
+    .from(necesidadCompraOrden)
+    .innerJoin(otPieza, eq(otPieza.id, necesidadCompraOrden.otPiezaId))
+    .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
+    .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
+    .innerJoin(conjunto, eq(conjunto.id, otConjunto.conjuntoId))
+    .innerJoin(otMaquina, eq(otMaquina.id, necesidadCompraOrden.otMaquinaId))
+    .where(inArray(otMaquina.estadoProyecto, ["activo", "en_montaje"]));
+  return filas.map((f) => ({
+    otPiezaId: f.n.otPiezaId,
+    otPiezaCodigo: f.otPiezaCodigo,
+    piezaCodigo: f.piezaCodigo,
+    piezaNombre: f.piezaNombre,
+    conjuntoNombre: f.conjuntoNombre,
+    otMaquinaId: f.n.otMaquinaId,
+    otMaquinaCodigo: f.otMaquinaCodigo,
+    detalle: f.n.descripcion,
+    cantidad: f.n.cantidad,
+    operacionCompraId: null,
+    omitida: f.n.omitida,
+    descripcion: f.n.descripcion,
+    observacion: f.n.observacion,
+    esMaterial: f.n.tipo === "material",
+  }));
+}
+
 export async function crearSolicitudDesdeNecesidad(otPiezaId: string, usuarioId: string): Promise<string> {
   const necesidad = (await getNecesidadesProduccion()).find((n) => n.otPiezaId === otPiezaId);
   if (!necesidad) throw new Error("Esa necesidad ya no está pendiente: ya tiene una compra abierta o un pedido.");
+  if (necesidad.descripcion) {
+    const [nueva] = await db
+      .insert(solicitudCompra)
+      .values({
+        numero: await siguienteNumero(),
+        origen: "orden_trabajo",
+        otPiezaId,
+        descripcion: necesidad.descripcion,
+        cantidad: necesidad.cantidad,
+        unidad: necesidad.esMaterial ? "piezas a fabricar" : "u.",
+        observacion: necesidad.observacion ?? null,
+        creadoPorId: usuarioId,
+      })
+      .returning({ id: solicitudCompra.id });
+    return nueva.id;
+  }
   const [p] = await db
     .select({ material: sql<string | null>`coalesce(${otPieza.material}, ${pieza.material})`, tipo: pieza.tipo })
     .from(otPieza)

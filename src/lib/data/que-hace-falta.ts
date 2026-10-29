@@ -6,7 +6,8 @@
  * Reglas (las del documento, más dos aclaraciones marcadas "criterio"):
  * - Stock parcial: si hay 4 libres y hacen falta 6, 4 van a "Ya lo tengo" y 2 al grupo que corresponda.
  * - Comerciales y compradas a medida: "Lo compro" (lo que no cubre el stock).
- * - Sin tipo definido que parece comercial (hay propuesta de reclasificación): "Lo compro" con "Revisar tipo".
+ * - Con una propuesta de reclasificación sin aprobar: se queda en su tipo actual (como en el plan) con la
+ *   marca "Revisar tipo", para que no se pida a Compras algo que el plan fabrica, ni al revés.
  * - Fabricadas: si tienen materia prima cargada, se descuenta del stock de materia prima; si dos piezas usan
  *   el mismo material y no alcanza para todas, todas pasan a "Falta material" con el faltante sumado.
  *   Si el material es de uso general ("se usa de stock"), hay material.
@@ -171,9 +172,9 @@ export async function calcularQueHaceFalta(
     let plazo: number | null = null;
     let plazoSupuesto = false;
     const esComprada = p.clase === "comercial" || p.clase === "a_medida" || p.tipo === "comprada";
-    if (esComprada || p.claseSugerida) {
+    if (p.claseSugerida && p.claseSugerida !== p.clase) marcas.push("Revisar tipo");
+    if (esComprada) {
       grupo = "compro";
-      if (!esComprada && p.claseSugerida) marcas.push("Revisar tipo");
       plazo = p.plazoCompraDias ?? prv?.plazo ?? null;
       if (plazo == null) {
         plazo = DEFAULT.plazoComercial;

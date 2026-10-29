@@ -7,6 +7,9 @@ import { ordenBorrador, pieza } from "@/lib/db/schema";
 import { getUsuarioDePlanta } from "@/lib/session";
 // Los borradores no tocan el plan: sólo hace falta refrescar las pantallas, sin recalcularlo.
 import { revalidatePath } from "next/cache";
+import { revalidatePath as invalidarTodo } from "@/lib/revalidar";
+import { confirmarBorrador } from "@/lib/data/confirmar-orden";
+import { plural } from "@/lib/formato";
 import { itemsDeBorrador, stockLibreDe, getBorrador } from "@/lib/data/que-hace-falta";
 
 /**
@@ -122,4 +125,29 @@ export async function descartarBorradorAction(fd: FormData) {
   if (b && !b.otMaquinaId) await db.delete(ordenBorrador).where(eq(ordenBorrador.id, id));
   revalidatePath("/proyectos");
   redirect(`/proyectos?ok=${encodeURIComponent("Borrador descartado: no quedó nada reservado ni pedido.")}`);
+}
+
+/**
+ * Paso 3 — "Confirmar orden". Recién acá se reserva stock, se dejan las compras en Compras,
+ * entra al plan lo que tiene material y la orden queda activa con su fecha.
+ */
+export async function confirmarBorradorAction(fd: FormData) {
+  const u = await getUsuarioDePlanta();
+  const id = t(fd, "id");
+  let resultado: Awaited<ReturnType<typeof confirmarBorrador>>;
+  try {
+    resultado = await confirmarBorrador(id, { fechaEntrega: t(fd, "fechaEntrega"), prioridad: t(fd, "prioridad") === "alta" ? "alta" : "normal", referencia: t(fd, "referencia") }, { id: u.id, nombre: u.nombre });
+  } catch (e) {
+    volverConError(id, 3, e instanceof Error ? e.message : "No se pudo confirmar la orden.");
+  }
+  // Esto sí cambia el plan, el stock y Compras: se invalida todo lo que lo mira.
+  for (const r of ["/inicio", "/planificacion", "/proyectos", "/llegamos", "/pedir", "/liberacion", "/stock", "/compras", "/ot"]) invalidarTodo(r, "layout");
+  const r = resultado!;
+  const partes = [
+    `${plural(r.reservadas, "pieza")} reservada${r.reservadas === 1 ? "" : "s"} del stock`,
+    `${plural(r.compras, "compra")} en Compras`,
+    `${plural(r.alPlan, "pieza")} al plan`,
+  ];
+  if (r.esperanMaterial) partes.push(`${plural(r.esperanMaterial, "pieza")} esperando material`);
+  redirect(`/proyectos/${r.otMaquinaId}?ok=${encodeURIComponent(`Orden confirmada: ${partes.join(" · ")}.`)}`);
 }

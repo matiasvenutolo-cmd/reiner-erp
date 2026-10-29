@@ -8,8 +8,10 @@ import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
 import { Paso1, type DatosPaso1 } from "@/components/asistente/Paso1";
 import { QueHaceFalta } from "@/components/asistente/QueHaceFalta";
 import { getBorrador, queHaceFaltaDeBorrador } from "@/lib/data/que-hace-falta";
-import { descartarBorradorAction, stockRevisadoAction } from "@/app/actions/borrador";
-import { capitalizar, fechaCorta, numero } from "@/lib/formato";
+import { descartarBorradorAction, stockRevisadoAction, confirmarBorradorAction } from "@/app/actions/borrador";
+import { previaConfirmacion } from "@/lib/data/confirmar-orden";
+import { capitalizar, fechaCorta, numero, plural } from "@/lib/formato";
+import { hoyISO } from "@/lib/fecha";
 
 export const dynamic = "force-dynamic";
 
@@ -214,18 +216,68 @@ export default async function GenerarOrdenPage({
     );
   }
 
-  // ── Paso 3 (se completa en la etapa C) ──
+  // ── Paso 3 — Cuándo (versión simple: la fecha se carga a mano) ──
+  const previa = await previaConfirmacion(borrador!);
+  const hoy = hoyISO();
+  const esMaquina = borrador!.tipo === "maquina";
+  const variasMaquinas = esMaquina && borrador!.cantidad > 1;
+  const sugerida = borrador!.numeroSerie ?? (esMaquina ? "" : `${(pz?.codigo ?? conj?.codigo ?? "").trim()}-${hoy.slice(8, 10)}${hoy.slice(5, 7)}`);
+  const fechaInicial = borrador!.fechaCliente && borrador!.fechaCliente >= hoy ? borrador!.fechaCliente : "";
+  const lineas = [
+    previa.reservadas > 0 && `Se reservan ${plural(previa.reservadas, "pieza")} del stock para esta orden.`,
+    previa.compras > 0 && `${plural(previa.compras, "compra")} pasa${previa.compras === 1 ? "" : "n"} a Compras, con esta orden como origen.`,
+    previa.noComprar > 0 && `${plural(previa.noComprar, "compra")} marcada${previa.noComprar === 1 ? "" : "s"} "No comprar": no se pide${previa.noComprar === 1 ? "" : "n"}.`,
+    previa.alPlan > 0 && `${plural(previa.alPlan, "pieza")} con material entra${previa.alPlan === 1 ? "" : "n"} al plan.`,
+    previa.esperanMaterial > 0 && `${plural(previa.esperanMaterial, "pieza")} queda${previa.esperanMaterial === 1 ? "" : "n"} esperando material.`,
+  ].filter(Boolean) as string[];
   return (
     <div className="space-y-4">
       {header}
+      {sp.error && <Aviso tipo="error">{sp.error}</Aviso>}
       {resumen}
-      <div className="tarjeta p-5 space-y-2">
+      <form action={confirmarBorradorAction} className="tarjeta p-5 space-y-5 max-w-3xl">
+        <input type="hidden" name="id" value={borrador!.id} />
         <h2 className="text-lg font-semibold">Cuándo puede estar</h2>
-        <p className="text-sm text-foreground-muted">La confirmación de la orden (fecha, reserva de stock y compras) se habilita en la próxima etapa. Mientras tanto, el borrador queda guardado en Órdenes → Borradores y no reserva ni pide nada.</p>
-      </div>
-      <Link href={`/ot/nueva?borrador=${borrador!.id}&paso=2`} className="btn-secundario">
-        ← Volver a Qué hace falta
-      </Link>
+        <p className="text-sm text-foreground-muted">Por ahora la fecha más temprana posible no se calcula: cargá a mano la fecha que se compromete.</p>
+        <div className="grid sm:grid-cols-3 gap-3">
+          <label className="block">
+            <span className="etiqueta">Fecha de entrega comprometida</span>
+            <input type="date" name="fechaEntrega" min={hoy} defaultValue={fechaInicial} required className="input" />
+            {borrador!.fechaCliente && <span className="block text-xs text-foreground-muted mt-1">El cliente la quiere para el {fechaCorta(borrador!.fechaCliente, hoy)}.</span>}
+          </label>
+          <label className="block">
+            <span className="etiqueta">Prioridad</span>
+            <select name="prioridad" defaultValue="normal" className="input">
+              <option value="normal">Normal</option>
+              <option value="alta">Alta</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="etiqueta">{esMaquina ? "Número de serie" : "Referencia de la orden"}</span>
+            <input name="referencia" defaultValue={sugerida} required className="input" />
+            <span className="block text-xs text-foreground-muted mt-1">{esMaquina ? "Queda como código de la orden: OTM + número de serie." : "Queda como código de la orden: OTS + referencia."}</span>
+          </label>
+        </div>
+        <div className="rounded-lg border border-border bg-surface-muted px-4 py-3 text-sm space-y-1">
+          <div className="font-semibold">Al confirmar, y recién ahí:</div>
+          <ul className="list-disc pl-5 space-y-0.5">
+            {lineas.map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+            <li>La orden queda activa con la fecha comprometida.</li>
+          </ul>
+          <div className="text-foreground-muted">Mientras no confirmes, el borrador no reserva ni pide nada.</div>
+        </div>
+        {variasMaquinas && <Aviso tipo="error">Cada máquina es una orden con su propio número de serie: volvé al paso 1 y dejá cantidad 1.</Aviso>}
+        <div className="flex flex-wrap justify-between gap-2">
+          <Link href={`/ot/nueva?borrador=${borrador!.id}&paso=2`} className="btn-secundario">
+            ← Volver a Qué hace falta
+          </Link>
+          <button className="btn" disabled={variasMaquinas}>
+            Confirmar orden
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

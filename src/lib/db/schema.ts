@@ -1091,6 +1091,32 @@ export const ordenBorrador = pgTable("orden_borrador", {
 });
 export type OrdenBorrador = typeof ordenBorrador.$inferSelect;
 
+/**
+ * Necesidad de compra que deja una orden al confirmarse desde el asistente
+ * (simplificación §2, "Al confirmar la orden"): cada compra de "Falta material"
+ * y "Lo compro" aparece en Compras → Necesidades de producción, con la orden y
+ * la pieza de origen. No es una solicitud: la toma Compras, como siempre.
+ * Con `omitida` (se eligió "No comprar") la pieza no aparece como necesidad.
+ */
+export const necesidadCompraOrden = pgTable("necesidad_compra_orden", {
+  id: id(),
+  otPiezaId: text("ot_pieza_id")
+    .notNull()
+    .unique()
+    .references(() => otPieza.id),
+  otMaquinaId: text("ot_maquina_id")
+    .notNull()
+    .references(() => otMaquina.id),
+  tipo: text("tipo").notNull(), // articulo | material
+  descripcion: text("descripcion").notNull(),
+  /** Unidades a comprar (artículo) o piezas a fabricar que esperan el material — la misma unidad que los pedidos. */
+  cantidad: integer("cantidad").notNull(),
+  observacion: text("observacion"),
+  omitida: boolean("omitida").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type NecesidadCompraOrden = typeof necesidadCompraOrden.$inferSelect;
+
 export type StockPieza = typeof stockPieza.$inferSelect;
 export type WipPieza = typeof wipPieza.$inferSelect;
 export type MovimientoStock = typeof movimientoStock.$inferSelect;

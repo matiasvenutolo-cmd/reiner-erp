@@ -89,10 +89,11 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                 {necesidades.map((n) => (
                   <tr key={n.otPiezaId} className="border-t border-border first:border-t-0">
                     <td className="px-4 py-2.5">
-                      <div className="font-medium">{n.operacionCompraId ? `Material para ${n.piezaNombre}` : n.piezaNombre}</div>
+                      <div className="font-medium">{n.descripcion ?? (n.operacionCompraId ? `Material para ${n.piezaNombre}` : n.piezaNombre)}</div>
                       <div className="text-xs text-foreground-muted">
-                        {n.piezaCodigo} · {n.operacionCompraId ? "pieza a fabricar, falta el material" : "pieza que se compra hecha"}
+                        {n.piezaCodigo} · {n.esMaterial || n.operacionCompraId ? "pieza a fabricar, falta el material" : "pieza que se compra hecha"}
                       </div>
+                      {n.observacion && <div className="text-xs text-foreground-muted mt-0.5">{n.observacion}</div>}
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="font-mono text-xs">{n.otPiezaCodigo}</div>
