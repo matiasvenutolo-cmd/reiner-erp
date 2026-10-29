@@ -8,7 +8,7 @@
  * - cada compra de "Falta material" y "Lo compro" queda como necesidad en
  *   Compras → Necesidades de producción, con la orden y la pieza de origen (la
  *   toma Compras, como siempre: no se crean solicitudes por fuera del perfil Compras);
- * - lo de "Lo fabrico — tengo el material" entra al plan (la misma "Pasar al plan" de siempre);
+ * - lo de "Lo fabrico — tengo el material" entra al plan solo (entrada automática, ver entrada-plan.ts);
  * - la orden queda activa con la fecha comprometida, igual que al activarla desde su detalle.
  *
  * Diferencia con la generación anterior, a propósito: el stock que se reserva es
@@ -20,7 +20,7 @@ import { db } from "@/lib/db/client";
 import { otMaquina, otConjunto, otPieza, ordenBorrador, piezaConfiguracion, pieza, proyectoEvento, necesidadCompraOrden } from "@/lib/db/schema";
 import { getConfiguracion, getConjuntos } from "./maestros";
 import { reservarStockLibre } from "./stock";
-import { enviarAProduccion } from "./ot";
+import { entrarAlPlanSolas, getModoEntrada } from "./entrada-plan";
 import { getBorrador, queHaceFaltaDeBorrador } from "./que-hace-falta";
 import { hoyISO } from "@/lib/fecha";
 import { numero, plural } from "@/lib/formato";
@@ -162,7 +162,8 @@ export async function confirmarBorrador(
     necesidades.push({ otPiezaId: op.id, otMaquinaId: orden.id, tipo: esMaterial ? "material" : "articulo", descripcion, cantidad: op.cantidad, observacion, omitida: !f.comprar });
   }
   if (necesidades.length) await db.insert(necesidadCompraOrden).values(necesidades);
-  const nAlPlan = await enviarAProduccion(alPlan, usuario.id);
+  // Entrada automática al plan (§4.3): lo que tiene material entra solo, con la regla del plano de ADMIN.
+  const nAlPlan = await entrarAlPlanSolas({ otPiezaIds: alPlan }, usuario.id, { materialVerificado: true });
 
   const reservadas = [...cobertura.values()].filter((c) => c.cubre > 0).length;
   const compras = necesidades.filter((n) => !n.omitida).length;
@@ -175,13 +176,22 @@ export async function confirmarBorrador(
 
 /** Lo que va a pasar al confirmar, para mostrarlo en el paso 3 antes de hacerlo. */
 export async function previaConfirmacion(b: NonNullable<Awaited<ReturnType<typeof getBorrador>>>) {
-  const qhf = await queHaceFaltaDeBorrador(b);
+  const [qhf, modo, planos] = await Promise.all([
+    queHaceFaltaDeBorrador(b),
+    getModoEntrada(),
+    db.select({ id: pieza.id, plano: pieza.numeroPlano, revision: pieza.revision }).from(pieza),
+  ]);
   const conResto = qhf.filas.filter((f) => f.resto > 0);
+  const tienePlano = new Set(planos.filter((x) => x.plano && x.revision).map((x) => x.id));
+  const fabricoYa = conResto.filter((f) => f.grupo === "fabrico");
+  const sinPlano = modo.exigirPlano ? fabricoYa.filter((f) => !tienePlano.has(f.piezaId)).length : 0;
   return {
+    manual: !modo.automatica,
+    esperanPlano: modo.automatica ? sinPlano : 0,
     reservadas: qhf.filas.filter((f) => f.usaStock > 0).length,
     compras: conResto.filter((f) => (f.grupo === "compro" || f.grupo === "falta_material") && f.comprar).length,
     noComprar: conResto.filter((f) => (f.grupo === "compro" || f.grupo === "falta_material") && !f.comprar).length,
-    alPlan: conResto.filter((f) => f.grupo === "fabrico").length,
+    alPlan: modo.automatica ? fabricoYa.length - sinPlano : 0,
     esperanMaterial: conResto.filter((f) => f.grupo === "falta_material").length,
   };
 }

@@ -30,6 +30,7 @@ import {
 import { getStockDisponible } from "./stock";
 import { esUltimaOperacion, getCantidadesOperacion } from "./ejecucion";
 import { getEstadoYOperacionActual } from "./ot";
+import { entrarAlPlanSolas } from "./entrada-plan";
 
 /** Prefijo con el que se asienta la vuelta de un tercerizado — distingue esos
  * ingresos de la llegada de una compra de la misma OT de pieza. */
@@ -244,6 +245,8 @@ export async function registrarLlegadaPedido(input: {
       });
     }
   });
+  // Llegó el material: si la pieza esperaba sólo eso, entra sola al plan (simplificación §4.3).
+  if (input.controlResultado === "ok") await entrarAlPlanSolas({ otPiezaIds: [row.otPieza.id] }, input.usuarioId);
 }
 
 /** Vuelta de una pieza tercerizada (Cromado, Pavonado...), con control de calidad. */

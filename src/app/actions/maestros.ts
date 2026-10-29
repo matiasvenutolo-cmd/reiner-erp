@@ -22,6 +22,7 @@ import {
 } from "@/lib/data/maestros";
 import { subirAdjunto, eliminarAdjunto } from "@/lib/blob";
 import { puedeEditarMaestros } from "@/lib/permisos";
+import { entrarAlPlanSolas } from "@/lib/data/entrada-plan";
 
 /** Un rechazo esperable (ej. borrar un paso ya trabajado) vuelve a la ficha con el motivo, no a una pantalla de error. */
 async function conErrorEnPieza(piezaId: string, fn: () => Promise<void>) {
@@ -61,6 +62,8 @@ export async function actualizarRevisionAction(formData: FormData) {
   if (!piezaId) throw new Error("Falta la pieza.");
 
   await actualizarRevisionPieza(piezaId, revision);
+  // Con plano y revisión, las piezas de órdenes activas que sólo esperaban eso entran solas al plan.
+  await entrarAlPlanSolas({ piezaId }, (await exigirEditorMaestros()).id);
   revalidatePath(`/maestros/pieza/${piezaId}`);
 }
 
@@ -71,6 +74,8 @@ export async function actualizarNumeroPlanoAction(formData: FormData) {
   if (!piezaId) throw new Error("Falta la pieza.");
 
   await actualizarNumeroPlanoPieza(piezaId, numeroPlano);
+  // Con plano y revisión, las piezas de órdenes activas que sólo esperaban eso entran solas al plan.
+  await entrarAlPlanSolas({ piezaId }, (await exigirEditorMaestros()).id);
   revalidatePath(`/maestros/pieza/${piezaId}`);
 }
 

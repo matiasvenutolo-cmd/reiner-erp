@@ -8,7 +8,7 @@ import { demoAction, guardarParametroAction } from "@/app/actions/v2";
 export const dynamic = "force-dynamic";
 
 const ETIQUETA: Record<string, string> = {
-  horizonte_liberacion: "Cuántos días hábiles antes de empezar entra una pieza al plan",
+  horizonte_liberacion: "Con entrada a mano: cuántos días hábiles antes de empezar se propone pasar una pieza al plan",
   exigir_plano: "Exigir plano para que una pieza entre al plan (si / no)",
 };
 
@@ -16,6 +16,7 @@ const ETIQUETA: Record<string, string> = {
 export default async function DemoPage({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const { ok, error } = await searchParams;
   const parametros = await db.select().from(parametro).orderBy(parametro.clave);
+  const entradaPlan = parametros.find((p) => p.clave === "entrada_plan")?.valor === "manual" ? "manual" : "automatica";
   return (
     <div className="max-w-3xl space-y-6">
       <PageHeader titulo="Datos de demo y parámetros" descripcion="Un escenario de prueba para ver el plan funcionando con conflictos reales, y los parámetros generales del sistema." />
@@ -53,7 +54,19 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
 
       <section className="tarjeta p-5 space-y-3">
         <h2 className="font-semibold">Parámetros</h2>
-        {parametros.map((p) => (
+        {/* Simplificación §4.3: la entrada al plan es automática; este interruptor vuelve a la liberación manual por tandas. */}
+        <form action={guardarParametroAction} className="flex flex-wrap items-end gap-2 text-sm">
+          <input type="hidden" name="clave" value="entrada_plan" />
+          <label className="flex-1 min-w-60">
+            Cómo entran las piezas al plan
+            <select name="valor" defaultValue={entradaPlan} className="input block w-full mt-0.5">
+              <option value="automatica">Solas: al confirmar la orden, con material (y plano, si se exige)</option>
+              <option value="manual">A mano, por tandas desde Entrada al plan</option>
+            </select>
+          </label>
+          <button className="btn-secundario">Guardar</button>
+        </form>
+        {parametros.filter((p) => p.clave !== "entrada_plan").map((p) => (
           <form key={p.clave} action={guardarParametroAction} className="flex flex-wrap items-end gap-2 text-sm">
             <input type="hidden" name="clave" value={p.clave} />
             <label className="flex-1 min-w-60">

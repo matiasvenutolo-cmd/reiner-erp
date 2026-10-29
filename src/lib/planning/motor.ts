@@ -104,6 +104,12 @@ export type EntradaMotor = {
   ajustes: Map<string, Ajuste>;
   horizonteLiberacion: number;
   exigirPlano: boolean;
+  /**
+   * v2 — entrada automática al plan (simplificación §4.3): la pieza entra sola cuando la orden está
+   * confirmada, tiene material y (si se exige) plano. No hay tandas para liberar a mano; las que esperan
+   * plano quedan trabadas "Falta plano" sin importar el horizonte. Sin el parámetro: liberación por tandas.
+   */
+  entradaAutomatica?: boolean;
   /** "otPiezaId::operacionId" → motivo, cuando el operario marcó "No puedo hacer esta". */
   bloqueos?: Map<string, string>;
   /** v2 — tareas que estaban en un plan confirmado de un día anterior y no se empezaron (pasan de "arranca tarde" a atrasada). */
@@ -412,7 +418,9 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
     const sinPlano: string[] = [];
     for (const pz of p.piezas) {
       const actual = pz.pasos.findIndex((x) => x.estado !== "terminada");
-      if (!pz.liberada && pz.pasos.length) {
+      if (!pz.liberada && pz.pasos.length && e.entradaAutomatica) {
+        if (e.exigirPlano && !pz.tienePlano) sinPlano.push(pz.otPiezaId);
+      } else if (!pz.liberada && pz.pasos.length) {
         const primero = atras.pasos.get(`${pz.otPiezaId}::${pz.pasos[0].operacionId}`)!;
         if (habilesEntre(hoy, primero.inicioMasTardio, cal) <= e.horizonteLiberacion) {
           if (e.exigirPlano && !pz.tienePlano) sinPlano.push(pz.otPiezaId);
@@ -432,7 +440,7 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
         else if (paso.estado === "pausada") estado = "pausada";
         else if (!pz.liberada) {
           estado = "futura";
-          if (e.exigirPlano && !pz.tienePlano && habilesEntre(hoy, a.inicioMasTardio, cal) <= e.horizonteLiberacion) {
+          if (e.exigirPlano && !pz.tienePlano && (e.entradaAutomatica || habilesEntre(hoy, a.inicioMasTardio, cal) <= e.horizonteLiberacion)) {
             estado = "trabada";
             motivo = "Falta plano";
           }
@@ -569,12 +577,14 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
     const t = tareasDePieza.get(pz.otPiezaId)?.find((x) => x.estado !== "terminada");
     return t ? t.holgura : Infinity;
   };
-  // Primero las liberadas (son las que se pueden hacer); después las que todavía no entraron al plan.
+  // Plan hacia adelante (simplificación §3): cada semana se llena con lo que está listo, por fecha
+  // comprometida y prioridad. Primero lo que ya está en el plan; entre iguales, la de menos margen.
   piezas.sort(
     (a, b) =>
       Number(!a.pz.liberada) - Number(!b.pz.liberada) ||
-      holguraActual(a.pz) - holguraActual(b.pz) ||
-      Number(prioridad.get(b.p.id) === "alta") - Number(prioridad.get(a.p.id) === "alta"),
+      a.p.entrega.localeCompare(b.p.entrega) ||
+      Number(prioridad.get(b.p.id) === "alta") - Number(prioridad.get(a.p.id) === "alta") ||
+      holguraActual(a.pz) - holguraActual(b.pz),
   );
 
   const finPieza = new Map<string, string>();
@@ -584,7 +594,9 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
   for (const { pz } of piezas) {
     let desdeInicial = hoy;
     let porLiberar = false;
-    if (!pz.liberada) {
+    // Con entrada automática, lo que no entró es porque espera material (lo encadena su paso de Compras)
+    // o plano: sólo lo que espera plano mantiene la demora de la liberación.
+    if (!pz.liberada && (!e.entradaAutomatica || (e.exigirPlano && !pz.tienePlano))) {
       // Una pieza no liberada no ocupa el plan de esta semana: arranca cuando entraría en la tanda
       // (horizonte de liberación) y, como pronto, la semana que viene — liberarla es una decisión.
       const primero = tareasDePieza.get(pz.otPiezaId)?.[0];

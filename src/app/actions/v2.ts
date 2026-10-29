@@ -11,6 +11,7 @@ import {
 } from "@/lib/db/schema";
 import { getUsuarioActual, getUsuarioDePlanta } from "@/lib/session";
 import { enviarAProduccion } from "@/lib/data/ot";
+import { entrarAlPlanSolas } from "@/lib/data/entrada-plan";
 import { getPlan, construirPlan } from "@/lib/planning/datos";
 import { proximosHabiles } from "@/lib/planning/calendario";
 import { registrarLlegadaPedido } from "@/lib/data/compras";
@@ -186,7 +187,8 @@ export async function activarProyectoAction(fd: FormData) {
       .set({ fechaEntrega: entrega, prioridad: t(fd, "prioridad") === "alta" ? "alta" : "normal", estadoProyecto: "activo", fechaInicioProyecto: hoyISO(), destino: (t(fd, "destino") as "maquina") || undefined })
       .where(eq(otMaquina.id, id));
     await db.insert(proyectoEvento).values({ otMaquinaId: id, tipo: "activado", texto: `Activado con entrega ${entrega}${quitar.length ? ` · ${plural(quitar.length, "pieza")} destildada${quitar.length === 1 ? "" : "s"} (variantes)` : ""}`, usuarioId: u.id });
-    return "Orden activa: ya tiene tareas y compras con fecha.";
+    const alPlan = await entrarAlPlanSolas({ otMaquinaId: id }, u.id);
+    return `Orden activa: ya tiene tareas y compras con fecha${alPlan ? ` · ${plural(alPlan, "pieza")} con material entr${alPlan === 1 ? "ó" : "aron"} al plan` : ""}.`;
   });
 }
 
@@ -214,6 +216,7 @@ export async function pausarProyectoAction(fd: FormData) {
     if (pausar && !motivo) throw new Error("Para pausar una orden hace falta un motivo.");
     await db.update(otMaquina).set({ estadoProyecto: pausar ? "pausado" : "activo" }).where(eq(otMaquina.id, id));
     await db.insert(proyectoEvento).values({ otMaquinaId: id, tipo: pausar ? "pausa" : "reactivado", texto: pausar ? `Pausado: ${motivo}` : "Reactivado", usuarioId: u.id });
+    if (!pausar) await entrarAlPlanSolas({ otMaquinaId: id }, u.id);
     return pausar ? "Orden pausada: sus tareas salen del plan." : "Orden reactivada.";
   });
 }
@@ -386,10 +389,12 @@ export async function guardarMontajeAction(fd: FormData) {
 }
 
 export async function guardarParametroAction(fd: FormData) {
-  await getUsuarioDePlanta();
+  const u = await getUsuarioDePlanta();
   await correr(t(fd, "volver") || "/admin/demo", async () => {
     await db.insert(parametro).values({ clave: t(fd, "clave"), valor: t(fd, "valor") }).onConflictDoUpdate({ target: parametro.clave, set: { valor: t(fd, "valor") } });
-    return "Parámetro guardado.";
+    // Si ahora la entrada es automática (o ya no se exige plano), entra lo que estaba esperando.
+    const alPlan = await entrarAlPlanSolas({}, u.id);
+    return alPlan ? `Parámetro guardado: ${plural(alPlan, "pieza")} entr${alPlan === 1 ? "ó" : "aron"} al plan.` : "Parámetro guardado.";
   });
 }
 

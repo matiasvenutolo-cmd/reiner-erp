@@ -176,7 +176,7 @@ export default async function PlanSemanaPage({
     <div className="space-y-4">
       <PageHeader
         titulo="Plan de la semana"
-        descripcion="El sistema propone qué se hace en cada centro y cada día, según el margen de cada tarea y la capacidad. Tocá una tarjeta para cambiar el operario, moverla de día o fijarla con candado."
+        descripcion="El plan se arma hacia adelante, desde hoy: cada día se llena con las tareas que están listas, primero las de fecha comprometida más cercana y, entre iguales, las de prioridad alta; la capacidad de cada centro pone el límite. Tocá una tarjeta para cambiar el operario, moverla de día o fijarla con candado."
         acciones={
           <>
             <form action={recalcularAction}>

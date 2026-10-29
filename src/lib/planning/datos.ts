@@ -26,10 +26,16 @@ import { planificar, CENTRO_POR_DEFECTO, type EntradaMotor, type ProyectoEntrada
 export const ESTADOS_PLANIFICADOS = ["activo", "en_montaje"];
 const DEFAULT = { setupMin: 30, minPorUnidad: 15, plazoTercerizado: 5, plazoCompra: 10, plazoComercial: 20 };
 
-export async function getParametros(): Promise<{ horizonte: number; exigirPlano: boolean; filas: { clave: string; valor: string; nota: string | null }[] }> {
+export async function getParametros(): Promise<{ horizonte: number; exigirPlano: boolean; entradaAutomatica: boolean; filas: { clave: string; valor: string; nota: string | null }[] }> {
   const filas = await db.select().from(parametro);
   const v = (k: string) => filas.find((f) => f.clave === k)?.valor;
-  return { horizonte: Number(v("horizonte_liberacion") ?? 15), exigirPlano: (v("exigir_plano") ?? "si") === "si", filas };
+  return {
+    horizonte: Number(v("horizonte_liberacion") ?? 15),
+    exigirPlano: (v("exigir_plano") ?? "si") === "si",
+    // Simplificación §4.3: la entrada al plan es automática salvo que ADMIN vuelva a la liberación manual por tandas.
+    entradaAutomatica: (v("entrada_plan") ?? "automatica") !== "manual",
+    filas,
+  };
 }
 
 export async function getCalendario(): Promise<Calendario> {
@@ -292,6 +298,7 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
     ajustes: new Map(ajustes.map((a) => [`${a.otPiezaId}::${a.operacionId}`, { fecha: a.fecha, operarioId: a.operarioId, centroId: a.centroTrabajoId, fijada: a.fijada }])),
     horizonteLiberacion: params.horizonte,
     exigirPlano: params.exigirPlano,
+    entradaAutomatica: params.entradaAutomatica,
     asignadasAntes: new Set(asignadasAntes.map((a) => `${a.otPiezaId}::${a.operacionId}`)),
     horasOperarioDia: 8 * 0.85,
     bloqueos: new Map(bloqueos.map((b) => [`${b.otPiezaId}::${b.operacionId}`, MOTIVO_BLOQUEO[b.motivo] ?? b.texto ?? "No se puede hacer"])),

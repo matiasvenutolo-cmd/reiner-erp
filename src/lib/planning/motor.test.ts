@@ -149,3 +149,25 @@ test("plan factible: lo que nació tarde es 'arranca tarde' y 'pedir ya', no atr
   const r2 = planificar({ ...entrada(p), asignadasAntes: new Set(["X::A"]) });
   assert.equal(r2.tareas.find((t) => t.operacionId === "A")!.nivel, "atrasada");
 });
+
+test("entrada automática: sin tandas para liberar; lo que espera plano queda trabado 'Falta plano' aunque empiece lejos", () => {
+  const sinLiberar = { otPiezaId: "X", codigo: "X1", nombre: "Pieza", cantidad: 4, conjuntoId: "C1", liberada: false, tienePlano: false, clase: "fabricada" as const, sinRuta: false, pasos: [paso("A")] };
+  const p = proyecto([], { entrega: "2027-12-30", piezas: [sinLiberar] });
+  const manual = planificar({ ...entrada(p), exigirPlano: true });
+  assert.equal(manual.tareas[0].estado, "futura"); // lejos del horizonte: todavía no se propone
+  const auto = planificar({ ...entrada(p), exigirPlano: true, entradaAutomatica: true });
+  assert.equal(auto.tareas[0].estado, "trabada");
+  assert.equal(auto.tareas[0].motivoTraba, "Falta plano");
+  assert.deepEqual(auto.tandas.flatMap((t) => t.otPiezaIds), []);
+  assert.deepEqual(auto.tandas.flatMap((t) => t.sinPlano), ["X"]);
+});
+
+test("plan hacia adelante: compitiendo por un centro, va primero la de fecha comprometida más cercana", () => {
+  const pieza = (id: string) => ({ otPiezaId: id, codigo: id, nombre: id, cantidad: 4, conjuntoId: "C1", liberada: true, tienePlano: true, clase: "fabricada" as const, sinRuta: false, pasos: [paso(`${id}-A`, { horas: 6 })] });
+  const lejos = proyecto([], { id: "P1", codigo: "OTM1", entrega: "2027-06-30", prioridad: "alta", piezas: [pieza("L")] });
+  const cerca = proyecto([], { id: "P2", codigo: "OTM2", entrega: "2027-02-26", piezas: [pieza("C")] });
+  const r = planificar({ ...entrada(lejos), proyectos: [lejos, cerca] });
+  const de = (id: string) => r.tareas.find((t) => t.otPiezaId === id)!;
+  // La de entrega más cercana usa el día entero; la otra toma lo que sobra y termina después (aunque sea de prioridad alta).
+  assert.ok(de("C").finPlan! < de("L").finPlan!);
+});

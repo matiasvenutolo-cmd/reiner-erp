@@ -12,7 +12,9 @@ import type { Tarea } from "@/lib/planning/motor";
 export const dynamic = "force-dynamic";
 
 /**
- * Liberación de piezas (ingeniería): no se libera todo junto. El sistema
+ * Liberación de piezas (ingeniería). Con entrada automática (simplificación
+ * §4.3, el modo por defecto) sólo lista las piezas que esperan plano o revisión.
+ * Con "A mano, por tandas" (ADMIN) es la de siempre: no se libera todo junto. El sistema
  * propone la tanda de piezas cuyo primer paso tiene que empezar dentro del
  * horizonte (15 días hábiles por defecto); ingeniería la revisa y la libera.
  * Recién liberada, la pieza entra al plan de la semana y a los centros.
@@ -38,6 +40,60 @@ export default async function LiberacionPage({ searchParams }: { searchParams: P
       };
     })
     .filter((x) => x.tanda.length || x.sinPlano.length || x.despues.length);
+
+  // Simplificación §4.3: con entrada automática, esta pantalla sólo muestra lo que espera a ingeniería.
+  if (parametros.entradaAutomatica) {
+    const esperan = proyectos.filter((x) => x.sinPlano.length);
+    return (
+      <div className="space-y-6">
+        <PageHeader titulo="Entrada al plan" descripcion="Las piezas entran solas al plan: al confirmar la orden si tienen material y, si no, cuando llega la compra. Acá quedan sólo las que esperan a ingeniería." />
+        <p className="text-sm font-medium">Piezas que esperan plano o revisión de ingeniería</p>
+        {ok && <Aviso tipo="ok">{ok}</Aviso>}
+        {error && <Aviso tipo="error">{error}</Aviso>}
+        {esperan.length === 0 && (
+          <Vacio>
+            Ninguna pieza espera plano o revisión.
+            {!exigirPlano && " Hoy ADMIN no exige plano para entrar al plan."}
+          </Vacio>
+        )}
+        {esperan.map(({ p, sinPlano }) => {
+          const info = proyectosInfo.get(p.id);
+          return (
+            <section key={p.id} id={p.id} className="tarjeta overflow-hidden scroll-mt-20">
+              <div className="px-4 py-3 border-b border-border">
+                <Link href={`/proyectos/${p.id}`} className="font-mono font-semibold hover:text-accent hover:underline">
+                  {p.codigo}
+                </Link>
+                <span className="text-sm text-foreground-muted"> · {[info?.cliente, info?.configuracion].filter(Boolean).join(" · ")} · entrega {fechaCorta(p.entrega)}</span>
+              </div>
+              <ul className="divide-y divide-border">
+                {sinPlano.map((t) => (
+                  <li key={t.otPiezaId} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+                    <span>
+                      {capitalizar(t.piezaNombre)} <Codigo valor={t.piezaCodigo} />
+                      <span className="text-xs text-foreground-muted"> · tiene que empezar el {fechaCorta(t.inicioMasTardio)}</span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <Link href={`/maestros/pieza/${encodeURIComponent(t.piezaCodigo)}`} className="btn-texto btn-sm">
+                        Cargar plano
+                      </Link>
+                      <form action={avisarAction}>
+                        <input type="hidden" name="tipo" value="falta_plano" />
+                        <input type="hidden" name="otPiezaId" value={t.otPiezaId} />
+                        <input type="hidden" name="texto" value={`Falta el plano o la revisión de ${t.piezaNombre} (${t.piezaCodigo}) para que pueda entrar al plan`} />
+                        <input type="hidden" name="volver" value={`/liberacion#${p.id}`} />
+                        <button className="btn-secundario btn-sm">Avisar a ingeniería</button>
+                      </form>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
