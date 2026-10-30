@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/ui/PageHeader";
+import { PestanasIndicadores } from "@/components/ui/PestanasSecciones";
 import { horas } from "@/lib/formato";
 import { getResumenIndicadores, getParadasPorTipo, getTiempoPorOperario, getTiempoPorProceso } from "@/lib/data/indicadores";
 
@@ -20,7 +21,9 @@ export default async function IndicadoresPage() {
       <PageHeader
         titulo="Indicadores"
         descripcion="Tiempos, paradas y rechazos de fabricación. Se arman solos con lo que el taller carga en cada operación."
-      />
+      >
+        <PestanasIndicadores actual="/indicadores" />
+      </PageHeader>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Metric label="Horas de fabricación" value={fmtHoras(resumen.horasEjecucion)} />

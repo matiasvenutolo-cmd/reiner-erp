@@ -345,6 +345,6 @@ export async function getProyectosSinPlan() {
   return db
     .select({ id: otMaquina.id, codigo: otMaquina.codigo, estado: otMaquina.estadoProyecto, fechaEntrega: otMaquina.fechaEntrega, plazo: otMaquina.plazoEntrega, destino: otMaquina.destino, fechaEmision: otMaquina.fechaEmision })
     .from(otMaquina)
-    .where(sql`${otMaquina.estadoProyecto} not in ('activo','en_montaje','terminado','entregado') or ${otMaquina.fechaEntrega} is null`);
+    .where(sql`${otMaquina.estadoProyecto} <> 'archivado' and (${otMaquina.estadoProyecto} not in ('activo','en_montaje','terminado','entregado') or ${otMaquina.fechaEntrega} is null)`);
 }
 

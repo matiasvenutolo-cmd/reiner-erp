@@ -87,8 +87,8 @@ export default async function GenerarOrdenPage({
 
   // ── Paso 1 ──
   if (paso === 1) {
-    const [configs, conjRows, piezas, piezaCfg, clientes, montaje] = await Promise.all([
-      db.select().from(configuracion).orderBy(configuracion.codigo),
+    const [configs, conjRowsTodos, piezasTodas, piezaCfgTodos, clientes, montaje] = await Promise.all([
+      db.select().from(configuracion).where(eq(configuracion.archivada, false)).orderBy(configuracion.codigo),
       db
         .selectDistinct({ cfg: piezaConfiguracion.configuracionId, id: conjunto.id, codigo: conjunto.codigo, nombre: conjunto.nombre })
         .from(piezaConfiguracion)
@@ -105,6 +105,14 @@ export default async function GenerarOrdenPage({
       db.select({ id: cliente.id, nombre: cliente.razonSocial }).from(cliente).orderBy(cliente.razonSocial),
       db.select({ cfg: montajeConjunto.configuracionId, orden: montajeConjunto.orden, codigo: conjunto.codigo, nombre: conjunto.nombre }).from(montajeConjunto).innerJoin(conjunto, eq(conjunto.id, montajeConjunto.conjuntoId)),
     ]);
+    // Configuraciones archivadas (§6.1): ni sus conjuntos ni sus piezas se ofrecen. Las piezas que no están en
+    // ninguna configuración (por ejemplo, una pieza a medida) sí.
+    const visibles = new Set(configs.map((c) => c.id));
+    const conjRows = conjRowsTodos.filter((c) => visibles.has(c.cfg));
+    const piezaCfg = piezaCfgTodos.filter((c) => visibles.has(c.cfg));
+    const enAlguna = new Set(piezaCfgTodos.map((x) => x.id));
+    const enVisible = new Set(piezaCfg.map((x) => x.id));
+    const piezas = piezasTodas.filter((x) => enVisible.has(x.id) || !enAlguna.has(x.id));
     // Conjuntos alternativos: los que ocupan el mismo lugar en la secuencia de montaje de una configuración.
     const alternativos: Record<string, string[]> = {};
     for (const [clave, grupo] of Map.groupBy(montaje, (x) => `${x.cfg}|${x.orden}`)) {

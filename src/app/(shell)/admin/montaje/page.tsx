@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function MontajePage({ searchParams }: { searchParams: Promise<{ config?: string; ok?: string; error?: string }> }) {
   const { config, ok, error } = await searchParams;
-  const configs = await db.select().from(configuracion).orderBy(configuracion.codigo);
+  const configs = await db.select().from(configuracion).where(eq(configuracion.archivada, false)).orderBy(configuracion.codigo);
   const actual = configs.find((c) => c.id === config) ?? configs[0];
   const filas = actual
     ? await db

@@ -30,7 +30,7 @@ export const getContadoresMenu = unstable_cache(
 export async function contarConfiguracionPendiente(): Promise<number> {
   const [[a], [b], [c], [d], [e], [f]] = await Promise.all([
     db.select({ n: sql<number>`count(*)::int` }).from(pieza).where(sql`${pieza.claseSugerida} is not null`),
-    db.select({ n: sql<number>`count(*)::int` }).from(configuracion).where(eq(configuracion.montajeOrigen, "estimado")),
+    db.select({ n: sql<number>`count(*)::int` }).from(configuracion).where(and(eq(configuracion.montajeOrigen, "estimado"), eq(configuracion.archivada, false))),
     db.select({ n: sql<number>`count(*)::int` }).from(centroTrabajo).where(eq(centroTrabajo.capacidadOrigen, "estimado")),
     db.select({ n: sql<number>`count(*)::int` }).from(proceso).where(and(eq(proceso.tiempoOrigen, "estimado"), eq(proceso.tipo, "interno"))),
     db.select({ n: sql<number>`count(*)::int` }).from(avisoPlanta).where(and(eq(avisoPlanta.tipo, "falta_plano"), isNull(avisoPlanta.resueltoAt))),

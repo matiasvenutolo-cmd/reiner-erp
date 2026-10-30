@@ -7,7 +7,7 @@
  * un array en memoria cargado de fixtures JSON — la firma de cada función
  * no cambió, así que ninguna pantalla tuvo que tocarse (ver docs/01 §6).
  */
-import { eq, inArray, asc, desc, or, sql } from "drizzle-orm";
+import { and, eq, inArray, asc, desc, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   modelo,
@@ -45,8 +45,9 @@ export async function getModelo(id: string): Promise<Modelo | undefined> {
 }
 
 export async function getConfiguraciones(modeloId?: string): Promise<Configuracion[]> {
+  // Las archivadas (reorganización 30/10 §6.1) no se ofrecen en ninguna pantalla.
   const query = db.select().from(configuracion);
-  return modeloId ? query.where(eq(configuracion.modeloId, modeloId)) : query;
+  return modeloId ? query.where(and(eq(configuracion.modeloId, modeloId), eq(configuracion.archivada, false))) : query.where(eq(configuracion.archivada, false));
 }
 
 export async function getConfiguracion(id: string): Promise<Configuracion | undefined> {

@@ -7,11 +7,12 @@ import type { Usuario } from "@/lib/db/schema";
  * sigue igual: sólo cambia lo que se ve primero.
  */
 export const HOME_POR_ROL: Record<Usuario["rol"], string> = {
+  // Reorganización 30/10 §1: el jefe de planta entra a Gestión, dirección a Indicadores, compras a Compras.
   operario: "/taller",
   taller: "/planificacion",
-  ingenieria: "/liberacion",
-  direccion: "/llegamos",
-  compras: "/pedir",
+  ingenieria: "/maestros",
+  direccion: "/indicadores",
+  compras: "/compras",
 };
 
 /** Áreas del menú que cada perfil ve abiertas; las demás quedan colapsadas (se abren con un toque). */
@@ -42,7 +43,7 @@ export const GRUPO_LABEL: Record<GrupoNav, string> = {
   admin: "Admin",
 };
 
-export type ItemNav = { href: string; label: string; grupo?: GrupoNav; ayuda?: string; contador?: number };
+export type ItemNav = { href: string; label: string; grupo?: GrupoNav; ayuda?: string; contador?: number; /** Adónde lleva el link, si no es `href` (ej. con filtros). */ url?: string };
 
 type NavEntry = ItemNav & {
   roles: Usuario["rol"][];
@@ -50,6 +51,8 @@ type NavEntry = ItemNav & {
   enMenu?: boolean;
   /** Ítem del menú que queda marcado al estar en esta ruta. */
   dentroDe?: string;
+  /** Oculto del menú por defecto (reorganización 30/10): se puede volver a mostrar desde ADMIN. */
+  oculta?: boolean;
 };
 
 const STAFF: Usuario["rol"][] = ["direccion", "ingenieria", "taller"];
@@ -69,50 +72,72 @@ const COMPRAS: Usuario["rol"][] = ["compras"];
  * permisos son exactamente los mismos que antes.
  */
 const NAV_ITEMS: NavEntry[] = [
-  // v2 — menú por área y por frecuencia de uso: primero lo diario, al final los maestros y ADMIN.
-  { href: "/inicio", label: "Hoy", roles: STAFF, ayuda: "Qué hay que hacer hoy y qué está trabado" },
-
-  { href: "/planificacion", label: "Plan de la semana", roles: STAFF, grupo: "produccion", ayuda: "Qué se hace en cada centro esta semana" },
-  { href: "/centros-trabajo", label: "Colas por centro", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/planificacion" },
-  { href: "/proyectos", label: "Órdenes", roles: STAFF, grupo: "produccion", ayuda: "Cada máquina con su fecha de entrega" },
+  // Reorganización 30/10 §1 — Producción en tres partes: Órdenes de trabajo (qué hay que hacer), Gestión
+  // (quién lo hace) e Indicadores (cómo vamos, sólo consulta). Lo que sale del menú no se borra: queda
+  // `oculta` y se vuelve a mostrar desde ADMIN → Mostrar u ocultar secciones. La ruta sigue habilitada.
+  { href: "/proyectos", label: "Órdenes de trabajo", roles: STAFF, grupo: "produccion", ayuda: "Crear órdenes, ver qué hace falta y seguir cada orden" },
   { href: "/ot", label: "Órdenes de trabajo", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/proyectos" },
-  { href: "/tercerizados", label: "Tercerizados", roles: STAFF, grupo: "produccion", ayuda: "Para mandar, afuera y vueltas" },
-  { href: "/llegamos", label: "¿Llegamos?", roles: STAFF, grupo: "produccion", ayuda: "¿Cada máquina llega a su fecha?" },
-  { href: "/avance", label: "Avance de máquinas", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/llegamos" },
-  { href: "/indicadores", label: "Indicadores", roles: STAFF, grupo: "produccion", ayuda: "Tiempos, paradas y rechazos" },
+  // Hasta que esté la pantalla Gestión (etapa D), la asignación sigue en el Plan de la semana.
+  { href: "/planificacion", label: "Gestión", roles: STAFF, grupo: "produccion", ayuda: "Asignar tareas a operarios y ordenar prioridades" },
+  { href: "/centros-trabajo", label: "Colas por centro", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/planificacion" },
+  { href: "/indicadores", label: "Indicadores", roles: STAFF, grupo: "produccion", ayuda: "Carga, si llegamos, tiempos, paradas y rechazos. Sólo consulta" },
+  { href: "/llegamos", label: "¿Llegamos?", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/indicadores" },
+  { href: "/avance", label: "Avance de máquinas", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/indicadores" },
+  { href: "/inicio", label: "Hoy", roles: STAFF, grupo: "produccion", oculta: true, ayuda: "Qué hay que hacer hoy y qué está trabado" },
+  { href: "/taller/centro", label: "Pantalla de un centro", roles: [...STAFF, "operario"], grupo: "produccion", oculta: true, ayuda: "Para la tablet fija en una máquina" },
 
-  { href: "/pedir", label: "Pedir esta semana", roles: [...STAFF, ...COMPRAS], grupo: "compras", ayuda: "Qué hay que pedir y a quién" },
   { href: "/compras", label: "Compras", roles: COMPRAS, grupo: "compras", ayuda: "Cotizaciones, gastos y pagos" },
+  { href: "/tercerizados", label: "Tercerizados", roles: STAFF, grupo: "compras", ayuda: "Para mandar, afuera, vueltas y remitos" },
   { href: "/proveedores", label: "Proveedores", roles: [...STAFF, ...COMPRAS], grupo: "compras" },
+  { href: "/pedir", label: "Pedir esta semana", roles: [...STAFF, ...COMPRAS], grupo: "compras", oculta: true, ayuda: "Qué hay que pedir y a quién" },
 
-  { href: "/stock", label: "Stock", roles: STAFF, grupo: "stock", ayuda: "Materia prima, insumos, en proceso y terminados" },
+  { href: "/stock/finalizado", url: "/stock/finalizado?tipo=fabricada", label: "Piezas terminadas", roles: STAFF, grupo: "stock", ayuda: "Piezas terminadas, libres o reservadas para una orden" },
+  { href: "/stock", label: "Stock (todas las pestañas)", roles: STAFF, grupo: "stock", oculta: true, ayuda: "Materia prima, insumos, en proceso y terminados" },
 
   { href: "/maestros", label: "Piezas y hojas de ruta", roles: STAFF, grupo: "ingenieria", ayuda: "Máquinas, conjuntos, piezas, rutas y tiempos" },
-  { href: "/liberacion", label: "Entrada al plan", roles: STAFF, grupo: "ingenieria", ayuda: "Qué piezas entran al plan" },
+  { href: "/liberacion", label: "Entrada al plan", roles: STAFF, grupo: "ingenieria", oculta: true, ayuda: "Piezas que esperan plano o revisión de ingeniería" },
 
-  { href: "/admin/configuracion", label: "Datos por completar", roles: STAFF, grupo: "admin", ayuda: "Datos que faltan cargar para que el plan sea confiable" },
   { href: "/operaciones", label: "Operaciones y centros", roles: STAFF, grupo: "admin", ayuda: "Tiempos por proceso y capacidad" },
   { href: "/admin/calendario", label: "Calendario", roles: STAFF, grupo: "admin", ayuda: "Feriados, cierres y ausencias" },
-  { href: "/admin/montaje", label: "Secuencias de montaje", roles: STAFF, grupo: "admin" },
-  { href: "/admin/completitud", label: "Completitud de datos", roles: STAFF, grupo: "admin" },
   { href: "/usuarios", label: "Usuarios", roles: STAFF, grupo: "admin" },
-  { href: "/admin/demo", label: "Datos de demo", roles: STAFF, grupo: "admin" },
+  { href: "/admin/secciones", label: "Mostrar u ocultar secciones", roles: STAFF, grupo: "admin", ayuda: "Qué secciones se ven en el menú, y las opciones del sistema" },
+  { href: "/admin/archivados", label: "Datos archivados", roles: STAFF, grupo: "admin", ayuda: "Máquinas y órdenes archivadas: no se ven ni se calculan, pero no se borran" },
+  { href: "/admin/configuracion", label: "Datos por completar", roles: STAFF, grupo: "admin", oculta: true, ayuda: "Datos que faltan cargar para que el plan sea confiable" },
+  { href: "/admin/montaje", label: "Secuencias de montaje", roles: STAFF, grupo: "admin", oculta: true },
+  { href: "/admin/completitud", label: "Completitud de datos", roles: STAFF, grupo: "admin", oculta: true },
+  { href: "/admin/demo", label: "Datos de demo", roles: STAFF, grupo: "admin", oculta: true },
 
-  { href: "/taller/centro", label: "Pantalla de un centro", roles: [...STAFF, "operario"], grupo: "produccion", ayuda: "Para la tablet fija en una máquina" },
   { href: "/taller", label: "Mi próxima tarea", roles: ["operario"] },
 ];
 
 export type SeccionNav = { grupo: GrupoNav | null; items: ItemNav[]; abierta: boolean };
 
+/** Si una sección del menú se ve: lo elegido en ADMIN → Mostrar u ocultar secciones, o el valor por defecto. */
+export function seccionVisible(href: string, visibilidad: Record<string, boolean> = {}): boolean {
+  const item = NAV_ITEMS.find((i) => i.href === href);
+  return visibilidad[href] ?? !item?.oculta;
+}
+
+/** Secciones que se pueden mostrar u ocultar desde ADMIN (todas las que tienen ítem propio en el menú). */
+export function seccionesConfigurables() {
+  return NAV_ITEMS.filter((i) => i.enMenu !== false && !(i.roles.length === 1 && i.roles[0] === "operario")).map((i) => ({
+    href: i.href,
+    label: i.label,
+    grupo: i.grupo ?? null,
+    ayuda: i.ayuda,
+    ocultaPorDefecto: !!i.oculta,
+  }));
+}
+
 /** Menú del rol, agrupado por área en el orden de NAV_ITEMS. */
-export function getMenu(rol: Usuario["rol"], contadores: Record<string, number> = {}): SeccionNav[] {
+export function getMenu(rol: Usuario["rol"], contadores: Record<string, number> = {}, visibilidad: Record<string, boolean> = {}): SeccionNav[] {
   const secciones: SeccionNav[] = [];
   for (const item of NAV_ITEMS) {
-    if (!item.roles.includes(rol) || item.enMenu === false) continue;
+    if (!item.roles.includes(rol) || item.enMenu === false || !seccionVisible(item.href, visibilidad)) continue;
     const grupo = item.grupo ?? null;
     let seccion = secciones.find((s) => s.grupo === grupo);
     if (!seccion) secciones.push((seccion = { grupo, items: [], abierta: !grupo || AREAS_DEL_ROL[rol].includes(grupo) }));
-    seccion.items.push({ href: item.href, label: item.label, grupo: item.grupo, ayuda: item.ayuda, contador: contadores[item.href] || undefined });
+    seccion.items.push({ href: item.href, url: item.url, label: item.label, grupo: item.grupo, ayuda: item.ayuda, contador: contadores[item.href] || undefined });
   }
   return secciones;
 }

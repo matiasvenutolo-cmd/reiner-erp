@@ -11,6 +11,7 @@
  * de cualquier operación posterior en la misma hoja de ruta la tiene "a
  * futuro" (todavía depende de que termine lo que viene antes).
  */
+import { ordenNoArchivada } from "./archivo";
 import { asc, eq, and, inArray, isNotNull, isNull, like, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
@@ -189,6 +190,7 @@ async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing
     .innerJoin(conjunto, eq(conjunto.id, pieza.conjuntoId))
     .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
     .innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId))
+    .where(ordenNoArchivada)
     .orderBy(asc(otPieza.prioridad), asc(otPieza.createdAt));
 
   if (filas.length === 0) return [];
@@ -371,7 +373,7 @@ export async function getPiezasCompraPendientes(): Promise<ItemCompraPendiente[]
     .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
     .innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId))
     .leftJoin(stockPieza, eq(stockPieza.piezaId, pieza.id))
-    .where(eq(pieza.tipo, "comprada"))
+    .where(and(eq(pieza.tipo, "comprada"), ordenNoArchivada))
     .orderBy(asc(otMaquina.codigo));
 
   const piezasComprada: ItemCompraPendiente[] = filasCompradas

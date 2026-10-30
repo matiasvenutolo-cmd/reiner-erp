@@ -7,6 +7,7 @@
  * pieza cuando esa propuesta es mayor a cero — igual que la macro real,
  * que exige `Cant a Fab > 0`. La cantidad queda siempre editable.
  */
+import { ordenNoArchivada } from "./archivo";
 import { eq, inArray, and, desc, asc, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { avancePasos, getPasosConLote } from "./produccion";
@@ -463,6 +464,7 @@ export async function listarOtMaquinas() {
     .select({ otMaquina, clienteNombre: cliente.razonSocial })
     .from(otMaquina)
     .leftJoin(cliente, eq(cliente.id, otMaquina.clienteId))
+    .where(ordenNoArchivada)
     .orderBy(desc(otMaquina.createdAt));
   if (maquinas.length === 0) return [];
 
@@ -685,6 +687,7 @@ export async function listarOtPiezas(): Promise<OtPiezaListado[]> {
     .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
     .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
     .innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId))
+    .where(ordenNoArchivada)
     .orderBy(asc(otMaquina.codigo), asc(otPieza.codigo));
   const [estados, conjuntos] = await Promise.all([
     getEstadosBatch(filas.map((f) => f.otPieza)),

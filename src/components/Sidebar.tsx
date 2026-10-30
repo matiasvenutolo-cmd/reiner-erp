@@ -10,7 +10,7 @@ import { Icono, ICONO_RUTA } from "@/components/ui/Icono";
 function ItemLink({ item, activo, onClick }: { item: ItemNav; activo: boolean; onClick: () => void }) {
   return (
     <Link
-      href={item.href}
+      href={item.url ?? item.href}
       onClick={onClick}
       title={item.ayuda}
       aria-current={activo ? "page" : undefined}

@@ -184,6 +184,8 @@ export const configuracion = pgTable("configuracion", {
   montajeFinalDias: integer("montaje_final_dias").notNull().default(5),
   margenMontajeDias: integer("margen_montaje_dias").notNull().default(3),
   montajeOrigen: text("montaje_origen").notNull().default("estimado"),
+  // Reorganización 30/10 §6.1 — archivada: no aparece en ninguna pantalla ni en los cálculos, pero no se borra.
+  archivada: boolean("archivada").notNull().default(false),
 });
 
 export const conjunto = pgTable("conjunto", {
@@ -480,7 +482,9 @@ export const otMaquina = pgTable("ot_maquina", {
   fechaEntrega: date("fecha_entrega"),
   fechaInicioProyecto: date("fecha_inicio_proyecto"),
   prioridad: text("prioridad").notNull().default("normal"), // normal | alta
-  estadoProyecto: text("estado_proyecto").notNull().default("borrador"), // borrador | activo | en_montaje | terminado | entregado | pausado
+  estadoProyecto: text("estado_proyecto").notNull().default("borrador"), // borrador | activo | en_montaje | terminado | entregado | pausado | archivado
+  /** Reorganización 30/10 §6.1 — el estado que tenía antes de archivarla, para desarchivarla igual que estaba. */
+  estadoAntesDeArchivar: text("estado_antes_de_archivar"),
   destino: text("destino").notNull().default("maquina"), // maquina | repuesto | stock
   motivoStock: text("motivo_stock"),
   esDemo: boolean("es_demo").notNull().default(false),

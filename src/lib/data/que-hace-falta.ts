@@ -25,6 +25,7 @@ import {
 } from "@/lib/db/schema";
 import type { OrdenBorrador } from "@/lib/db/schema";
 import { normalizarBusqueda } from "@/lib/formato";
+import { reservaVigente } from "./stock";
 import type { Tono } from "@/components/ui/Etiqueta";
 
 const DEFAULT = { setupMin: 30, minPorUnidad: 15, plazoCompra: 10, plazoComercial: 20 };
@@ -105,7 +106,7 @@ export async function stockLibreDe(piezaIds: string[]): Promise<Map<string, numb
     db
       .select({ id: reservaStock.piezaId, c: sql<number>`sum(${reservaStock.cantidad})`.mapWith(Number) })
       .from(reservaStock)
-      .where(and(inArray(reservaStock.piezaId, piezaIds), gt(reservaStock.cantidad, 0)))
+      .where(and(inArray(reservaStock.piezaId, piezaIds), gt(reservaStock.cantidad, 0), reservaVigente))
       .groupBy(reservaStock.piezaId),
   ]);
   const r = new Map(res.map((x) => [x.id, x.c]));

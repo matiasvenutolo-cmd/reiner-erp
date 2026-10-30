@@ -53,7 +53,7 @@ function Celda({ s }: { s: PasoGrilla }) {
 export default async function GrillaTiemposPage({ searchParams }: { searchParams: Promise<{ config?: string; conjunto?: string; filtro?: string; ok?: string; error?: string }> }) {
   const sp = await searchParams;
   const filtro = sp.filtro ?? "todas";
-  const configs = await db.select().from(configuracion).orderBy(configuracion.codigo);
+  const configs = await db.select().from(configuracion).where(eq(configuracion.archivada, false)).orderBy(configuracion.codigo);
   const config = configs.find((c) => c.id === sp.config) ?? configs[0];
   const conjuntos = await db
     .selectDistinct({ id: conjunto.id, codigo: conjunto.codigo, nombre: conjunto.nombre })

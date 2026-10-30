@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getPlan } from "@/lib/planning/datos";
 import { proximosHabiles, habilesEntre } from "@/lib/planning/calendario";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { PestanasIndicadores } from "@/components/ui/PestanasSecciones";
 import { Vacio } from "@/components/ui/Aviso";
 import { fechaCorta, Estimado, CausaRaiz, margenEntrega, MargenEntrega } from "@/components/v2/Plan";
 import { numero } from "@/lib/formato";
@@ -58,7 +59,9 @@ export default async function LlegamosPage() {
       <PageHeader
         titulo="¿Llegamos?"
         descripcion="Cada máquina y orden activa con su fin estimado contra la entrega comprometida. Se recalcula sola con cada avance, atraso, compra o vuelta de un tercerizado."
-      />
+      >
+        <PestanasIndicadores actual="/llegamos" />
+      </PageHeader>
 
       {proyectos.length === 0 ? (
         <Vacio neutro accion={<Link href="/proyectos" className="btn-texto btn-sm">Ver órdenes →</Link>}>

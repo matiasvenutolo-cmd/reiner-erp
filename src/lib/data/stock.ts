@@ -53,6 +53,9 @@ async function piezaIdsDeConfiguracion(configuracionId: string): Promise<Set<str
   return new Set(filas.map((f) => f.piezaId));
 }
 
+/** Reserva de una orden que no está archivada (reorganización 30/10 §6.1): lo archivado no cuenta en los cálculos. */
+export const reservaVigente = sql`${reservaStock.otMaquinaId} not in (select id from ot_maquina where estado_proyecto = 'archivado')`;
+
 /** Total físico en almacén — incluye lo comprometido para otras máquinas. */
 export async function getStockDisponible(piezaId: string): Promise<number> {
   const [row] = await db
@@ -66,7 +69,7 @@ export async function getComprometido(piezaId: string): Promise<number> {
   const [row] = await db
     .select({ total: sql<number>`coalesce(sum(${reservaStock.cantidad}), 0)`.mapWith(Number) })
     .from(reservaStock)
-    .where(and(eq(reservaStock.piezaId, piezaId), gt(reservaStock.cantidad, 0)));
+    .where(and(eq(reservaStock.piezaId, piezaId), gt(reservaStock.cantidad, 0), reservaVigente));
   return row?.total ?? 0;
 }
 
@@ -74,7 +77,7 @@ export async function getComprometidoBatch(): Promise<Map<string, number>> {
   const rows = await db
     .select({ piezaId: reservaStock.piezaId, total: sql<number>`sum(${reservaStock.cantidad})`.mapWith(Number) })
     .from(reservaStock)
-    .where(gt(reservaStock.cantidad, 0))
+    .where(and(gt(reservaStock.cantidad, 0), reservaVigente))
     .groupBy(reservaStock.piezaId);
   return new Map(rows.map((r) => [r.piezaId, r.total]));
 }
@@ -104,7 +107,7 @@ export async function reservarStockLibre(input: {
     db
       .select({ piezaId: reservaStock.piezaId, total: sql<number>`sum(${reservaStock.cantidad})`.mapWith(Number) })
       .from(reservaStock)
-      .where(and(inArray(reservaStock.piezaId, piezaIds), gt(reservaStock.cantidad, 0)))
+      .where(and(inArray(reservaStock.piezaId, piezaIds), gt(reservaStock.cantidad, 0), reservaVigente))
       .groupBy(reservaStock.piezaId),
   ]);
   const disponible = new Map(stockRows.map((r) => [r.piezaId, r.cantidad]));
@@ -135,7 +138,7 @@ export async function getReservasDePieza(piezaId: string): Promise<ReservaConOt[
     })
     .from(reservaStock)
     .innerJoin(otMaquina, eq(otMaquina.id, reservaStock.otMaquinaId))
-    .where(and(eq(reservaStock.piezaId, piezaId), gt(reservaStock.cantidad, 0)))
+    .where(and(eq(reservaStock.piezaId, piezaId), gt(reservaStock.cantidad, 0), reservaVigente))
     .orderBy(asc(reservaStock.createdAt));
 }
 
