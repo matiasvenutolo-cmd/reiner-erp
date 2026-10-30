@@ -14,7 +14,9 @@ declare global {
   var __reinerSql: ReturnType<typeof postgres> | undefined;
 }
 
-const connectionString = process.env.DATABASE_URL;
+// REINER_DATABASE_URL elige la base sin pisar las variables que maneja la integración de Neon en Vercel:
+// así reiner-erp.vercel.app usa la misma base de la v2 (reiner_v2). Sin ella, DATABASE_URL como siempre.
+const connectionString = process.env.REINER_DATABASE_URL || process.env.DATABASE_URL;
 if (!connectionString) {
   throw new Error(
     "Falta DATABASE_URL. Correr: npx vercel env pull .env.local --environment=preview",
