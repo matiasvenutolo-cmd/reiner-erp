@@ -9,7 +9,7 @@ import type { Usuario } from "@/lib/db/schema";
 export const HOME_POR_ROL: Record<Usuario["rol"], string> = {
   // Reorganización 30/10 §1: el jefe de planta entra a Gestión, dirección a Indicadores, compras a Compras.
   operario: "/taller",
-  taller: "/planificacion",
+  taller: "/gestion",
   ingenieria: "/maestros",
   direccion: "/indicadores",
   compras: "/compras",
@@ -77,8 +77,9 @@ const NAV_ITEMS: NavEntry[] = [
   // `oculta` y se vuelve a mostrar desde ADMIN → Mostrar u ocultar secciones. La ruta sigue habilitada.
   { href: "/proyectos", label: "Órdenes de trabajo", roles: STAFF, grupo: "produccion", ayuda: "Crear órdenes, ver qué hace falta y seguir cada orden" },
   { href: "/ot", label: "Órdenes de trabajo", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/proyectos" },
-  // Hasta que esté la pantalla Gestión (etapa D), la asignación sigue en el Plan de la semana.
-  { href: "/planificacion", label: "Gestión", roles: STAFF, grupo: "produccion", ayuda: "Asignar tareas a operarios y ordenar prioridades" },
+  { href: "/gestion", label: "Gestión", roles: STAFF, grupo: "produccion", ayuda: "Asignar tareas a operarios y ordenar prioridades" },
+  // La asignación pasó a Gestión; la grilla por días queda oculta (la carga se mira en Indicadores).
+  { href: "/planificacion", label: "Plan de la semana", roles: STAFF, grupo: "produccion", oculta: true, ayuda: "Qué se hace en cada centro esta semana" },
   { href: "/centros-trabajo", label: "Colas por centro", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/planificacion" },
   { href: "/indicadores", label: "Indicadores", roles: STAFF, grupo: "produccion", ayuda: "Carga, si llegamos, tiempos, paradas y rechazos. Sólo consulta" },
   { href: "/llegamos", label: "¿Llegamos?", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/indicadores" },

@@ -14,6 +14,7 @@
  * operación pausada está parada (la parada registra ese lapso) mientras el
  * operario trabaja en otra.
  */
+import { getColaDe } from "./gestion";
 import { eq, and, isNull, isNotNull, sql, desc, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { registroOperacion, parada, tipoParada, otPieza, tareaRevision, usuario, pieza } from "@/lib/db/schema";
@@ -62,7 +63,9 @@ async function getRegistroAbiertoPropio(registroOperacionId: string, usuarioId: 
 
 /** Centros del operario y lo que Planificación le asignó para hoy — para `pasoHabilitadoParaOperario`. */
 export async function getHabilitacionOperario(usuarioId: string) {
-  const [centros, asignadasHoy] = await Promise.all([getCentrosDeUsuario(usuarioId), getAsignacionesDeHoy(usuarioId)]);
+  const [centros, asignadas, cola] = await Promise.all([getCentrosDeUsuario(usuarioId), getAsignacionesDeHoy(usuarioId), getColaDe(usuarioId)]);
+  // Lo que el jefe le asignó en Gestión (reorganización 30/10 §3) también lo habilita, aunque sea de otro centro.
+  const asignadasHoy: { otPiezaId: string; operacionId: string | null }[] = [...asignadas, ...cola.map((c) => ({ otPiezaId: c.otPiezaId, operacionId: c.operacionId }))];
   return { centros, centroIds: new Set(centros.map((c) => c.id)), asignadasHoy };
 }
 

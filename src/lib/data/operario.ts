@@ -2,6 +2,7 @@
  * v2 — Vista del operario (mejoras de usabilidad §3): su cola del día y todo lo
  * que necesita saber de cada tarea para no tener que preguntar.
  */
+import { getColaDe } from "./gestion";
 import { and, asc, desc, eq, gte, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
@@ -39,7 +40,7 @@ export async function getColaOperario(usuarioId: string): Promise<ColaOperario> 
   const lunes = lunesDe(hoy);
   // "Hecho hoy" cuenta desde las 0 h del día real (un sábado de prueba también suma).
   const desdeHoy = new Date(`${hoyISO()}T00:00:00-03:00`);
-  const [plan, [semana], asignadas, adelantos, cerradosHoy] = await Promise.all([
+  const [plan, [semana], asignadas, adelantos, cerradosHoy, cola] = await Promise.all([
     getPlan(),
     db.select().from(semanaConfirmada).where(eq(semanaConfirmada.lunes, lunes)),
     db
@@ -55,11 +56,19 @@ export async function getColaOperario(usuarioId: string): Promise<ColaOperario> 
       .select({ otPiezaId: registroOperacion.otPiezaId, operacionId: registroOperacion.operacionId })
       .from(registroOperacion)
       .where(and(eq(registroOperacion.usuarioId, usuarioId), eq(registroOperacion.tipo, "ejecucion"), isNotNull(registroOperacion.fin), gte(registroOperacion.fin, desdeHoy))),
+    getColaDe(usuarioId),
   ]);
   const porClave = new Map(plan.resultado.tareas.map((t) => [t.clave, t]));
-  const confirmada = !!semana || asignadas.length > 0;
+  // Gestión (reorganización 30/10 §3): si el jefe le armó la cola, la tablet muestra exactamente esa cola, en ese
+  // orden. Las que esperan el paso anterior aparecen recién cuando se habilitan.
+  const conCola = cola.length > 0;
+  const confirmada = conCola || !!semana || asignadas.length > 0;
   let tareas: Tarea[];
-  if (confirmada) {
+  if (conCola) {
+    tareas = cola
+      .map((c) => porClave.get(`${c.otPiezaId}::${c.operacionId}`))
+      .filter((t): t is Tarea => !!t && ["lista", "en_curso", "pausada"].includes(t.estado));
+  } else if (confirmada) {
     tareas = [...new Set(asignadas.map((a) => `${a.otPiezaId}::${a.operacionId}`))].map((c) => porClave.get(c)).filter((t): t is Tarea => !!t);
   } else {
     tareas = plan.resultado.tareas.filter((t) => t.tipo === "interno" && t.operarioId === usuarioId && t.fechaPlan && t.fechaPlan <= hoy && !["terminada", "futura"].includes(t.estado));
@@ -71,9 +80,11 @@ export async function getColaOperario(usuarioId: string): Promise<ColaOperario> 
     if (!ordenAdelanto.has(c)) ordenAdelanto.set(c, i);
   });
   // Primero lo que el operario adelantó (el último adelanto arriba), después lo que se puede hacer ya, en el orden del plan.
+  const lugar = new Map(tareas.map((t, i) => [t.clave, i]));
   tareas.sort(
     (a, b) =>
       (ordenAdelanto.get(a.clave) ?? 1e9) - (ordenAdelanto.get(b.clave) ?? 1e9) ||
+      (conCola ? lugar.get(a.clave)! - lugar.get(b.clave)! : 0) ||
       Number(b.estado === "lista" || b.estado === "en_curso" || b.estado === "pausada") - Number(a.estado === "lista" || a.estado === "en_curso" || a.estado === "pausada") ||
       (a.fechaPlan ?? "").localeCompare(b.fechaPlan ?? "") ||
       a.holgura - b.holgura,

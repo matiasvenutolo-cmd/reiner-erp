@@ -12,7 +12,8 @@ export async function guardarSeccionesAction(fd: FormData) {
   await getUsuarioDePlanta();
   const visibles = new Set(fd.getAll("visible").map(String));
   const v: Record<string, boolean> = {};
-  for (const s of seccionesConfigurables()) v[s.href] = visibles.has(s.href);
+  // Se guarda sólo lo que difiere del valor por defecto, así un cambio de menú futuro no queda pisado.
+  for (const s of seccionesConfigurables()) if (visibles.has(s.href) === s.ocultaPorDefecto) v[s.href] = visibles.has(s.href);
   await guardarVisibilidadSecciones(v);
   revalidatePath("/", "layout");
   redirect(`/admin/secciones?ok=${encodeURIComponent("Menú guardado.")}`);

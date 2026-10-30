@@ -24,6 +24,7 @@ import {
   primaryKey,
   pgEnum,
   jsonb,
+  unique,
 } from "drizzle-orm/pg-core";
 
 const id = () =>
@@ -1168,3 +1169,29 @@ export const importacion = pgTable("importacion", {
   aplicadaAt: timestamp("aplicada_at"),
   resultado: jsonb("resultado").$type<Record<string, number>>(),
 });
+
+/**
+ * Gestión (reorganización 30/10 §3): quién hace cada tarea y en qué orden. Una fila por tarea (un paso de una
+ * pieza de una orden) que el jefe de planta tocó: operario asignado, centro elegido y lugar en la cola del
+ * operario. Sin fechas: el sistema no reparte tareas en el calendario. La tablet del operario muestra su cola
+ * en este orden.
+ */
+export const colaTarea = pgTable(
+  "cola_tarea",
+  {
+    id: id(),
+    otPiezaId: text("ot_pieza_id")
+      .notNull()
+      .references(() => otPieza.id),
+    operacionId: text("operacion_id").notNull(),
+    operarioId: text("operario_id").references(() => usuario.id),
+    /** Centro elegido en Gestión, si no es el de la hoja de ruta. */
+    centroId: text("centro_id").references(() => centroTrabajo.id),
+    /** Lugar en la cola del operario (1 = la primera). */
+    posicion: integer("posicion"),
+    asignadoPorId: text("asignado_por_id"),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.otPiezaId, t.operacionId)],
+);
+export type ColaTarea = typeof colaTarea.$inferSelect;
