@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "@/lib/revalidar";
 import { getUsuarioDePlanta } from "@/lib/session";
-import { ajustarStock, retirarStock } from "@/lib/data/stock";
+import { ajustarStock, retirarStock, cargarPiezaTerminada } from "@/lib/data/stock";
 import { marcarPedido, cancelarPedido, registrarLlegadaPedido } from "@/lib/data/compras";
 
 /**
@@ -118,4 +118,21 @@ export async function registrarLlegadaAction(formData: FormData) {
   }
   revalidarStock();
   revalidatePath("/avance");
+}
+
+/** Cargar a mano una pieza terminada, con motivo (reorganización 30/10 §5.3). Mismo permiso que corregir el conteo. */
+export async function cargarPiezaTerminadaAction(formData: FormData) {
+  const usuario = await exigirTaller();
+  const piezaId = String(formData.get("piezaId") ?? "").trim();
+  const cantidad = Number(formData.get("cantidad"));
+  const motivo = String(formData.get("motivo") ?? "").trim();
+  const volver = "/stock/finalizado?tipo=fabricada";
+  try {
+    if (!piezaId) throw new Error("Elegí la pieza.");
+    await cargarPiezaTerminada({ piezaId, cantidad, motivo, usuarioId: usuario.id });
+  } catch (e) {
+    redirect(`${volver}&error=${encodeURIComponent(e instanceof Error ? e.message : "No se pudo cargar.")}`);
+  }
+  revalidarStock();
+  redirect(`${volver}&ok=${encodeURIComponent("Pieza cargada en Piezas terminadas.")}`);
 }

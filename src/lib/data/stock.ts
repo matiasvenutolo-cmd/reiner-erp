@@ -556,3 +556,50 @@ export async function getPiezasStockBajo(): Promise<PiezaStockBajo[]> {
     .leftJoin(stockPieza, eq(stockPieza.piezaId, pieza.id))
     .where(and(gt(pieza.stockMinimo, 0), lt(sql`coalesce(${stockPieza.cantidadDisponible}, 0)`, pieza.stockMinimo)));
 }
+
+/**
+ * Pieza terminada al stock (reorganización 30/10 §2.6): cuando se cierra el último paso de una pieza (en la
+ * tablet o al volver del tercerizado), la cantidad OK entra sola a Piezas terminadas, reservada para su orden;
+ * si la orden es para stock, queda libre.
+ */
+export async function ingresarPiezaTerminada(input: { otPiezaId: string; cantidad: number; usuarioId: string }): Promise<void> {
+  if (!(input.cantidad > 0)) return;
+  const [row] = await db
+    .select({ piezaId: otPieza.piezaId, otPiezaCodigo: otPieza.codigo, otMaquinaId: otMaquina.id, codigo: otMaquina.codigo, destino: otMaquina.destino })
+    .from(otPieza)
+    .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
+    .innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId))
+    .where(eq(otPieza.id, input.otPiezaId));
+  if (!row) return;
+  const disponible = await getStockDisponible(row.piezaId);
+  const paraStock = row.destino === "stock";
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(stockPieza)
+      .values({ piezaId: row.piezaId, cantidadDisponible: disponible + input.cantidad })
+      .onConflictDoUpdate({ target: stockPieza.piezaId, set: { cantidadDisponible: disponible + input.cantidad, updatedAt: new Date() } });
+    await tx.insert(movimientoStock).values({
+      piezaId: row.piezaId,
+      tipo: "ingreso",
+      cantidad: input.cantidad,
+      otPiezaId: input.otPiezaId,
+      usuarioId: input.usuarioId,
+      observacion: `Pieza terminada — ${row.codigo}${paraStock ? " (para stock: libre)" : " (reservada para la orden)"}`,
+    });
+    if (!paraStock) await tx.insert(reservaStock).values({ otMaquinaId: row.otMaquinaId, piezaId: row.piezaId, cantidad: input.cantidad });
+  });
+}
+
+/** Cargar a mano una pieza terminada (por ejemplo, una que ya estaba hecha), con motivo. Queda libre (§5.3). */
+export async function cargarPiezaTerminada(input: { piezaId: string; cantidad: number; motivo: string; usuarioId: string }): Promise<void> {
+  if (!Number.isInteger(input.cantidad) || input.cantidad <= 0) throw new Error("La cantidad tiene que ser un número entero mayor a cero.");
+  if (!input.motivo.trim()) throw new Error("Cargar una pieza a mano pide un motivo.");
+  const disponible = await getStockDisponible(input.piezaId);
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(stockPieza)
+      .values({ piezaId: input.piezaId, cantidadDisponible: disponible + input.cantidad })
+      .onConflictDoUpdate({ target: stockPieza.piezaId, set: { cantidadDisponible: disponible + input.cantidad, updatedAt: new Date() } });
+    await tx.insert(movimientoStock).values({ piezaId: input.piezaId, tipo: "ingreso", cantidad: input.cantidad, usuarioId: input.usuarioId, observacion: `Carga a mano — ${input.motivo.trim()}` });
+  });
+}

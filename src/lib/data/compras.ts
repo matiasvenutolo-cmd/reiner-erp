@@ -27,7 +27,7 @@ import {
   remitoItem,
   solicitudCompra,
 } from "@/lib/db/schema";
-import { getStockDisponible } from "./stock";
+import { getStockDisponible, ingresarPiezaTerminada } from "./stock";
 import { esUltimaOperacion, getCantidadesOperacion } from "./ejecucion";
 import { getEstadoYOperacionActual } from "./ot";
 import { entrarAlPlanSolas } from "./entrada-plan";
@@ -299,4 +299,6 @@ export async function registrarVueltaTercerizado(input: {
       await tx.update(otPieza).set({ piezasOk: input.cantidad, fechaFin: ahora, updatedAt: ahora }).where(eq(otPieza.id, op.id));
     }
   });
+  // Reorganización 30/10 §2.6: si era el último paso, lo que volvió OK entra a Piezas terminadas.
+  if (cierraLaPieza && input.controlResultado === "ok") await ingresarPiezaTerminada({ otPiezaId: op.id, cantidad: input.cantidad, usuarioId: input.usuarioId });
 }

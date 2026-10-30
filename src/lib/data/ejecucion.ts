@@ -14,6 +14,7 @@
  * operación pausada está parada (la parada registra ese lapso) mientras el
  * operario trabaja en otra.
  */
+import { ingresarPiezaTerminada } from "./stock";
 import { getColaDe } from "./gestion";
 import { eq, and, isNull, isNotNull, sql, desc, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
@@ -289,6 +290,9 @@ export async function finalizarOperacion(input: FinalizarOperacionInput): Promis
         updatedAt: fin,
       })
       .where(eq(otPieza.id, registro.otPiezaId));
+
+    // Reorganización 30/10 §2.6: lo OK del último paso entra solo a Piezas terminadas.
+    await ingresarPiezaTerminada({ otPiezaId: registro.otPiezaId, cantidad: input.piezasOk, usuarioId: input.usuarioId });
 
     // Release 2, paquete 7 — pedido de Horacio: "que cuando se fabriquen
     // piezas por retrabajar o piezas defectuosas se genere en otro panel
