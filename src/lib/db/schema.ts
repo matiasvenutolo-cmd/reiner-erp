@@ -391,6 +391,8 @@ export const operacion = pgTable("operacion", {
   esperaHoras: numeric("espera_horas", { precision: 6, scale: 2, mode: "number" }).notNull().default(0),
   plazoTercerizadoDias: integer("plazo_tercerizado_dias"),
   tiempoOrigen: text("tiempo_origen"), // null = hereda | estimado | definido | medido
+  /** Reorganización 30/10 §6.2 — proveedor de este paso si es tercerizado (del Excel de hojas de ruta). */
+  proveedorId: text("proveedor_id"),
 });
 
 // ── Stock (con posición por etapa — hallazgo 3.1) ───────────────────────
@@ -1151,3 +1153,18 @@ export type MontajeConjunto = typeof montajeConjunto.$inferSelect;
 export type PlanAjuste = typeof planAjuste.$inferSelect;
 export type ProveedorServicio = typeof proveedorServicio.$inferSelect;
 export type ArticuloStock = typeof articuloStock.$inferSelect;
+
+/**
+ * Importación desde Excel (reorganización 30/10 §6.2): lo leído del archivo queda guardado entre la vista
+ * previa y la confirmación. Al confirmar se vuelve a validar contra la base y se guarda el resultado.
+ */
+export const importacion = pgTable("importacion", {
+  id: id(),
+  archivo: text("archivo").notNull(),
+  /** Filas leídas de las hojas "Piezas" y "Hoja de ruta", con su número de fila del Excel. */
+  datos: jsonb("datos").$type<{ piezas: Record<string, unknown>[]; pasos: Record<string, unknown>[] }>().notNull(),
+  usuarioId: text("usuario_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  aplicadaAt: timestamp("aplicada_at"),
+  resultado: jsonb("resultado").$type<Record<string, number>>(),
+});

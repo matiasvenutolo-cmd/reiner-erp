@@ -95,6 +95,7 @@ const NAV_ITEMS: NavEntry[] = [
   { href: "/stock", label: "Stock (todas las pestañas)", roles: STAFF, grupo: "stock", oculta: true, ayuda: "Materia prima, insumos, en proceso y terminados" },
 
   { href: "/maestros", label: "Piezas y hojas de ruta", roles: STAFF, grupo: "ingenieria", ayuda: "Máquinas, conjuntos, piezas, rutas y tiempos" },
+  { href: "/maestros/importar", label: "Importar desde Excel", roles: STAFF, grupo: "ingenieria", ayuda: "Cargar o actualizar piezas y hojas de ruta desde una planilla" },
   { href: "/liberacion", label: "Entrada al plan", roles: STAFF, grupo: "ingenieria", oculta: true, ayuda: "Piezas que esperan plano o revisión de ingeniería" },
 
   { href: "/operaciones", label: "Operaciones y centros", roles: STAFF, grupo: "admin", ayuda: "Tiempos por proceso y capacidad" },
