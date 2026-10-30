@@ -42,6 +42,7 @@ import { getPiezasCompraPendientes, type ItemCompraPendiente } from "./produccio
 import { registrarLlegadaPedido } from "./compras";
 import { getEstadoYOperacionActual } from "./ot";
 import { getTipoCambioOficial, type MonedaExtranjera } from "@/lib/tipo-cambio";
+import { controlaMateriaPrima } from "./materia-prima";
 import { fechaISO, hoyISO, sumarDias, diasEntre } from "@/lib/fecha";
 
 export type Moneda = "ARS" | "USD" | "EUR";
@@ -272,7 +273,8 @@ export async function getNecesidadesProduccion(): Promise<NecesidadProduccion[]>
     getPiezasCompraPendientes(),
     db.select({ otPiezaId: solicitudCompra.otPiezaId }).from(solicitudCompra).where(and(isNotNull(solicitudCompra.otPiezaId), isNull(solicitudCompra.anuladaAt))),
     db.select({ otPiezaId: pedidoCompra.otPiezaId }).from(pedidoCompra).where(isNull(pedidoCompra.recibidoAt)),
-    getNecesidadesDeOrden(),
+    // Sin control de materia prima (§2.2) las necesidades de material no se gestionan.
+    Promise.all([getNecesidadesDeOrden(), controlaMateriaPrima()]).then(([ns, mp]) => ns.filter((n) => mp || !n.esMaterial)),
     db.select({ otPiezaId: pedidoCompra.otPiezaId }).from(pedidoCompra).where(isNotNull(pedidoCompra.recibidoAt)),
   ]);
   const tomadas = new Set([...conSolicitud.map((s) => s.otPiezaId), ...conPedido.map((p) => p.otPiezaId)]);
@@ -753,6 +755,7 @@ export async function getSolicitudesAbiertasPorOtPieza(): Promise<Map<string, nu
  * (simplificación §4.2): con qué texto mostrarlo. "No comprar" no cuenta: se decidió no pedirlo.
  */
 export async function getEsperaMaterialDeOrden(otMaquinaId: string): Promise<Map<string, string>> {
+  if (!(await controlaMateriaPrima())) return new Map(); // sin control de materia prima, nada espera material
   const [necesidades, recibidas, solicitudes] = await Promise.all([
     db
       .select({ otPiezaId: necesidadCompraOrden.otPiezaId })

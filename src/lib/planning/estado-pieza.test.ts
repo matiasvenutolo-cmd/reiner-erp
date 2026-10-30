@@ -53,3 +53,9 @@ test("'No comprar' en un artículo: no queda esperando la compra; se ve terminad
   const e = estadoDePieza([], null, null, true);
   assert.deepEqual([e.estado, e.motivo], ["terminada", "No se compra: se decidió al cargar la orden"]);
 });
+
+test("en un tercerizado: Afuera, con el proveedor y la vuelta prevista", () => {
+  const e = estadoDePieza([t(1, { estado: "terminada" }), t(2, { tipo: "tercerizado", estado: "en_curso", finPlan: "2026-11-20" })], null, null, false, "Cromados del Norte");
+  assert.equal(e.estado, "afuera");
+  assert.match(e.motivo ?? "", /Cromados del Norte · vuelve el/);
+});

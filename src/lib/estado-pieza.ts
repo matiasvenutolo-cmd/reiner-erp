@@ -20,14 +20,16 @@ import type { Tarea, Compra } from "@/lib/planning/motor";
 import type { Tono } from "@/components/ui/Etiqueta";
 import { fechaCorta } from "@/lib/formato";
 
-export type EstadoVisible = "falta_material" | "lista" | "en_curso" | "trabada" | "terminada";
+export type EstadoVisible = "falta_material" | "lista" | "en_curso" | "afuera" | "trabada" | "terminada";
 
-export const ESTADOS_VISIBLES: EstadoVisible[] = ["falta_material", "lista", "en_curso", "trabada", "terminada"];
+export const ESTADOS_VISIBLES: EstadoVisible[] = ["falta_material", "lista", "en_curso", "afuera", "trabada", "terminada"];
 
 export const ESTADO_VISIBLE: Record<EstadoVisible, { label: string; tono: Tono; icono: string }> = {
   falta_material: { label: "Falta material", tono: "naranja", icono: "alerta" },
   lista: { label: "Lista", tono: "azul", icono: "okCirculo" },
   en_curso: { label: "En curso", tono: "azulFuerte", icono: "empezar" },
+  // Reorganización 30/10 §2.5: la pieza está en un tercerizado (con proveedor y vuelta prevista).
+  afuera: { label: "Afuera", tono: "azul", icono: "tercerizados" },
   trabada: { label: "Trabada", tono: "rojo", icono: "bloqueo" },
   terminada: { label: "Terminada", tono: "verde", icono: "ok" },
 };
@@ -44,7 +46,7 @@ export type EstadoDePieza = {
  * `tareas`: los pasos de la pieza en el plan. `compra`: su compra pendiente en el plan, si la hay.
  * `esperaMaterial`: la orden se confirmó con esta pieza en "Falta material" y la compra todavía no llegó.
  */
-export function estadoDePieza(tareas: Tarea[], compra?: Compra | null, esperaMaterial?: string | null, noSeCompra?: boolean): EstadoDePieza {
+export function estadoDePieza(tareas: Tarea[], compra?: Compra | null, esperaMaterial?: string | null, noSeCompra?: boolean, proveedorAfuera?: string | null): EstadoDePieza {
   const pasos = [...tareas].sort((a, b) => a.posicion - b.posicion);
   const llegada = compra ? (compra.pedido ? `pedido${compra.llegadaPrevista ? `, llega el ${fechaCorta(compra.llegadaPrevista)}` : ""}` : "falta pedir") : null;
 
@@ -56,6 +58,8 @@ export function estadoDePieza(tareas: Tarea[], compra?: Compra | null, esperaMat
   if (pasos.every((t) => t.estado === "terminada")) return { estado: "terminada", motivo: null, actual: null };
 
   const empezado = pasos.find((t) => t.estado === "en_curso" || t.estado === "pausada");
+  if (empezado?.tipo === "tercerizado")
+    return { estado: "afuera", motivo: `${proveedorAfuera ? `En ${proveedorAfuera}` : "En el tercerizado"}${empezado.finPlan ? ` · vuelve el ${fechaCorta(empezado.finPlan)}` : ""}`, actual: empezado };
   if (empezado) return { estado: "en_curso", motivo: empezado.estado === "pausada" ? "Parada por ahora" : null, actual: empezado };
 
   const actual = pasos.find((t) => t.estado !== "terminada")!;

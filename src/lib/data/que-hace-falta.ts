@@ -3,6 +3,8 @@
  * y qué compro? Cruza la estructura contra el stock libre y los maestros y ubica
  * cada artículo en uno de cuatro grupos. No reserva ni pide nada: sólo calcula.
  *
+ * Sin "Controlar materia prima" (ADMIN, reorganización 30/10 §2.2) las piezas fabricadas van todas a "Lo
+ * fabrico" y no se mira la materia prima. Con el control activado:
  * Reglas (las del documento, más dos aclaraciones marcadas "criterio"):
  * - Stock parcial: si hay 4 libres y hacen falta 6, 4 van a "Ya lo tengo" y 2 al grupo que corresponda.
  * - Comerciales y compradas a medida: "Lo compro" (lo que no cubre el stock).
@@ -26,6 +28,7 @@ import {
 import type { OrdenBorrador } from "@/lib/db/schema";
 import { normalizarBusqueda } from "@/lib/formato";
 import { reservaVigente } from "./stock";
+import { controlaMateriaPrima } from "./materia-prima";
 import type { Tono } from "@/components/ui/Etiqueta";
 
 const DEFAULT = { setupMin: 30, minPorUnidad: 15, plazoCompra: 10, plazoComercial: 20 };
@@ -132,7 +135,7 @@ export async function calcularQueHaceFalta(
   const vacio: QueHaceFalta = { filas: [], materiales: [], resumen: { piezas: 0, enStock: 0, fabricarYa: 0, esperanMaterial: 0, comprar: 0 }, implica: { horasTaller: 0, comprasMateriaPrima: 0, articulosAComprar: 0, compraMasLarga: null }, stockActual: {} };
   if (!ids.length) return vacio;
 
-  const [piezas, conjuntos, ruta, libres, mp, proveedores] = await Promise.all([
+  const [piezas, conjuntos, ruta, libres, mp, proveedores, controlaMP] = await Promise.all([
     db.select().from(pieza).where(inArray(pieza.id, ids)),
     db.select({ id: conjunto.id, codigo: conjunto.codigo, nombre: conjunto.nombre }).from(conjunto),
     db
@@ -143,6 +146,7 @@ export async function calcularQueHaceFalta(
     cubierto ? Promise.resolve(null) : stockLibreDe(ids),
     db.select().from(articuloStock).where(eq(articuloStock.tipo, "materia_prima")),
     db.select({ id: proveedor.id, nombre: proveedor.razonSocial, plazo: proveedor.plazoDias }).from(proveedor),
+    controlaMateriaPrima(),
   ]);
   const infoConj = new Map(conjuntos.map((c) => [c.id, c]));
   const prov = new Map(proveedores.map((p) => [p.id, p]));
@@ -183,6 +187,20 @@ export async function calcularQueHaceFalta(
         plazoSupuesto = true;
       }
       material = { clave: `art:${p.id}`, nombre: p.nombre, cantidad: resto, unidad: "u.", especificado: true };
+    } else if (!controlaMP && pasos.length && pasos.every((x) => x.tipo === "compras")) {
+      // Su hoja de ruta es sólo "Compras": se compra hecha, aunque figure como fabricada.
+      grupo = "compro";
+      marcas.push("Se compra hecha (su ruta es sólo Compras)");
+      plazo = p.plazoCompraDias ?? prv?.plazo ?? pasoCompras?.plazo ?? null;
+      if (plazo == null) {
+        plazo = DEFAULT.plazoComercial;
+        plazoSupuesto = true;
+      }
+      material = { clave: `art:${p.id}`, nombre: p.nombre, cantidad: resto, unidad: "u.", especificado: true };
+    } else if (!controlaMP) {
+      // Sin control de materia prima (§2.2): toda pieza fabricada va a "Lo fabrico", sin mirar el material.
+      grupo = "fabrico";
+      if (!pasos.length) marcas.push("Sin ruta");
     } else {
       if (!pasos.length) marcas.push("Sin ruta");
       if (p.material && p.materialCantidad) {

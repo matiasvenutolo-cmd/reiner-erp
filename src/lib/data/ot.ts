@@ -8,6 +8,7 @@
  * que exige `Cant a Fab > 0`. La cantidad queda siempre editable.
  */
 import { ordenNoArchivada } from "./archivo";
+import { controlaMateriaPrima, pasosQueBloquean } from "./materia-prima";
 import { eq, inArray, and, desc, asc, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { avancePasos, getPasosConLote } from "./produccion";
@@ -51,14 +52,17 @@ export type EstadoYOperacion = {
  * docs/05-backlog-release-2.md §9). Único lugar que hace este cálculo: antes
  * vivía duplicado acá y en /taller/[otPiezaId]. */
 export async function getEstadoYOperacionActual(pieza: OtPieza): Promise<EstadoYOperacion> {
-  const [routing, registros, lotes] = await Promise.all([
+  const [routing, registros, lotes, mp] = await Promise.all([
     getRoutingPieza(pieza.piezaId),
     db
       .select()
       .from(registroOperacion)
       .where(and(eq(registroOperacion.otPiezaId, pieza.id), eq(registroOperacion.tipo, "ejecucion"))),
     getPasosConLote([pieza]),
+    controlaMateriaPrima(),
   ]);
+  // Sin control de materia prima (§2.2), el paso de Compras es informativo: no frena el siguiente.
+  const flujo = pasosQueBloquean(routing, (r) => r.proceso.tipo, mp);
   if (routing.length === 0) {
     return { estado: "pendiente", sinRouting: true, operacionActual: null, routing };
   }
@@ -66,18 +70,18 @@ export async function getEstadoYOperacionActual(pieza: OtPieza): Promise<EstadoY
   // v2 — con lotes, un paso se completa por cantidad y el siguiente puede arrancar con el lote terminado.
   const conLote = lotes.get(pieza.id) ?? new Set<string>();
   const { completados: operacionesCompletadas, disponibles } = avancePasos(
-    routing.map((r) => r.id),
+    flujo.map((r) => r.id),
     pieza.cantidadAFabricar,
     registros.filter((r) => r.fin),
     conLote,
   );
   const hayAbierto = registros.some((r) => !r.fin);
-  const operacionActual = routing.find((op) => !operacionesCompletadas.has(op.id)) ?? null;
+  const operacionActual = flujo.find((op) => !operacionesCompletadas.has(op.id)) ?? null;
 
   const estado: EstadoCalculado =
-    operacionesCompletadas.size >= routing.length ? "terminada" : operacionesCompletadas.size > 0 || hayAbierto ? "en_curso" : "pendiente";
+    operacionesCompletadas.size >= flujo.length ? "terminada" : operacionesCompletadas.size > 0 || hayAbierto ? "en_curso" : "pendiente";
 
-  return { estado, sinRouting: false, operacionActual, routing, operacionesDisponibles: routing.filter((r) => disponibles.includes(r.id)) };
+  return { estado, sinRouting: false, operacionActual, routing, operacionesDisponibles: flujo.filter((r) => disponibles.includes(r.id)) };
 }
 
 async function estadoDePieza(pieza: OtPieza): Promise<{ estado: EstadoCalculado; sinRouting: boolean }> {
@@ -107,7 +111,7 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
   const piezaIds = [...new Set(piezas.map((p) => p.piezaId))];
   const otPiezaIds = piezas.map((p) => p.id);
 
-  const [operaciones, registros, lotes] = await Promise.all([
+  const [operaciones, registros, lotes, mp] = await Promise.all([
     db
       .select({
         piezaId: operacion.piezaId,
@@ -115,6 +119,7 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
         secuencia: operacion.secuencia,
         procesoNombre: proceso.nombre,
         descripcion: operacion.descripcion,
+        tipo: proceso.tipo,
       })
       .from(operacion)
       .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
@@ -125,12 +130,13 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
       .from(registroOperacion)
       .where(and(inArray(registroOperacion.otPiezaId, otPiezaIds), eq(registroOperacion.tipo, "ejecucion"))),
     getPasosConLote(piezas),
+    controlaMateriaPrima(),
   ]);
 
-  const rutaPorPieza = new Map<string, { id: string; nombre: string }[]>();
+  const rutaPorPieza = new Map<string, { id: string; nombre: string; tipo: string }[]>();
   for (const o of operaciones) {
     const arr = rutaPorPieza.get(o.piezaId) ?? [];
-    arr.push({ id: o.id, nombre: o.descripcion?.trim() || o.procesoNombre });
+    arr.push({ id: o.id, nombre: o.descripcion?.trim() || o.procesoNombre, tipo: o.tipo });
     rutaPorPieza.set(o.piezaId, arr);
   }
 
@@ -157,9 +163,11 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
       ? avancePasos(ruta.map((r) => r.id), p.cantidadAFabricar, registros.filter((r) => r.otPiezaId === p.id && r.fin), conLote).completados
       : (completadasPorOtPieza.get(p.id) ?? new Set<string>());
     const pasos = ruta.map((r) => ({ id: r.id, nombre: r.nombre, completado: completadasSet.has(r.id) }));
-    const completadas = pasos.filter((x) => x.completado).length;
+    // Sin control de materia prima (§2.2) el paso de Compras no cuenta para terminar ni para empezar.
+    const flujo = pasosQueBloquean(ruta, (r) => r.tipo, mp);
+    const completadas = flujo.filter((x) => completadasSet.has(x.id)).length;
     const abierta = abiertaPorOtPieza.has(p.id);
-    const estado: EstadoCalculado = completadas >= ruta.length ? "terminada" : completadas > 0 || abierta ? "en_curso" : "pendiente";
+    const estado: EstadoCalculado = completadas >= flujo.length ? "terminada" : completadas > 0 || abierta ? "en_curso" : "pendiente";
     resultado.set(p.id, { estado, sinRouting: false, pasos });
   }
   return resultado;

@@ -55,7 +55,7 @@ export function Paso1({
   configuraciones: Opcion[];
   conjuntos: { valor: string; etiqueta: string }[];
   piezas: Opcion[];
-  piezasPorConfig: Record<string, { id: string; codigo: string; nombre: string; conjunto: string }[]>;
+  piezasPorConfig: Record<string, { id: string; codigo: string; nombre: string; conjunto: string; conjuntoId: string }[]>;
   clientes: { id: string; nombre: string }[];
   /** Configuraciones con conjuntos alternativos (mismo lugar en el montaje): sólo ahí se eligen variantes. */
   alternativos: Record<string, string[]>;
@@ -76,6 +76,11 @@ export function Paso1({
   const qc = normalizarBusqueda(textoConj);
   const conjElegido = conjuntos.find((c) => c.valor === conjunto);
   const sugeridosConj = qc.length >= 2 && (!conjElegido || conjElegido.etiqueta !== textoConj) ? indiceConj.filter((c) => qc.split(/\s+/).every((w) => c.clave.includes(w))).slice(0, 10) : [];
+  // Desplegables encadenados máquina → conjunto → pieza (reorganización 30/10 §2.1), además del buscador.
+  const [maqSel, setMaqSel] = useState(() => (inicial.conjunto ? inicial.conjunto.split("|")[0] : configuraciones.length === 1 ? configuraciones[0].id : ""));
+  const [conjSel, setConjSel] = useState(() => (inicial.conjunto ? inicial.conjunto.split("|")[1] : ""));
+  const conjuntosDeMaq = conjuntos.filter((c) => c.valor.startsWith(`${maqSel}|`));
+  const piezasDeConj = maqSel && conjSel ? (piezasPorConfig[maqSel] ?? []).filter((p) => p.conjuntoId === conjSel) : [];
   // Variantes (simplificación §1): sólo para configuraciones con piezas alternativas.
   const variantes = useMemo(
     () => (tipo === "maquina" && configuracionId && alternativos[configuracionId]?.length ? (piezasPorConfig[configuracionId] ?? []) : []),
@@ -106,6 +111,71 @@ export function Paso1({
         </div>
       </fieldset>
 
+      {tipo !== "maquina" && (
+        <div className={`grid gap-3 ${tipo === "pieza" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+          <Campo label="Máquina">
+            <select
+              value={maqSel}
+              onChange={(e) => {
+                setMaqSel(e.target.value);
+                setConjSel("");
+              }}
+              className="input"
+            >
+              <option value="">Elegí la máquina…</option>
+              {configuraciones.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          </Campo>
+          <Campo label="Conjunto">
+            <select
+              value={conjSel}
+              disabled={!maqSel}
+              onChange={(e) => {
+                setConjSel(e.target.value);
+                const elegido = conjuntosDeMaq.find((c) => c.valor === `${maqSel}|${e.target.value}`);
+                if (tipo === "conjunto" && elegido) {
+                  setConjunto(elegido.valor);
+                  setTextoConj(elegido.etiqueta);
+                }
+              }}
+              className="input"
+            >
+              <option value="">{maqSel ? "Elegí el conjunto…" : "Primero la máquina"}</option>
+              {conjuntosDeMaq.map((c) => (
+                <option key={c.valor} value={c.valor.split("|")[1]}>
+                  {c.etiqueta.split(" — ")[0]}
+                </option>
+              ))}
+            </select>
+          </Campo>
+          {tipo === "pieza" && (
+            <Campo label="Pieza">
+              <select
+                value={piezasDeConj.some((p) => p.id === piezaId) ? piezaId : ""}
+                disabled={!conjSel}
+                onChange={(e) => {
+                  const p = piezasDeConj.find((x) => x.id === e.target.value);
+                  setPiezaId(e.target.value);
+                  setTexto(p?.nombre ?? "");
+                }}
+                className="input"
+              >
+                <option value="">{conjSel ? "Elegí la pieza…" : "Primero el conjunto"}</option>
+                {piezasDeConj.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre} · {p.codigo}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+          )}
+        </div>
+      )}
+
       <div className="grid sm:grid-cols-[1fr_8rem] gap-3 items-end">
         {tipo === "maquina" && (
           <Campo label="Qué máquina">
@@ -120,7 +190,7 @@ export function Paso1({
           </Campo>
         )}
         {tipo === "conjunto" && (
-          <Campo label="Qué conjunto" ayuda={conjElegido ? `Elegido: ${conjElegido.etiqueta}` : "Buscá por código o por nombre."}>
+          <Campo label="o buscá el conjunto" ayuda={conjElegido ? `Elegido: ${conjElegido.etiqueta}` : "Por código o por nombre."}>
             <div className="relative">
               <Icono nombre="buscar" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted" />
               <input
@@ -156,7 +226,7 @@ export function Paso1({
           </Campo>
         )}
         {tipo === "pieza" && (
-          <Campo label="Qué pieza" ayuda={elegida ? `Elegida: ${elegida.codigo}` : "Buscá por código o por nombre."}>
+          <Campo label="o buscá la pieza" ayuda={elegida ? `Elegida: ${elegida.codigo}` : "Por código o por nombre."}>
             <div className="relative">
               <Icono nombre="buscar" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted" />
               <input

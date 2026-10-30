@@ -54,6 +54,19 @@ export default async function SeccionesPage({ searchParams }: { searchParams: Pr
       <section className="tarjeta p-5 space-y-4">
         <h2 className="font-semibold">Opciones del sistema</h2>
         <form action={guardarParametroAction} className="flex flex-wrap items-end gap-2 text-sm">
+          <input type="hidden" name="clave" value="controlar_materia_prima" />
+          <input type="hidden" name="volver" value="/admin/secciones" />
+          <label className="flex-1 min-w-60">
+            Controlar materia prima
+            <select name="valor" defaultValue={valor("controlar_materia_prima") === "si" ? "si" : "no"} className="input block w-full mt-0.5">
+              <option value="no">No: el paso &ldquo;Compras&rdquo; es informativo y no frena las tareas</option>
+              <option value="si">Sí: una pieza sin materia prima queda &ldquo;Falta material&rdquo; hasta que llegue</option>
+            </select>
+            <span className="block text-xs text-foreground-muted mt-0.5">Con &ldquo;No&rdquo;, Stock muestra sólo Piezas terminadas y &ldquo;Qué hace falta&rdquo; no separa tengo / falta material.</span>
+          </label>
+          <button className="btn-secundario">Guardar</button>
+        </form>
+        <form action={guardarParametroAction} className="flex flex-wrap items-end gap-2 text-sm">
           <input type="hidden" name="clave" value="entrada_plan" />
           <input type="hidden" name="volver" value="/admin/secciones" />
           <label className="flex-1 min-w-60">

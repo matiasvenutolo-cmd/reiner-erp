@@ -12,6 +12,7 @@
  * futuro" (todavía depende de que termine lo que viene antes).
  */
 import { ordenNoArchivada } from "./archivo";
+import { controlaMateriaPrima, pasosQueBloquean } from "./materia-prima";
 import { asc, eq, and, inArray, isNotNull, isNull, like, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
@@ -231,6 +232,9 @@ async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing
       ),
   ]);
 
+  // Sin control de materia prima (§2.2), el paso de Compras es informativo: no es la posición de la pieza, no
+  // genera necesidad de material en Compras y no frena el tercerizado que venga después.
+  const mp = await controlaMateriaPrima();
   const rutaPorPieza = new Map<string, PasoRuta[]>();
   for (const r of rutaRows) {
     const arr = rutaPorPieza.get(r.piezaId) ?? [];
@@ -244,6 +248,7 @@ async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing
     });
     rutaPorPieza.set(r.piezaId, arr);
   }
+  for (const [piezaId, ruta] of rutaPorPieza) rutaPorPieza.set(piezaId, pasosQueBloquean(ruta, (x) => x.tipo, mp));
 
   const completadasPorOtPieza = new Map<string, Set<string>>();
   const cierresPorOtPieza = new Map<string, CierrePaso[]>();

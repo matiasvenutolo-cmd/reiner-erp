@@ -14,6 +14,9 @@ import { Holgura, fechaCorta, Estimado, CausaRaiz, textoCausa, margenEntrega } f
 import { EstadoPiezaChip } from "@/components/v2/EstadoPieza";
 import { estadoDePieza, type EstadoDePieza, type EstadoVisible } from "@/lib/estado-pieza";
 import { getEsperaMaterialDeOrden, getNoComprarDeOrden } from "@/lib/data/gestion-compras";
+import { controlaMateriaPrima } from "@/lib/data/materia-prima";
+import { getProveedoresAfuera, getPasosInformativos } from "@/lib/data/orden-detalle";
+import { tildarPasoInformativoAction } from "@/app/actions/orden";
 import { Etiqueta } from "@/components/ui/Etiqueta";
 import { capitalizar, diasHabiles, numero, plural } from "@/lib/formato";
 import { activarProyectoAction, cambiarEntregaAction, pausarProyectoAction, liberarAction } from "@/app/actions/v2";
@@ -37,13 +40,13 @@ function sugerirEntrega(emision: Date | null, plazo: string | null): string {
 }
 
 // Un estado por pieza, de cinco (simplificación §4.2): lo que frena primero.
-const ORDEN_ESTADO: EstadoVisible[] = ["trabada", "falta_material", "en_curso", "lista", "terminada"];
-const LABEL_ESTADO: Record<EstadoVisible, string> = { trabada: "Trabadas", falta_material: "Falta material", en_curso: "En curso", lista: "Listas", terminada: "Terminadas" };
+const ORDEN_ESTADO: EstadoVisible[] = ["trabada", "falta_material", "afuera", "en_curso", "lista", "terminada"];
+const LABEL_ESTADO: Record<EstadoVisible, string> = { trabada: "Trabadas", falta_material: "Falta material", afuera: "Afuera", en_curso: "En curso", lista: "Listas", terminada: "Terminadas" };
 
-type PiezaOrden = { id: string; otConjuntoId: string; nombre: string; cant: number; e: EstadoDePieza };
+type PiezaOrden = { id: string; otConjuntoId: string; nombre: string; cant: number; e: EstadoDePieza; informativo?: { operacionId: string; nombre: string } | null };
 
 /** Una pieza con su estado y su paso actual. El margen se muestra sólo si es urgente o está atrasada. */
-function FilaPieza({ x, hoy }: { x: PiezaOrden; hoy: string }) {
+function FilaPieza({ x, hoy, volver }: { x: PiezaOrden; hoy: string; volver: string }) {
   const a = x.e.actual;
   return (
     <li className="flex flex-wrap items-center gap-2 text-xs">
@@ -59,6 +62,17 @@ function FilaPieza({ x, hoy }: { x: PiezaOrden; hoy: string }) {
         </span>
       )}
       {a && (a.nivel === "atrasada" || a.nivel === "urgente") && <Holgura nivel={a.nivel} dias={a.holgura} corto />}
+      {/* Sin control de materia prima (§2.2) el paso de Compras es informativo: se tilda cuando está. */}
+      {x.informativo && (
+        <form action={tildarPasoInformativoAction} className="inline">
+          <input type="hidden" name="otPiezaId" value={x.id} />
+          <input type="hidden" name="operacionId" value={x.informativo.operacionId} />
+          <input type="hidden" name="volver" value={volver} />
+          <button className="inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-foreground-muted hover:text-foreground hover:border-accent" title="Paso informativo: no frena la pieza">
+            <span aria-hidden>☐</span> {x.informativo.nombre}
+          </button>
+        </form>
+      )}
     </li>
   );
 }
@@ -252,9 +266,9 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
   // ── Activo ─────────────────────────────────────────────────────────────
   const tareas = plan.resultado.tareas.filter((t) => t.proyectoId === id);
   const tanda = plan.resultado.tandas.find((t) => t.proyectoId === id);
-  const [filasPiezas, esperaMaterial, llegadas, noComprar] = await Promise.all([
+  const [filasPiezas, esperaMaterial, llegadas, noComprar, controlaMP, proveedoresAfuera, informativos] = await Promise.all([
     db
-      .select({ id: otPieza.id, otConjuntoId: otPieza.otConjuntoId, nombre: pieza.nombre, cant: otPieza.cantidadAFabricar, necesaria: otPieza.cantidadNecesaria, conjunto: conjunto.nombre, conjuntoCodigo: conjunto.codigo })
+      .select({ id: otPieza.id, otConjuntoId: otPieza.otConjuntoId, nombre: pieza.nombre, cant: otPieza.cantidadAFabricar, necesaria: otPieza.cantidadNecesaria, conjunto: conjunto.nombre, conjuntoCodigo: conjunto.codigo, clase: pieza.clase, tipoPieza: pieza.tipo })
       .from(otPieza)
       .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
       .innerJoin(conjunto, eq(conjunto.id, otConjunto.conjuntoId))
@@ -269,11 +283,25 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
       .leftJoin(proveedor, eq(proveedor.id, pedidoCompra.proveedorId))
       .where(and(eq(otConjunto.otMaquinaId, id), isNotNull(pedidoCompra.recibidoAt))),
     getNoComprarDeOrden(id),
+    controlaMateriaPrima(),
+    getProveedoresAfuera(id),
+    getPasosInformativos(id),
   ]);
   const compraDePieza = new Map(plan.resultado.compras.filter((c) => c.proyectoId === id).map((c) => [c.otPiezaId, c]));
+  // Sin control de materia prima (§2.2/§2.5) los artículos comerciales no son piezas con estado: se ven en las
+  // compras de la orden.
+  const soloCompras = (id: string) => {
+    const ts = tareas.filter((t) => t.otPiezaId === id);
+    return ts.length > 0 && ts.every((t) => t.tipo === "compras");
+  };
+  const esComercial = (x: (typeof filasPiezas)[number]) => x.clase !== "fabricada" || x.tipoPieza === "comprada" || soloCompras(x.id);
   const piezasOrden: PiezaOrden[] = filasPiezas
-    .filter((x) => x.cant > 0)
-    .map((x) => ({ ...x, e: estadoDePieza(tareas.filter((t) => t.otPiezaId === x.id), compraDePieza.get(x.id), esperaMaterial.get(x.id), noComprar.has(x.id)) }));
+    .filter((x) => x.cant > 0 && (controlaMP || !esComercial(x)))
+    .map((x) => ({
+      ...x,
+      e: estadoDePieza(tareas.filter((t) => t.otPiezaId === x.id), compraDePieza.get(x.id), esperaMaterial.get(x.id), noComprar.has(x.id), proveedoresAfuera.get(x.id)),
+      informativo: controlaMP ? null : (informativos.get(x.id) ?? null),
+    }));
   const cuenta = (ps: PiezaOrden[]) => Object.fromEntries(ORDEN_ESTADO.map((e) => [e, ps.filter((x) => x.e.estado === e).length])) as Record<EstadoVisible, number>;
 
   // ── Pieza o conjunto suelto: pantalla simple (simplificación §4.1) ─────
@@ -315,7 +343,7 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
               {[...piezasOrden]
                 .sort((a, b) => ORDEN_ESTADO.indexOf(a.e.estado) - ORDEN_ESTADO.indexOf(b.e.estado))
                 .map((x) => (
-                  <FilaPieza key={x.id} x={x} hoy={hoy} />
+                  <FilaPieza key={x.id} x={x} hoy={hoy} volver={`/proyectos/${id}`} />
                 ))}
             </ul>
           )}
@@ -474,7 +502,7 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
                       </summary>
                       <ul className="mt-1 ml-4 space-y-1">
                         {grupos.get(e)!.map((x) => (
-                          <FilaPieza key={x.id} x={x} hoy={hoy} />
+                          <FilaPieza key={x.id} x={x} hoy={hoy} volver={`/proyectos/${id}`} />
                         ))}
                       </ul>
                     </details>
@@ -655,6 +683,7 @@ function BarraEstados({ piezas, total }: { piezas: Record<EstadoVisible, number>
   const tramos: [EstadoVisible, string][] = [
     ["terminada", "bg-verde"],
     ["en_curso", "bg-accent-hover"],
+    ["afuera", "bg-accent"],
     ["lista", "bg-accent/50"],
     ["falta_material", "bg-naranja"],
     ["trabada", "bg-rojo"],

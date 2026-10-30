@@ -18,6 +18,7 @@ import { getPlan, pasoDeRuta, DEFAULT } from "./datos";
 import { planificar, CENTRO_POR_DEFECTO, type ProyectoEntrada, type PiezaEntrada } from "./motor";
 import { sumarHabiles, habilesEntre } from "./calendario";
 import { queHaceFaltaDeBorrador } from "@/lib/data/que-hace-falta";
+import { controlaMateriaPrima, compraInformativa } from "@/lib/data/materia-prima";
 
 export type CuandoPuedeEstar = {
   /** Fecha más temprana posible. */
@@ -34,7 +35,7 @@ export type CuandoPuedeEstar = {
 const ID = "orden-nueva";
 
 export async function cuandoPuedeEstar(b: OrdenBorrador): Promise<CuandoPuedeEstar> {
-  const [plan, qhf] = await Promise.all([getPlan(), queHaceFaltaDeBorrador(b)]);
+  const [plan, qhf, controlaMP] = await Promise.all([getPlan(), queHaceFaltaDeBorrador(b), controlaMateriaPrima()]);
   const { entrada } = plan;
   const hoy = entrada.hoy;
   const cal = entrada.calendario;
@@ -67,7 +68,14 @@ export async function cuandoPuedeEstar(b: OrdenBorrador): Promise<CuandoPuedeEst
     }
     const pasosRuta = ruta.filter((r) => r.o.piezaId === f.piezaId);
     const pasos = pasosRuta.length
-      ? pasosRuta.map(({ o, pr }) => ({ ...pasoDeRuta(o, pr, p, cant, servicios, plazoProveedor), lote: p.tamanoLote && p.tamanoLote < cant ? p.tamanoLote : null, estado: "pendiente" as const, pedido: pr.tipo === "compras" ? false : undefined, llegadaPrevista: null }))
+      ? pasosRuta.map(({ o, pr }) => ({
+          ...pasoDeRuta(o, pr, p, cant, servicios, plazoProveedor),
+          lote: p.tamanoLote && p.tamanoLote < cant ? p.tamanoLote : null,
+          // Sin control de materia prima (§2.2) el paso de Compras no demora la pieza.
+          estado: compraInformativa(pr.tipo, pasosRuta.map((x) => ({ tipo: x.pr.tipo })), controlaMP) ? ("terminada" as const) : ("pendiente" as const),
+          pedido: pr.tipo === "compras" ? false : undefined,
+          llegadaPrevista: null,
+        }))
       : [{ operacionId: `fabricar-${p.id}`, nombre: "Fabricar (sin hoja de ruta)", tipo: "interno" as const, centroId: CENTRO_POR_DEFECTO, horas: (DEFAULT.setupMin + DEFAULT.minPorUnidad * cant) / 60, plazoDias: 0, esperaHoras: 0, estimado: true, plazoSupuesto: false, estado: "pendiente" as const }];
     // Material que hay que comprar y la ruta no tiene paso de Compras: la pieza empieza cuando llega.
     const tieneCompras = pasos.some((x) => x.tipo === "compras");

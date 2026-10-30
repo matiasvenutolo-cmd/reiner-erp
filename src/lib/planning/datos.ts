@@ -19,6 +19,8 @@ import {
   montajeConjunto, configuracion, planAjuste, parametro, cliente, tareaBloqueo, tareaLote, asignacionTrabajo, necesidadCompraOrden,
 } from "@/lib/db/schema";
 import { avancePasos } from "@/lib/data/produccion";
+import { controlaMateriaPrima, pasosQueBloquean, compraInformativa } from "@/lib/data/materia-prima";
+
 import { hoyISO, fechaISO } from "@/lib/fecha";
 import { sumarHabiles, type Calendario } from "./calendario";
 import { planificar, CENTRO_POR_DEFECTO, type EntradaMotor, type ProyectoEntrada, type PasoEntrada, type ResultadoMotor } from "./motor";
@@ -78,7 +80,7 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
   const t0 = Date.now();
   const hoy = hoyISO();
   // Una sola tanda para todo lo que no depende de los proyectos.
-  const [calendario, params, proyectosRows, centrosRows, habilitados, ausencias, ajustes, bloqueos, asignadasAntes] = await Promise.all([
+  const [calendario, params, proyectosRows, centrosRows, habilitados, ausencias, ajustes, bloqueos, asignadasAntes, mp] = await Promise.all([
     getCalendario(),
     getParametros(),
     db
@@ -101,6 +103,7 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
       .selectDistinct({ otPiezaId: asignacionTrabajo.otPiezaId, operacionId: asignacionTrabajo.operacionId })
       .from(asignacionTrabajo)
       .where(and(eq(asignacionTrabajo.dePlanConfirmado, true), sql`${asignacionTrabajo.fecha} < ${hoy}`)),
+    controlaMateriaPrima(),
   ]);
   const proyectosActivos = proyectosRows
     .map((r) => (simular && r.m.id === simular.id ? { ...r, m: { ...r.m, fechaEntrega: simular.entrega, prioridad: simular.prioridad, estadoProyecto: "activo", fechaInicioProyecto: hoy } } : r))
@@ -224,7 +227,9 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
           };
           const cerrados = regs.filter((r) => r.fin);
           const conLote = new Set(pasosRuta.filter(({ o, pr }) => loteDe(o.id, pr.tipo === "interno")).map(({ o }) => o.id));
-          const { completados } = avancePasos(pasosRuta.map(({ o }) => o.id), cant, cerrados, conLote);
+          // Sin control de materia prima (§2.2), el paso de Compras no cuenta para el avance de la pieza.
+          const rutaTipos = pasosRuta.map(({ pr }) => ({ tipo: pr.tipo as string }));
+          const { completados } = avancePasos(pasosQueBloquean(pasosRuta, ({ pr }) => pr.tipo, mp).map(({ o }) => o.id), cant, cerrados, conLote);
           const pasos: PasoEntrada[] = pasosRuta.length
             ? pasosRuta.map(({ o, pr }) => {
                 const base = pasoDeRuta(o, pr, p, cant, servicios, plazoProveedor);
@@ -234,7 +239,10 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
                 const delPaso = cerrados.filter((r) => r.operacionId === o.id);
                 const abierta = regs.find((r) => r.operacionId === o.id && !r.fin);
                 // Con "No comprar", el paso de Compras no se espera: el material se consigue por otro lado.
-                let estado: PasoEntrada["estado"] = terminada || (tipoPaso === "compras" && sinCompra.has(op.id)) ? "terminada" : abierta ? (pausados.has(abierta.id) ? "pausada" : "en_curso") : "pendiente";
+                // El paso de Compras se da por hecho con "No comprar" o sin control de materia prima (§2.2):
+                // queda como paso informativo, no corre fechas ni frena el siguiente.
+                let estado: PasoEntrada["estado"] =
+                  terminada || (tipoPaso === "compras" && (sinCompra.has(op.id) || compraInformativa(tipoPaso, rutaTipos, mp))) ? "terminada" : abierta ? (pausados.has(abierta.id) ? "pausada" : "en_curso") : "pendiente";
                 let vueltaPrevista: string | null = null;
                 if (!terminada && tipoPaso === "tercerizado" && remitoPaso) {
                   estado = "afuera";

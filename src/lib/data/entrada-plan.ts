@@ -16,6 +16,7 @@ import { and, eq, gt, inArray, isNotNull, isNull, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { otPieza, otConjunto, otMaquina, pieza, parametro, operacion, proceso, registroOperacion, necesidadCompraOrden, pedidoCompra } from "@/lib/db/schema";
 import { enviarAProduccion } from "./ot";
+import { controlaMateriaPrima } from "./materia-prima";
 
 export async function getModoEntrada(): Promise<{ automatica: boolean; exigirPlano: boolean }> {
   const filas = await db.select().from(parametro).where(inArray(parametro.clave, ["entrada_plan", "exigir_plano"]));
@@ -53,7 +54,8 @@ export async function entrarAlPlanSolas(
   if (modo.exigirPlano) listas = listas.filter((c) => c.plano && c.revision);
   if (!listas.length) return 0;
 
-  if (!opciones.materialVerificado) {
+  // Sin control de materia prima (§2.2) el material no frena la entrada al plan.
+  if (!opciones.materialVerificado && (await controlaMateriaPrima())) {
     const ids = listas.map((c) => c.id);
     const piezaIds = [...new Set(listas.map((c) => c.piezaId))];
     const [rutas, cerrados, esperan, llegaron, omitidas] = await Promise.all([

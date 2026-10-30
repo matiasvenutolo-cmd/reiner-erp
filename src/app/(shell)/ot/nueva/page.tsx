@@ -97,7 +97,7 @@ export default async function GenerarOrdenPage({
         .orderBy(asc(conjunto.codigo)),
       db.select({ id: pieza.id, codigo: pieza.codigo, nombre: pieza.nombre }).from(pieza).orderBy(pieza.nombre),
       db
-        .select({ cfg: piezaConfiguracion.configuracionId, id: pieza.id, codigo: pieza.codigo, nombre: pieza.nombre, conjunto: conjunto.nombre, conjuntoCodigo: conjunto.codigo })
+        .select({ cfg: piezaConfiguracion.configuracionId, id: pieza.id, codigo: pieza.codigo, nombre: pieza.nombre, conjunto: conjunto.nombre, conjuntoCodigo: conjunto.codigo, conjuntoId: conjunto.id })
         .from(piezaConfiguracion)
         .innerJoin(pieza, eq(pieza.id, piezaConfiguracion.piezaId))
         .innerJoin(conjunto, eq(conjunto.id, pieza.conjuntoId))
@@ -120,8 +120,8 @@ export default async function GenerarOrdenPage({
       (alternativos[clave.split("|")[0]] ??= []).push(grupo.map((x) => `${x.codigo} ${x.nombre}`).join(" o "));
     }
     const nombreCfg = new Map(configs.map((c) => [c.id, c.nombre]));
-    const piezasPorConfig: Record<string, { id: string; codigo: string; nombre: string; conjunto: string }[]> = {};
-    for (const r of piezaCfg) (piezasPorConfig[r.cfg] ??= []).push({ id: r.id, codigo: r.codigo, nombre: r.nombre, conjunto: `${r.conjuntoCodigo} ${r.conjunto}` });
+    const piezasPorConfig: Record<string, { id: string; codigo: string; nombre: string; conjunto: string; conjuntoId: string }[]> = {};
+    for (const r of piezaCfg) (piezasPorConfig[r.cfg] ??= []).push({ id: r.id, codigo: r.codigo, nombre: r.nombre, conjunto: `${r.conjuntoCodigo} ${r.conjunto}`, conjuntoId: r.conjuntoId });
     // Prefill desde "Fabricar para stock" (ficha de stock) o la alerta de mínimo.
     const inicial: DatosPaso1 = borrador
       ? {
