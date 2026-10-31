@@ -29,7 +29,8 @@ export default async function GestionPage({ searchParams }: { searchParams: Prom
 }
 
 function Barra({ ocupadas, disponibles, label }: { ocupadas: number; disponibles: number; label: string }) {
-  const pct = disponibles > 0 ? Math.min(100, (ocupadas / disponibles) * 100) : 100;
+  // Sin horas disponibles (fin de semana, feriado o ausencia): la barra queda vacía, salvo que tenga algo asignado.
+  const pct = disponibles > 0 ? Math.min(100, (ocupadas / disponibles) * 100) : ocupadas > 0 ? 100 : 0;
   return (
     <div className="flex items-center gap-2 text-[11px] text-foreground-muted">
       <span className="w-16 shrink-0">{label}</span>
