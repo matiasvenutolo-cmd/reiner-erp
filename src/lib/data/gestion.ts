@@ -62,8 +62,9 @@ export type CargaOperario = {
 
 const clave = (otPiezaId: string, operacionId: string) => `${otPiezaId}::${operacionId}`;
 
-function nombreCorto(config: string | null | undefined, cliente: string | null | undefined, destino: string): string {
-  const maquina = (config ?? "").split(" - ")[0] || "Orden";
+function nombreCorto(config: string | null | undefined, cliente: string | null | undefined, destino: string, referencia?: string | null): string {
+  // Una orden sin máquina (pieza a medida) se nombra por su referencia: "AM-001 · Casasco".
+  const maquina = (config ?? "").split(" - ")[0] || referencia || "Orden";
   return `${maquina} · ${cliente ?? (destino === "stock" ? "Stock" : "Repuesto")}`;
 }
 
@@ -134,7 +135,7 @@ export async function getGestion() {
       pieza: t.piezaNombre,
       codigo: t.piezaCodigo,
       cantidad: t.cantidad,
-      orden: nombreCorto(info?.configuracion, info?.cliente, proy?.tipo ?? "maquina"),
+      orden: nombreCorto(info?.configuracion, info?.cliente, proy?.tipo ?? "maquina", info?.referencia),
       ordenId: t.proyectoId,
       paso: t.paso,
       posicion: t.posicion,

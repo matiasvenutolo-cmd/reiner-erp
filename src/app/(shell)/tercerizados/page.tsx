@@ -10,9 +10,9 @@ import { registrarIngresoAction, registrarVueltaAction } from "@/app/actions/log
 import { TipoMovimientoSelect } from "@/components/TipoMovimientoSelect";
 import { MovimientosTabla } from "@/components/MovimientosTabla";
 import { ArmadoRemito, type SugerenciaProceso } from "@/components/logistica/ArmadoRemito";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { proceso, proveedor, proveedorServicio } from "@/lib/db/schema";
+import { operacion, proceso, proveedor, proveedorServicio } from "@/lib/db/schema";
 import { Icono } from "@/components/ui/Icono";
 import type { MovimientoStock, Proveedor } from "@/lib/db/schema";
 import { getUsuarioActual } from "@/lib/session";
@@ -70,10 +70,21 @@ export default async function TercerizadosPage({
     .innerJoin(proveedor, eq(proveedor.id, proveedorServicio.proveedorId))
     .where(eq(proveedorServicio.habitual, true));
   const paraMandar = enPasoTercerizado.filter((a) => !a.remito);
+  // El proveedor de cada paso (de la hoja de ruta, reorganización 30/10 §6.2) manda sobre el habitual del proceso.
+  const delPaso = paraMandar.length
+    ? await db
+        .select({ id: operacion.id, proveedor: proveedor.razonSocial, plazo: operacion.plazoTercerizadoDias })
+        .from(operacion)
+        .innerJoin(proveedor, eq(proveedor.id, operacion.proveedorId))
+        .where(inArray(operacion.id, [...new Set(paraMandar.map((a) => a.operacionId))]))
+    : [];
   const sugerencias: Record<string, SugerenciaProceso> = {};
   for (const a of paraMandar) {
     const h = habituales.find((x) => x.proceso === a.procesoNombre);
-    sugerencias[a.procesoNombre] = { proveedor: h?.proveedor ?? null, plazo: h?.plazo ?? null, proximas: pronto.filter((t) => t.paso === a.procesoNombre).length };
+    // Si todas las piezas de ese proceso tienen el mismo proveedor en su paso, se propone ése.
+    const grupo = paraMandar.filter((x) => x.procesoNombre === a.procesoNombre).map((x) => delPaso.find((d) => d.id === x.operacionId));
+    const propio = grupo.every((d) => d && d.proveedor === grupo[0]?.proveedor) ? grupo[0] : undefined;
+    sugerencias[a.procesoNombre] = { proveedor: propio?.proveedor ?? h?.proveedor ?? null, plazo: propio ? (propio.plazo ?? h?.plazo ?? null) : (h?.plazo ?? null), proximas: pronto.filter((t) => t.paso === a.procesoNombre).length };
   }
   const resultados = await Promise.all(
     piezasEncontradas.map(async (p) => ({ pieza: p, stock: await getStockDisponible(p.id) })),

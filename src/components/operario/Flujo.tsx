@@ -1,6 +1,7 @@
 import { Icono } from "@/components/ui/Icono";
 import { Codigo } from "@/components/ui/Codigo";
 import { capitalizar, fechaRelativa, horas, numero } from "@/lib/formato";
+import { hoyISO } from "@/lib/fecha";
 import type { Tarea } from "@/lib/planning/motor";
 import type { DetalleTarea } from "@/lib/data/operario";
 import { Cronometro, FormPlanta, Motivos, Terminar } from "./Planta";
@@ -76,7 +77,8 @@ export function TarjetaPlanta({ tarea, detalle, hoy, cantidad, campos, children 
           {detalle.vieneDe && (
             <div>
               Viene de: <strong>{detalle.vieneDe.paso}</strong>
-              {detalle.vieneDe.fin ? ` (terminada ${fechaRelativa(detalle.vieneDe.fin, hoy)})` : ""}
+              {/* La cola usa el próximo día hábil como "hoy" (en fin de semana, el lunes); para cuándo se terminó va la fecha real. */}
+              {detalle.vieneDe.fin ? ` (terminada ${fechaRelativa(detalle.vieneDe.fin, hoyISO())})` : ""}
             </div>
           )}
           {detalle.despues && (
