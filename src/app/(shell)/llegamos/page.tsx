@@ -62,6 +62,11 @@ export default async function LlegamosPage() {
       >
         <PestanasIndicadores actual="/llegamos" />
       </PageHeader>
+      <p className="text-sm -mt-2">
+        <Link href="/avance" className="text-accent hover:underline">
+          Ver el avance por piezas →
+        </Link>
+      </p>
 
       {proyectos.length === 0 ? (
         <Vacio neutro accion={<Link href="/proyectos" className="btn-texto btn-sm">Ver órdenes →</Link>}>
