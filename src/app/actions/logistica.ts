@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "@/lib/revalidar";
-import { getUsuarioDePlanta } from "@/lib/session";
+import { getUsuarioDeTercerizados } from "@/lib/session";
 import { registrarIngreso } from "@/lib/data/logistica";
 import { registrarVueltaTercerizado } from "@/lib/data/compras";
 
@@ -11,10 +11,12 @@ function revalidar() {
   revalidatePath("/stock", "layout");
   revalidatePath("/avance");
   revalidatePath("/centros-trabajo");
+  revalidatePath("/gestion");
+  revalidatePath("/taller");
 }
 
 export async function registrarIngresoAction(formData: FormData) {
-  const usuario = await getUsuarioDePlanta();
+  const usuario = await getUsuarioDeTercerizados();
 
   const piezaId = String(formData.get("piezaId") ?? "");
   const cantidad = Number(formData.get("cantidad"));
@@ -41,8 +43,7 @@ export async function registrarIngresoAction(formData: FormData) {
 }
 
 export async function registrarVueltaAction(formData: FormData) {
-  const usuario = await getUsuarioDePlanta();
-  if (usuario.rol === "operario") throw new Error("No autorizado.");
+  const usuario = await getUsuarioDeTercerizados();
   try {
     const cantidad = Number(formData.get("cantidad"));
     const controlResultado = String(formData.get("controlResultado") ?? "");

@@ -9,9 +9,9 @@
  * - Las tareas que esperan el paso anterior se ven en gris y también se pueden asignar por adelantado.
  * - La carga por persona es sólo informativa: llena la cola en orden con las horas del operario según el calendario.
  */
-import { and, asc, eq, inArray, isNotNull, max } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, max } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { colaTarea, usuario, usuarioCentroTrabajo, operacion, proceso, centroTrabajo } from "@/lib/db/schema";
+import { colaTarea, usuario, usuarioCentroTrabajo, operacion, proceso, centroTrabajo, proveedor, proveedorServicio, remito, remitoItem } from "@/lib/db/schema";
 import { getPlan } from "@/lib/planning/datos";
 import { esHabil } from "@/lib/planning/calendario";
 import type { Tarea, Nivel } from "@/lib/planning/motor";
@@ -40,6 +40,9 @@ export type FilaGestion = {
   lugar: number | null;
   estado: EstadoGestion;
   motivo: string | null;
+  /** Tercerizado (§5.1): a qué proveedor se manda o dónde está, con la vuelta prevista. */
+  proveedor: string | null;
+  vuelta: string | null;
   nivel: Nivel;
   holgura: number;
   prioridadAlta: boolean;
@@ -73,7 +76,7 @@ export async function getGestion() {
     db.select().from(colaTarea),
     db.select({ id: usuario.id, nombre: usuario.nombre }).from(usuario).where(and(eq(usuario.rol, "operario"), eq(usuario.activo, true))).orderBy(asc(usuario.nombre)),
     db.select().from(usuarioCentroTrabajo),
-    opIds.length ? db.select({ id: operacion.id, procesoId: operacion.procesoId }).from(operacion).where(inArray(operacion.id, opIds)) : Promise.resolve([]),
+    opIds.length ? db.select({ id: operacion.id, procesoId: operacion.procesoId, proveedorId: operacion.proveedorId }).from(operacion).where(inArray(operacion.id, opIds)) : Promise.resolve([]),
     db.select({ id: centroTrabajo.id, nombre: centroTrabajo.nombre }).from(centroTrabajo).orderBy(asc(centroTrabajo.orden)),
   ]);
   // Centros compatibles con cada proceso: el suyo y los que ya lo hacen en alguna hoja de ruta.
@@ -85,6 +88,25 @@ export async function getGestion() {
         db.select({ id: proceso.id, centroId: proceso.centroTrabajoId }).from(proceso).where(inArray(proceso.id, procesos)),
       ])
     : [[], []];
+  // Tercerizados (§5.1): el proveedor del paso (o el habitual del proceso) para mandar; el del remito si ya salió.
+  const tercerizadas = tareas.filter((t) => t.tipo === "tercerizado");
+  const [provs, habituales, remitos] = tercerizadas.length
+    ? await Promise.all([
+        db.select({ id: proveedor.id, nombre: proveedor.razonSocial }).from(proveedor),
+        db.select({ procesoId: proveedorServicio.procesoId, proveedorId: proveedorServicio.proveedorId }).from(proveedorServicio).where(eq(proveedorServicio.habitual, true)),
+        db
+          .select({ otPiezaId: remitoItem.otPiezaId, destino: remito.destino })
+          .from(remitoItem)
+          .innerJoin(remito, eq(remito.id, remitoItem.remitoId))
+          .where(inArray(remitoItem.otPiezaId, [...new Set(tercerizadas.map((t) => t.otPiezaId))]))
+          .orderBy(desc(remito.fecha)),
+      ])
+    : [[], [], []];
+  const nombreProv = new Map(provs.map((p) => [p.id, p.nombre]));
+  const habitualDe = new Map(habituales.map((h) => [h.procesoId, h.proveedorId]));
+  const proveedorPaso = new Map(ops.map((o) => [o.id, o.proveedorId ?? habitualDe.get(o.procesoId) ?? null]));
+  const destinoRemito = new Map<string, string>();
+  for (const x of remitos) if (x.otPiezaId && !destinoRemito.has(x.otPiezaId)) destinoRemito.set(x.otPiezaId, x.destino);
   const compatibles = new Map<string, Set<string>>();
   for (const p of procs) compatibles.set(p.id, new Set(p.centroId ? [p.centroId] : []));
   for (const u of usos) if (u.centroId) compatibles.get(u.procesoId)?.add(u.centroId);
@@ -125,6 +147,13 @@ export async function getGestion() {
       lugar: c?.operarioId ? (c.posicion ?? null) : null,
       estado,
       motivo: t.motivoTraba,
+      proveedor:
+        t.tipo !== "tercerizado"
+          ? null
+          : estado === "afuera"
+            ? (destinoRemito.get(t.otPiezaId) ?? null)
+            : (nombreProv.get(proveedorPaso.get(t.operacionId) ?? "") ?? null),
+      vuelta: t.tipo === "tercerizado" && estado === "afuera" ? t.finPlan : null,
       nivel: t.nivel,
       holgura: t.holgura,
       prioridadAlta: prioridad.get(t.proyectoId) === "alta",

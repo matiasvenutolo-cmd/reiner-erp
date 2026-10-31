@@ -413,7 +413,7 @@ export async function completarOtConjunto(otConjuntoId: string): Promise<number>
   const [maquina] = await db.select().from(otMaquina).where(eq(otMaquina.id, otc.otMaquinaId));
   if (!maquina) throw new Error("OT de máquina inexistente.");
 
-  const piezasConfig = (await getPiezasPorConfiguracion(maquina.configuracionId)).filter((p) => p.conjuntoId === otc.conjuntoId);
+  const piezasConfig = maquina.configuracionId ? (await getPiezasPorConfiguracion(maquina.configuracionId)).filter((p) => p.conjuntoId === otc.conjuntoId) : [];
   const piezasAInsertar: (typeof otPieza.$inferInsert)[] = [];
   let seq = 0;
   const cobertura = await reservarStockLibre({
@@ -497,7 +497,7 @@ export async function listarOtMaquinas() {
   const [estados, configs, conjuntosMaestro] = await Promise.all([
     getEstadosBatch(piezasTodas),
     (async () => {
-      const configIds = [...new Set(maquinas.map((m) => m.otMaquina.configuracionId))];
+      const configIds = [...new Set(maquinas.map((m) => m.otMaquina.configuracionId).filter((x): x is string => !!x))];
       const rows = configIds.length ? await db.select().from(configuracion).where(inArray(configuracion.id, configIds)) : [];
       return new Map(rows.map((c) => [c.id, c]));
     })(),
@@ -548,7 +548,7 @@ export async function listarOtMaquinas() {
     return {
       ...m,
       clienteNombre,
-      configuracion: configs.get(m.configuracionId),
+      configuracion: m.configuracionId ? configs.get(m.configuracionId) : undefined,
       totalPiezasAFabricar: piezas.length,
       piezasTerminadas: estadosPieza.filter((e) => e === "terminada").length,
       estadoCalculado: estado,
@@ -577,7 +577,7 @@ export async function getOtMaquinaDetalle(id: string) {
   if (!row) return null;
   // Simplificación §4.6: lo que no depende entre sí va en paralelo (antes eran 5 consultas en fila).
   const [configuracion, conjuntosOt, piezasTodas, conjuntosMaestro] = await Promise.all([
-    getConfiguracion(row.otMaquina.configuracionId),
+    row.otMaquina.configuracionId ? getConfiguracion(row.otMaquina.configuracionId) : Promise.resolve(undefined),
     db.select().from(otConjunto).where(eq(otConjunto.otMaquinaId, id)),
     db
       .select({ p: otPieza })

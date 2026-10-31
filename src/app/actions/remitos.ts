@@ -1,14 +1,14 @@
 "use server";
 
 import { revalidatePath } from "@/lib/revalidar";
-import { getUsuarioDePlanta } from "@/lib/session";
+import { getUsuarioDeTercerizados } from "@/lib/session";
 import { generarRemito, type GenerarRemitoInput } from "@/lib/data/remitos";
 import { buscarPiezas } from "@/lib/data/maestros";
 
 /** Búsqueda de piezas para armar un remito — llamada directo desde el
  * cliente (ArmadoRemito), no desde un <form>. */
 export async function buscarPiezasParaRemitoAction(query: string) {
-  await getUsuarioDePlanta();
+  await getUsuarioDeTercerizados();
   const q = query.trim();
   if (!q) return [];
   const piezas = await buscarPiezas(q);
@@ -20,8 +20,12 @@ export async function buscarPiezasParaRemitoAction(query: string) {
 export async function generarRemitoAction(
   input: Omit<GenerarRemitoInput, "usuarioId">,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const usuario = await getUsuarioDePlanta();
-  if (usuario.rol === "operario") return { ok: false, error: "No autorizado." };
+  let usuario;
+  try {
+    usuario = await getUsuarioDeTercerizados();
+  } catch {
+    return { ok: false, error: "No autorizado." };
+  }
 
   if (!input.destino.trim() || input.items.length === 0) {
     return { ok: false, error: "Faltan datos: destino y al menos una pieza son obligatorios." };
@@ -35,5 +39,6 @@ export async function generarRemitoAction(
   }
   revalidatePath("/tercerizados");
   revalidatePath("/remitos");
+  revalidatePath("/gestion");
   return { ok: true, id };
 }

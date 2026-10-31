@@ -465,9 +465,9 @@ export const otMaquina = pgTable("ot_maquina", {
   tipo: tipoOrdenEnum("tipo").notNull().default("maquina"),
   alcance: alcanceSueltaEnum("alcance"), // sólo en tipo "suelta"
   numeroSerie: text("numero_serie").notNull(), // en una orden "suelta" es una referencia libre, no un número de serie real
-  configuracionId: text("configuracion_id")
-    .notNull()
-    .references(() => configuracion.id),
+  // Reorganización 30/10 §2.4: una pieza a medida (por ejemplo, un repuesto para una máquina de otro
+  // fabricante) no es de ninguna configuración de REINER, así que su orden puede no tener máquina.
+  configuracionId: text("configuracion_id").references(() => configuracion.id),
   clienteId: text("cliente_id").references(() => cliente.id),
   ordenCompra: text("orden_compra"),
   emitidoPor: text("emitido_por"),

@@ -63,9 +63,17 @@ export default async function GenerarOrdenPage({
       migas={[{ href: "/proyectos", label: "Órdenes" }, { label: "Generar orden" }]}
       titulo={borrador ? "Orden en borrador" : "Generar orden"}
       acciones={
-        <Link href="/ot/nueva/anterior" className="btn-texto btn-sm">
-          Usar el formulario anterior
-        </Link>
+        <>
+          {/* Reorganización 30/10 §2.4: una pieza que no está en los maestros se carga y se ordena en un solo paso. */}
+          {!borrador && (
+            <Link href="/ot/nueva/a-medida" className="btn-secundario btn-sm">
+              Pieza nueva a medida
+            </Link>
+          )}
+          <Link href="/ot/nueva/anterior" className="btn-texto btn-sm">
+            Usar el formulario anterior
+          </Link>
+        </>
       }
     >
       <Indicador paso={paso} borradorId={borradorId} />

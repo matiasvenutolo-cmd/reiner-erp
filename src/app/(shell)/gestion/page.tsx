@@ -69,7 +69,7 @@ function PanelCarga({ carga, actual }: { carga: CargaOperario[]; actual?: string
 }
 
 async function Contenido({ sp }: { sp: Params }) {
-  const { filas, operarios, centros, carga } = await getGestion();
+  const { filas, operarios, centros, carga, hoy } = await getGestion();
   const ordenes = [...new Map(filas.map((f) => [f.ordenId, { id: f.ordenId, nombre: f.orden }])).values()];
   let lista = filas;
   if (sp.centro) lista = lista.filter((f) => f.centroId === sp.centro);
@@ -84,7 +84,7 @@ async function Contenido({ sp }: { sp: Params }) {
         {lista.length === 0 ? (
           <Vacio>{filas.length === 0 ? "No hay tareas pendientes: cuando se confirme una orden, sus tareas aparecen acá." : "No hay tareas con estos filtros."}</Vacio>
         ) : (
-          <ListaGestion filas={lista} operarios={operarios} centros={centros} operarioFiltro={sp.operario ?? null} />
+          <ListaGestion filas={lista} operarios={operarios} centros={centros} operarioFiltro={sp.operario ?? null} hoy={hoy} />
         )}
       </div>
       <PanelCarga carga={carga} actual={sp.operario} />

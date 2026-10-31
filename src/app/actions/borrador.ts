@@ -11,6 +11,7 @@ import { revalidatePath as invalidarTodo } from "@/lib/revalidar";
 import { confirmarBorrador } from "@/lib/data/confirmar-orden";
 import { plural } from "@/lib/formato";
 import { itemsDeBorrador, stockLibreDe, getBorrador } from "@/lib/data/que-hace-falta";
+import { crearPiezaAMedida, MAX_PASOS, type PasoAMedida } from "@/lib/data/pieza-a-medida";
 
 /**
  * Asistente "+ Generar orden" (simplificación §1). Mientras la orden es un
@@ -150,4 +151,39 @@ export async function confirmarBorradorAction(fd: FormData) {
   ];
   if (r.esperanMaterial) partes.push(`${plural(r.esperanMaterial, "pieza")} esperando material`);
   redirect(`/proyectos/${r.otMaquinaId}?ok=${encodeURIComponent(`Orden confirmada: ${partes.join(" · ")}.`)}`);
+}
+
+/**
+ * "Pieza nueva a medida" (reorganización 30/10 §2.4): crea la pieza, su hoja de ruta y la orden confirmada en
+ * un solo paso. Devuelve el motivo si algo falta (el formulario conserva lo cargado); si sale bien, va a la orden.
+ */
+export async function crearPiezaAMedidaAction(fd: FormData): Promise<{ ok: false; error: string }> {
+  const u = await getUsuarioDePlanta();
+  const pasos: PasoAMedida[] = [];
+  for (let i = 0; i < MAX_PASOS; i++) {
+    const procesoId = t(fd, `proceso_${i}`);
+    if (!procesoId) continue;
+    const tiempo = t(fd, `tiempo_${i}`).replace(",", ".");
+    pasos.push({ procesoId, centroId: t(fd, `centro_${i}`) || null, tiempo: tiempo ? Number(tiempo) : null });
+  }
+  let r: Awaited<ReturnType<typeof crearPiezaAMedida>>;
+  try {
+    r = await crearPiezaAMedida(
+      {
+        nombre: t(fd, "nombre"),
+        clienteId: t(fd, "clienteId"),
+        cantidad: Math.round(Number(t(fd, "cantidad") || 1)),
+        fechaEntrega: t(fd, "fechaEntrega"),
+        numeroPlano: t(fd, "numeroPlano") || null,
+        revision: t(fd, "revision") || null,
+        material: t(fd, "material") || null,
+        pasos,
+      },
+      { id: u.id, nombre: u.nombre },
+    );
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo crear la pieza." };
+  }
+  for (const ruta of ["/inicio", "/planificacion", "/proyectos", "/llegamos", "/gestion", "/stock", "/ot", "/maestros"]) invalidarTodo(ruta, "layout");
+  redirect(`/proyectos/${r.otMaquinaId}?ok=${encodeURIComponent(`Pieza ${r.codigo} creada y orden confirmada: ${plural(r.alPlan, "pieza")} al plan.`)}`);
 }

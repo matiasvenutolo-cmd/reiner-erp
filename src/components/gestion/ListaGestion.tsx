@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { FilaGestion, EstadoGestion } from "@/lib/data/gestion";
+import { fechaCorta } from "@/lib/formato";
 import { asignarTareasAction, cambiarCentroAction, moverEnColaAction, ordenarPorUrgenciaAction } from "@/app/actions/gestion";
 
 type Operario = { id: string; nombre: string; centros: string[] };
@@ -31,7 +32,7 @@ const habilitados = (operarios: Operario[], centroId: string | null) => operario
  * La lista de Gestión (reorganización 30/10 §3.1): asignar es elegir el operario en la fila y se guarda al
  * instante. Con un operario filtrado se ve su cola, en orden, con flechas para cambiarlo (§3.2).
  */
-export function ListaGestion({ filas, operarios, centros, operarioFiltro }: { filas: FilaGestion[]; operarios: Operario[]; centros: Centro[]; operarioFiltro: string | null }) {
+export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }: { filas: FilaGestion[]; operarios: Operario[]; centros: Centro[]; operarioFiltro: string | null; hoy: string }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -223,7 +224,12 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro }: { fi
                     )}
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">
-                    <span className={`badge-estado ${ESTADO[estado].clase}`}>{ESTADO[estado].label}</span>
+                    <span className={`badge-estado ${ESTADO[estado].clase}`}>
+                      {estado === "para_mandar" && f.proveedor ? `Para mandar a ${f.proveedor}` : ESTADO[estado].label}
+                    </span>
+                    {estado === "afuera" && (f.proveedor || f.vuelta) && (
+                      <div className="text-xs text-foreground-muted mt-0.5">{[f.proveedor, f.vuelta && `vuelve el ${fechaCorta(f.vuelta, hoy)}`].filter(Boolean).join(" · ")}</div>
+                    )}
                     {f.motivo && estado === "trabada" && <div className="text-xs text-rojo-fg mt-0.5">{f.motivo}</div>}
                   </td>
                 </tr>

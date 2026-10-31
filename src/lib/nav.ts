@@ -88,7 +88,7 @@ const NAV_ITEMS: NavEntry[] = [
   { href: "/taller/centro", label: "Pantalla de un centro", roles: [...STAFF, "operario"], grupo: "produccion", oculta: true, ayuda: "Para la tablet fija en una máquina" },
 
   { href: "/compras", label: "Compras", roles: COMPRAS, grupo: "compras", ayuda: "Cotizaciones, gastos y pagos" },
-  { href: "/tercerizados", label: "Tercerizados", roles: STAFF, grupo: "compras", ayuda: "Para mandar, afuera, vueltas y remitos" },
+  { href: "/tercerizados", label: "Tercerizados", roles: [...STAFF, ...COMPRAS], grupo: "compras", ayuda: "Para mandar, afuera, vueltas y remitos" },
   { href: "/proveedores", label: "Proveedores", roles: [...STAFF, ...COMPRAS], grupo: "compras" },
   { href: "/pedir", label: "Pedir esta semana", roles: [...STAFF, ...COMPRAS], grupo: "compras", oculta: true, ayuda: "Qué hay que pedir y a quién" },
 
@@ -165,7 +165,8 @@ export function rutaPermitida(rol: Usuario["rol"], pathname: string): boolean {
   // menú (docs/06-backlog-release-3.md §12), pero /remitos sigue existiendo
   // como historial + vista imprimible — accesible para todo el que ya puede
   // entrar a Tercerizados, aunque no tenga su propio ítem de menú.
-  if (STAFF.includes(rol) && /^\/remitos(\/|$)/.test(pathname)) return true;
+  // Reorganización 30/10 §5.1: Compras gestiona Tercerizados, así que también entra a los remitos.
+  if ([...STAFF, ...COMPRAS].includes(rol) && /^\/remitos(\/|$)/.test(pathname)) return true;
 
   return NAV_ITEMS.filter((item) => item.roles.includes(rol)).some(
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)

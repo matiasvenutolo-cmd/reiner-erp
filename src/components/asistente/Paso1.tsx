@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { guardarPaso1Action } from "@/app/actions/borrador";
 import { Icono } from "@/components/ui/Icono";
@@ -28,7 +29,7 @@ const TIPOS = [
   ["pieza", "Pieza suelta", "Una pieza del maestro"],
 ] as const;
 
-function Campo({ label, ayuda, children }: { label: string; ayuda?: string; children: React.ReactNode }) {
+function Campo({ label, ayuda, children }: { label: string; ayuda?: React.ReactNode; children: React.ReactNode }) {
   return (
     <label className="block">
       <span className="etiqueta">{label}</span>
@@ -226,7 +227,21 @@ export function Paso1({
           </Campo>
         )}
         {tipo === "pieza" && (
-          <Campo label="o buscá la pieza" ayuda={elegida ? `Elegida: ${elegida.codigo}` : "Por código o por nombre."}>
+          <Campo
+            label="o buscá la pieza"
+            ayuda={
+              elegida ? (
+                `Elegida: ${elegida.codigo}`
+              ) : (
+                <>
+                  Por código o por nombre. ¿No está?{" "}
+                  <Link href="/ot/nueva/a-medida" className="text-accent hover:underline">
+                    Pieza nueva a medida
+                  </Link>
+                </>
+              )
+            }
+          >
             <div className="relative">
               <Icono nombre="buscar" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted" />
               <input

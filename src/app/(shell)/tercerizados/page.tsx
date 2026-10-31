@@ -118,9 +118,14 @@ export default async function TercerizadosPage({
                       <div>{a.piezaNombre}</div>
                     </td>
                     <td className="px-4 py-2.5">
-                      <Link href={`/ot/${a.otMaquinaId}/pieza/${a.otPiezaId}`} className="font-mono text-xs text-accent hover:underline">
-                        {a.otPiezaCodigo}
-                      </Link>
+                      {/* Compras gestiona los envíos pero no entra al detalle de las órdenes (§5.1). */}
+                      {usuario.rol === "compras" ? (
+                        <span className="font-mono text-xs">{a.otPiezaCodigo}</span>
+                      ) : (
+                        <Link href={`/ot/${a.otMaquinaId}/pieza/${a.otPiezaId}`} className="font-mono text-xs text-accent hover:underline">
+                          {a.otPiezaCodigo}
+                        </Link>
+                      )}
                     </td>
                     <td className="px-4 py-2.5">{a.procesoNombre}</td>
                     <td className="px-4 py-2.5 text-foreground-muted whitespace-nowrap">

@@ -27,17 +27,20 @@ import { numero, plural } from "@/lib/formato";
 
 export type ResultadoConfirmacion = { otMaquinaId: string; reservadas: number; compras: number; alPlan: number; esperanMaterial: number };
 
-/** Configuración de la orden: la elegida, o para una pieza suelta la primera máquina cuya lista la incluye. */
-async function configuracionDe(b: { tipo: string; configuracionId: string | null; piezaId: string | null }): Promise<string> {
+/**
+ * Configuración de la orden: la elegida, o para una pieza suelta la primera máquina cuya lista la incluye.
+ * Una pieza que no está en ninguna máquina (una pieza a medida, reorganización 30/10 §2.4) va sin máquina.
+ */
+async function configuracionDe(b: { tipo: string; configuracionId: string | null; piezaId: string | null }): Promise<string | null> {
   if (b.configuracionId) return b.configuracionId;
+  if (b.tipo !== "pieza") throw new Error("Falta la máquina de la orden.");
   const [fila] = await db
     .select({ cfg: piezaConfiguracion.configuracionId })
     .from(piezaConfiguracion)
     .where(eq(piezaConfiguracion.piezaId, b.piezaId ?? ""))
     .orderBy(piezaConfiguracion.configuracionId)
     .limit(1);
-  if (!fila) throw new Error("Esa pieza no está en la lista de piezas de ninguna máquina: cargala en Piezas y hojas de ruta antes de confirmar.");
-  return fila.cfg;
+  return fila?.cfg ?? null;
 }
 
 export async function confirmarBorrador(
@@ -60,8 +63,8 @@ export async function confirmarBorrador(
   const qhf = await queHaceFaltaDeBorrador(b);
   if (!qhf.filas.length) throw new Error("La orden no tiene piezas: revisá el paso 1.");
   const configuracionId = await configuracionDe(b);
-  const cfg = await getConfiguracion(configuracionId);
-  if (!cfg) throw new Error("Configuración inválida.");
+  const cfg = configuracionId ? await getConfiguracion(configuracionId) : undefined;
+  if (configuracionId && !cfg) throw new Error("Configuración inválida.");
 
   const esMaquina = b.tipo === "maquina";
   const codigo = `${esMaquina ? "OTM" : "OTS"}${referencia}`;
@@ -104,7 +107,7 @@ export async function confirmarBorrador(
   // Conjuntos: en una máquina, todos los del modelo más los que tengan piezas (como la generación de siempre).
   const todos = await getConjuntos();
   const idsConjunto = new Set(qhf.filas.map((f) => f.conjuntoId).filter((x): x is string => !!x));
-  if (esMaquina) for (const c of await getConjuntos(cfg.modeloId)) idsConjunto.add(c.id);
+  if (esMaquina && cfg) for (const c of await getConjuntos(cfg.modeloId)) idsConjunto.add(c.id);
   const conjuntos = todos.filter((c) => idsConjunto.has(c.id));
   const creados = conjuntos.length
     ? await db

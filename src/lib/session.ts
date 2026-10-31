@@ -61,6 +61,16 @@ export async function getUsuarioDePlanta(): Promise<Usuario> {
   return usuario;
 }
 
+/**
+ * Tercerizados y remitos (reorganización 30/10 §5.1): los gestiona el usuario de Compras, además de los
+ * perfiles de planta que ya entraban. El operario no.
+ */
+export async function getUsuarioDeTercerizados(): Promise<Usuario> {
+  const usuario = await getUsuarioActual();
+  if (usuario.rol === "operario") throw new Error("No autorizado.");
+  return usuario;
+}
+
 /** Acciones del módulo de Compras: sólo el perfil Compras (ver docs/06 §26). */
 export async function getUsuarioDeCompras(): Promise<Usuario> {
   const usuario = await getUsuarioActual();
