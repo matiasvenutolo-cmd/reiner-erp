@@ -90,7 +90,8 @@ export async function PantallaOperario({
         </div>
       </div>
 
-      {!cola.confirmada && (
+      {/* Sin cola armada en Gestión la tablet muestra lo que propone el plan; sin ninguna tarea, el aviso no aplica. */}
+      {!cola.confirmada && total > 0 && (
         <div className="rounded-xl bg-estimado-bg border border-estimado-borde px-4 py-3 text-estimado-fg text-[15px] font-medium">Plan propuesto, todavía no confirmado por el jefe de planta.</div>
       )}
       {listo && <Listo registroId={listo} terminada={nombreListo ? capitalizar(nombreListo) : null} campos={campos} />}
