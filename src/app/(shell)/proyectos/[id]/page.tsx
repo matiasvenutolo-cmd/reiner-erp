@@ -16,7 +16,8 @@ import { estadoDePieza, type EstadoDePieza, type EstadoVisible } from "@/lib/est
 import { getEsperaMaterialDeOrden, getNoComprarDeOrden } from "@/lib/data/gestion-compras";
 import { controlaMateriaPrima } from "@/lib/data/materia-prima";
 import { getProveedoresAfuera, getPasosInformativos } from "@/lib/data/orden-detalle";
-import { tildarPasoInformativoAction } from "@/app/actions/orden";
+import { tildarPasoInformativoAction, eliminarOrdenAction } from "@/app/actions/orden";
+import { getUsuarioActual } from "@/lib/session";
 import { Etiqueta } from "@/components/ui/Etiqueta";
 import { capitalizar, diasHabiles, numero, plural } from "@/lib/formato";
 import { activarProyectoAction, cambiarEntregaAction, pausarProyectoAction, liberarAction } from "@/app/actions/v2";
@@ -40,8 +41,8 @@ function sugerirEntrega(emision: Date | null, plazo: string | null): string {
 }
 
 // Un estado por pieza, de cinco (simplificación §4.2): lo que frena primero.
-const ORDEN_ESTADO: EstadoVisible[] = ["trabada", "falta_material", "afuera", "en_curso", "lista", "terminada"];
-const LABEL_ESTADO: Record<EstadoVisible, string> = { trabada: "Trabadas", falta_material: "Falta material", afuera: "Afuera", en_curso: "En curso", lista: "Listas", terminada: "Terminadas" };
+const ORDEN_ESTADO: EstadoVisible[] = ["trabada", "falta_material", "afuera", "en_curso", "lista", "terminada", "no_se_compra"];
+const LABEL_ESTADO: Record<EstadoVisible, string> = { trabada: "Trabadas", falta_material: "Falta material", afuera: "Afuera", en_curso: "En curso", lista: "Listas", terminada: "Terminadas", no_se_compra: "No se compran" };
 
 type PiezaOrden = { id: string; otConjuntoId: string; nombre: string; cant: number; e: EstadoDePieza; informativo?: { operacionId: string; nombre: string } | null };
 
@@ -55,7 +56,7 @@ function FilaPieza({ x, hoy, volver }: { x: PiezaOrden; hoy: string; volver: str
       </span>
       <EstadoPiezaChip estado={x.e.estado} />
       {x.e.motivo && <span className={x.e.estado === "trabada" ? "text-rojo-fg" : "text-foreground-muted"}>{x.e.motivo}</span>}
-      {a && x.e.estado !== "terminada" && (
+      {a && x.e.estado !== "terminada" && x.e.estado !== "no_se_compra" && (
         <span className="text-foreground-muted">
           paso {a.posicion}/{a.totalPasos}: {a.paso}
           {a.fechaPlan ? ` · plan ${fechaCorta(a.fechaPlan, hoy)}` : ""}
@@ -85,7 +86,7 @@ type Params = { ok?: string; error?: string; temprana?: string; entrega?: string
  */
 export default async function ProyectoPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Params> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const [[fila], eventos] = await Promise.all([
+  const [[fila], eventos, yo] = await Promise.all([
     db
       .select({ m: otMaquina, config: configuracion.nombre, cliente: cliente.razonSocial })
       .from(otMaquina)
@@ -93,6 +94,7 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
       .leftJoin(cliente, eq(cliente.id, otMaquina.clienteId))
       .where(eq(otMaquina.id, id)),
     db.select({ e: proyectoEvento, nombre: usuario.nombre }).from(proyectoEvento).leftJoin(usuario, eq(usuario.id, proyectoEvento.usuarioId)).where(eq(proyectoEvento.otMaquinaId, id)).orderBy(desc(proyectoEvento.fecha)),
+    getUsuarioActual(),
   ]);
   if (!fila) notFound();
   const m = fila.m;
@@ -120,6 +122,18 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
           <Link href={`/ot/${m.id}`} className="btn-secundario">
             Detalle de la orden
           </Link>
+          {/* Prueba 1 (05/11): eliminar una orden, sólo dirección. */}
+          {yo.rol === "direccion" && (
+            <form action={eliminarOrdenAction}>
+              <input type="hidden" name="otMaquinaId" value={m.id} />
+              <ConfirmarBoton
+                mensaje={`¿Eliminar la orden ${m.codigo}? Se borra con todo lo que tiene cargado (piezas, tareas, registros del taller, reservas y pedidos a Compras). No se puede deshacer.`}
+                className="btn-peligro"
+              >
+                Eliminar orden
+              </ConfirmarBoton>
+            </form>
+          )}
         </>
       }
     />
@@ -682,6 +696,7 @@ function Grande({ titulo, valor, color }: { titulo: string; valor: string; color
 function BarraEstados({ piezas, total }: { piezas: Record<EstadoVisible, number>; total: number }) {
   const tramos: [EstadoVisible, string][] = [
     ["terminada", "bg-verde"],
+    ["no_se_compra", "bg-gris"],
     ["en_curso", "bg-accent-hover"],
     ["afuera", "bg-accent"],
     ["lista", "bg-accent/50"],
@@ -696,7 +711,7 @@ function BarraEstados({ piezas, total }: { piezas: Record<EstadoVisible, number>
         {tramos.map(([k, c]) => (piezas[k] ? <div key={k} className={c} style={{ width: `${(piezas[k] / total) * 100}%` }} /> : null))}
       </div>
       <span className="text-[11px] text-foreground-muted">
-        {piezas.terminada}/{total}
+        {piezas.terminada}/{total - (piezas.no_se_compra ?? 0)}
       </span>
     </div>
   );

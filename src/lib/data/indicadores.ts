@@ -5,7 +5,7 @@
  * Sólo lectura — agrega lo que ya se viene cargando en /taller desde
  * Fase 1 (registro_operacion, parada), nada nuevo que registrar.
  */
-import { eq, desc, sql, isNotNull } from "drizzle-orm";
+import { and, eq, desc, sql, isNotNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { registroOperacion, parada, tipoParada, usuario, otPieza, proceso, operacion } from "@/lib/db/schema";
 
@@ -98,7 +98,8 @@ export async function getTiempoPorOperario(): Promise<TiempoPorOperario[]> {
     })
     .from(registroOperacion)
     .innerJoin(usuario, eq(usuario.id, registroOperacion.usuarioId))
-    .where(isNotNull(registroOperacion.fin))
+    // Sólo operarios (prueba 1): tildar un paso desde la oficina no convierte a nadie en operario.
+    .where(and(isNotNull(registroOperacion.fin), eq(usuario.rol, "operario")))
     .groupBy(registroOperacion.usuarioId, usuario.nombre, registroOperacion.tipo);
 
   const porUsuario = new Map<string, TiempoPorOperario>();

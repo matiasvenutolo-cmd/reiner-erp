@@ -69,7 +69,7 @@ export default async function PiezaPage({
   ]);
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-5xl">
       <PageHeader
         migas={[{ href: "/maestros", label: "Piezas y hojas de ruta" }, { label: pieza.codigo }]}
         titulo={pieza.nombre}
@@ -165,24 +165,24 @@ export default async function PiezaPage({
           <div className="badge-estado badge-alerta mb-3">Sin operaciones definidas{editable ? " — agregá la primera abajo." : "."}</div>
         )}
         {routing.length > 0 && (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden mb-3">
+          <div className="bg-surface border border-border rounded-lg overflow-x-auto mb-3">
             <table className="w-full text-sm">
               <thead className="bg-surface-muted text-foreground-muted text-xs">
                 <tr>
-                  <th className="text-left px-4 py-2 font-medium w-12">#</th>
-                  <th className="text-left px-4 py-2 font-medium">Proceso</th>
-                  <th className="text-left px-4 py-2 font-medium">Centro de trabajo</th>
-                  <th className="text-left px-4 py-2 font-medium">Detalle</th>
-                  <th className="text-left px-4 py-2 font-medium">Dispositivo</th>
-                  <th className="text-right px-4 py-2 font-medium">OPS</th>
-                  <th className="px-4 py-2"></th>
+                  <th className="text-left px-2.5 py-2 font-medium w-8">#</th>
+                  <th className="text-left px-2.5 py-2 font-medium">Proceso</th>
+                  <th className="text-left px-2.5 py-2 font-medium">Centro de trabajo</th>
+                  <th className="text-left px-2.5 py-2 font-medium">Detalle</th>
+                  <th className="text-left px-2.5 py-2 font-medium whitespace-nowrap">Dispositivo</th>
+                  <th className="text-right px-2.5 py-2 font-medium">OPS</th>
+                  <th className="px-2.5 py-2"></th>
                 </tr>
               </thead>
               <tbody>
                 {routing.map((op, idx) => (
                   <tr key={op.id} className="border-t border-border">
-                    <td className="px-4 py-2.5 text-foreground-muted">{op.secuencia}</td>
-                    <td className="px-4 py-2.5 min-w-[10rem]">
+                    <td className="px-2.5 py-2.5 text-foreground-muted">{op.secuencia}</td>
+                    <td className="px-2.5 py-2.5 min-w-[8.5rem]">
                       {editable ? (
                         <ProcesoOperacionSelect
                           operacionId={op.id}
@@ -198,7 +198,7 @@ export default async function PiezaPage({
                       )}
                       {op.proceso.tipo === "compras" && <span className="ml-1 text-xs text-foreground-muted">(compra)</span>}
                     </td>
-                    <td className="px-4 py-2.5 min-w-[11rem]">
+                    <td className="px-2.5 py-2.5 min-w-[11rem]">
                       {op.proceso.tipo === "interno" && !editable ? (
                         centros.find((c) => c.id === (op.centroTrabajoId ?? op.proceso.centroTrabajoId))?.nombre ?? (
                           <span className="text-foreground-muted">Sin centro asignado</span>
@@ -215,7 +215,7 @@ export default async function PiezaPage({
                         <span className="text-xs text-foreground-muted">{op.proceso.tipo === "tercerizado" ? "Tercerizado" : "Compra"}</span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 min-w-[12rem]">
+                    <td className="px-2.5 py-2.5 min-w-[10rem] w-full">
                       {editable ? (
                         <DescripcionOperacionInput
                           operacionId={op.id}
@@ -227,13 +227,13 @@ export default async function PiezaPage({
                         <span className="text-foreground-muted">{op.descripcion?.trim() || "—"}</span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-foreground-muted">{op.dispositivoNombre ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">
+                    <td className="px-2.5 py-2.5 text-foreground-muted">{op.dispositivoNombre ?? "—"}</td>
+                    <td className="px-2.5 py-2.5 text-right tabular-nums text-foreground-muted">
                       {op.ops ?? <span title="Falta cargar este dato">falta cargar</span>}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-2.5 py-2.5">
                       {editable && (
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                           <form action={moverOperacionAction}>
                             <input type="hidden" name="operacionId" value={op.id} />
                             <input type="hidden" name="piezaId" value={pieza.id} />

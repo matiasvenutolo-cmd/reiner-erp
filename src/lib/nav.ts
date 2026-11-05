@@ -87,7 +87,8 @@ const NAV_ITEMS: NavEntry[] = [
   { href: "/inicio", label: "Hoy", roles: STAFF, grupo: "produccion", oculta: true, ayuda: "Qué hay que hacer hoy y qué está trabado" },
   { href: "/taller/centro", label: "Pantalla de un centro", roles: [...STAFF, "operario"], grupo: "produccion", oculta: true, ayuda: "Para la tablet fija en una máquina" },
 
-  { href: "/compras", label: "Compras", roles: COMPRAS, grupo: "compras", ayuda: "Cotizaciones, gastos y pagos" },
+  // Prueba 1 (05/11): mientras dura la prueba, Julián (ingeniería) y Adrián (dirección) también entran a Compras.
+  { href: "/compras", label: "Compras", roles: [...COMPRAS, "direccion", "ingenieria"], grupo: "compras", ayuda: "Cotizaciones, gastos y pagos" },
   { href: "/tercerizados", label: "Tercerizados", roles: [...STAFF, ...COMPRAS], grupo: "compras", ayuda: "Para mandar, afuera, vueltas y remitos" },
   { href: "/proveedores", label: "Proveedores", roles: [...STAFF, ...COMPRAS], grupo: "compras" },
   { href: "/pedir", label: "Pedir esta semana", roles: [...STAFF, ...COMPRAS], grupo: "compras", oculta: true, ayuda: "Qué hay que pedir y a quién" },

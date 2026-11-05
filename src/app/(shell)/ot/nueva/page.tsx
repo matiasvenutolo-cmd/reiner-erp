@@ -12,8 +12,7 @@ import { getBorrador, queHaceFaltaDeBorrador } from "@/lib/data/que-hace-falta";
 import { descartarBorradorAction, stockRevisadoAction, confirmarBorradorAction } from "@/app/actions/borrador";
 import { previaConfirmacion } from "@/lib/data/confirmar-orden";
 import { cuandoPuedeEstar } from "@/lib/planning/cuando-puede-estar";
-import { margenEntrega } from "@/components/v2/Plan";
-import { capitalizar, diasHabiles, fechaCorta, numero, plural } from "@/lib/formato";
+import { capitalizar, fechaCorta, numero, plural } from "@/lib/formato";
 
 export const dynamic = "force-dynamic";
 
@@ -188,7 +187,6 @@ export default async function GenerarOrdenPage({
         </div>
         <div className="text-sm text-foreground-muted">
           {borrador!.destino === "stock" ? `Para stock · ${borrador!.motivoStock ?? ""}` : `Para ${cli?.nombre ?? "el cliente"}`}
-          {borrador!.fechaCliente ? ` · el cliente la quiere para el ${fechaCorta(borrador!.fechaCliente)}` : ""}
           {` · borrador del ${fechaCorta(borrador!.createdAt.toISOString().slice(0, 10))}`}
         </div>
       </div>
@@ -246,11 +244,8 @@ export default async function GenerarOrdenPage({
   const [previa, cuando] = await Promise.all([previaConfirmacion(borrador!), cuandoPuedeEstar(borrador!)]);
   const hoy = cuando.hoy;
   const esMaquina = borrador!.tipo === "maquina";
-  const paraStock = borrador!.destino === "stock";
   const variasMaquinas = esMaquina && borrador!.cantidad > 1;
   const sugerida = borrador!.numeroSerie ?? (esMaquina ? "" : `${(pz?.codigo ?? conj?.codigo ?? "").trim()}-${hoy.slice(8, 10)}${hoy.slice(5, 7)}`);
-  const situacion: "sin_fecha" | "llega" | "no_llega" = cuando.cliente == null ? "sin_fecha" : (cuando.margenCliente ?? 0) >= 0 ? "llega" : "no_llega";
-  const margen = cuando.margenCliente != null ? margenEntrega(-cuando.margenCliente) : null;
   const demoras = cuando.demoras;
   const lineas = [
     previa.reservadas > 0 && `Se reservan ${plural(previa.reservadas, "pieza")} del stock para esta orden.`,
@@ -276,28 +271,11 @@ export default async function GenerarOrdenPage({
           <p className="text-xs text-foreground-muted mt-1">Calculado hacia adelante desde hoy, con la carga actual del taller: las órdenes activas van primero.</p>
         </div>
 
-        {situacion === "llega" && margen && (
-          <div className={`rounded-lg border px-4 py-3 text-sm ${margen.tono === "verde" ? "border-verde/40 bg-verde-bg text-verde-fg" : "border-naranja-borde bg-naranja-tenue text-naranja-fg"}`}>
-            <strong>{margen.texto}</strong> para el {fechaCorta(cuando.cliente!, hoy)} que pidió el cliente. Se propone comprometer esa fecha.
-          </div>
-        )}
-        {situacion === "no_llega" && (
-          <div className="rounded-lg border border-naranja-borde bg-naranja-tenue px-4 py-3 text-sm text-naranja-fg space-y-1">
-            <div>
-              <strong>No llega: faltan {diasHabiles(-(cuando.margenCliente ?? 0))}</strong> para el {fechaCorta(cuando.cliente!, hoy)} que pidió el cliente.
-            </div>
-            {demoras.length > 0 && <div>Por qué: {demoras.join(" y ")}.</div>}
-          </div>
-        )}
+        {/* Prueba 1 (05/11): sin "el cliente la quiere para" ni fecha a comprometer. La orden queda con la fecha
+            estimada, que después se recalcula sola a medida que avanza el trabajo. */}
+        <input type="hidden" name="fechaEntrega" value={cuando.fecha} />
 
         <div className="grid sm:grid-cols-3 gap-3">
-          {situacion !== "no_llega" && (
-            <label className="block">
-              <span className="etiqueta">{situacion === "sin_fecha" ? `¿Comprometés el ${fechaCorta(cuando.fecha, hoy)}?` : "Fecha de entrega comprometida"}</span>
-              <input type="date" name="fechaEntrega" min={hoy} defaultValue={situacion === "llega" ? cuando.cliente! : paraStock ? "" : cuando.fecha} required={!paraStock} className="input" />
-              {paraStock && <span className="block text-xs text-foreground-muted mt-1">Para stock es opcional: si la dejás vacía, se compromete la más temprana con prioridad Normal.</span>}
-            </label>
-          )}
           <label className="block">
             <span className="etiqueta">Prioridad</span>
             <select name="prioridad" defaultValue="normal" className="input">
@@ -317,7 +295,7 @@ export default async function GenerarOrdenPage({
             {lineas.map((l) => (
               <li key={l}>{l}</li>
             ))}
-            <li>La orden queda activa con la fecha comprometida.</li>
+            <li>La orden queda activa con la fecha estimada, que se va corriendo sola según cómo avance el trabajo.</li>
           </ul>
           <div className="text-foreground-muted">Mientras no confirmes, el borrador no reserva ni pide nada.</div>
         </div>
@@ -326,20 +304,15 @@ export default async function GenerarOrdenPage({
           <Link href={`/ot/nueva?borrador=${borrador!.id}&paso=2`} className="btn-secundario">
             ← Volver a Qué hace falta
           </Link>
-          {situacion === "no_llega" ? (
-            <span className="flex flex-wrap gap-2">
-              <BotonEnviar name="fechaEntrega" value={cuando.cliente!} className="btn-secundario" disabled={variasMaquinas} enviando="Confirmando…">
-                Comprometer el {fechaCorta(cuando.cliente!, hoy)} igual (en riesgo)
-              </BotonEnviar>
-              <BotonEnviar name="fechaEntrega" value={cuando.fecha} disabled={variasMaquinas} enviando="Confirmando: reservando stock y armando el plan…">
-                Comprometer el {fechaCorta(cuando.fecha, hoy)}
-              </BotonEnviar>
-            </span>
-          ) : (
+          <span className="flex flex-wrap gap-2">
+            {/* El borrador ya está guardado: "Dejar en borrador" vuelve a Órdenes sin confirmar nada. */}
+            <Link href={`/proyectos?ok=${encodeURIComponent("Quedó en borrador: no reserva ni pide nada hasta que la confirmes.")}`} className="btn-secundario">
+              Dejar en borrador
+            </Link>
             <BotonEnviar disabled={variasMaquinas} enviando="Confirmando: reservando stock y armando el plan…">
               Confirmar orden
             </BotonEnviar>
-          )}
+          </span>
         </div>
       </form>
     </div>

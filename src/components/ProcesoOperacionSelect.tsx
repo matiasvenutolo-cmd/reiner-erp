@@ -25,7 +25,7 @@ export function ProcesoOperacionSelect({
         name="procesoId"
         defaultValue={procesoIdActual}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}
-        className="input text-sm py-1"
+        className="input text-sm py-1 w-full"
       >
         {procesos.map((p) => (
           <option key={p.id} value={p.id}>

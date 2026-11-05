@@ -49,9 +49,11 @@ test("se compra hecha: Falta material hasta que llega, después Terminada", () =
   assert.equal(estadoDePieza([], null).estado, "terminada");
 });
 
-test("'No comprar' en un artículo: no queda esperando la compra; se ve terminada con el motivo", () => {
+test("'No comprar' en un artículo: no queda esperando la compra ni se ve terminada: queda la decisión", () => {
   const e = estadoDePieza([], null, null, true);
-  assert.deepEqual([e.estado, e.motivo], ["terminada", "No se compra: se decidió al cargar la orden"]);
+  assert.deepEqual([e.estado, e.motivo], ["no_se_compra", "Se decidió no comprarla al generar la orden"]);
+  // Con la ruta de un solo paso "Compras" (dado por hecho al no comprar), tampoco se ve terminada.
+  assert.equal(estadoDePieza([t(1, { tipo: "compras", estado: "terminada" })], null, null, true).estado, "no_se_compra");
 });
 
 test("en un tercerizado: Afuera, con el proveedor y la vuelta prevista", () => {

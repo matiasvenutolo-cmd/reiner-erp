@@ -71,9 +71,12 @@ export async function getUsuarioDeTercerizados(): Promise<Usuario> {
   return usuario;
 }
 
-/** Acciones del módulo de Compras: sólo el perfil Compras (ver docs/06 §26). */
+/**
+ * Acciones del módulo de Compras: el perfil Compras (ver docs/06 §26) y, mientras dura la prueba (05/11),
+ * también dirección e ingeniería.
+ */
 export async function getUsuarioDeCompras(): Promise<Usuario> {
   const usuario = await getUsuarioActual();
-  if (usuario.rol !== "compras") throw new Error("No autorizado.");
+  if (!["compras", "direccion", "ingenieria"].includes(usuario.rol)) throw new Error("No autorizado.");
   return usuario;
 }

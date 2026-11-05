@@ -177,7 +177,7 @@ export function Paso1({
         </div>
       )}
 
-      <div className="grid sm:grid-cols-[1fr_8rem] gap-3 items-end">
+      <div className="grid sm:grid-cols-[1fr_8rem] gap-3 items-start">
         {tipo === "maquina" && (
           <Campo label="Qué máquina">
             <select name="configuracionId" value={configuracionId} onChange={(e) => setConfiguracionId(e.target.value)} required className="input">
@@ -310,9 +310,6 @@ export function Paso1({
                 </option>
               ))}
             </select>
-          </Campo>
-          <Campo label="El cliente la quiere para… (opcional)" ayuda="Es una referencia, no un compromiso: la fecha se define en el paso 3.">
-            <input type="date" name="fechaCliente" defaultValue={inicial.fechaCliente ?? ""} className="input" />
           </Campo>
         </div>
       ) : (

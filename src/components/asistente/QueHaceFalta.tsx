@@ -69,9 +69,12 @@ function FilaPieza({ f, grupo, borradorId, ver }: { f: Fila; grupo: Grupo; borra
           <input type="hidden" name="noComprar" value={f.claveCompra} />
           <input type="hidden" name="ancla" value={`grupo-${grupo}`} />
           {ver && <input type="hidden" name="ver" value={ver} />}
-          <button className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs ${f.comprar ? "border-accent bg-accent-soft text-accent-hover" : "border-border text-foreground-muted"}`}>
-            <Icono nombre={f.comprar ? "ok" : "cerrar"} className="w-3.5 h-3.5" />
-            {f.comprar ? "Comprar" : "No comprar"}
+          {/* Interruptor: viene prendido; apagado = se decide no comprar (queda anotado en la orden). */}
+          <button role="switch" aria-checked={f.comprar} aria-label="Comprar" className="inline-flex items-center gap-2 text-xs">
+            <span className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${f.comprar ? "bg-accent" : "bg-border"}`}>
+              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${f.comprar ? "left-[1.125rem]" : "left-0.5"}`} />
+            </span>
+            <span className={f.comprar ? "font-medium" : "text-foreground-muted"}>{f.comprar ? "Comprar" : "No comprar"}</span>
           </button>
         </form>
       )}

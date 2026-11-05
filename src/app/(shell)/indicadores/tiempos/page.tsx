@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PestanasIndicadores } from "@/components/ui/PestanasSecciones";
 import { Vacio } from "@/components/ui/Aviso";
@@ -22,7 +21,7 @@ export default async function TiemposPage() {
   const { tiempos, porCentro } = await getTiempos();
   return (
     <div className="space-y-6">
-      <PageHeader titulo="Indicadores" descripcion="Tiempos reales contra estimados. Sólo para mirar: el tiempo estándar se corrige en la hoja de ruta.">
+      <PageHeader titulo="Indicadores" descripcion="Tiempos reales contra estimados. Sólo para mirar: el tiempo estándar lo corrige ingeniería en la hoja de ruta.">
         <PestanasIndicadores actual="/indicadores/tiempos" />
       </PageHeader>
 
@@ -64,7 +63,6 @@ export default async function TiemposPage() {
                     <th className="text-right px-2 py-2 font-medium">Por unidad estimado</th>
                     <th className="text-right px-2 py-2 font-medium">Por unidad real</th>
                     <th className="text-right px-2 py-2 font-medium">Diferencia</th>
-                    <th className="px-3 py-2"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -86,11 +84,6 @@ export default async function TiemposPage() {
                       <td className="px-2 py-2 text-right">
                         <Desvio v={t.desvioUnidad} />
                       </td>
-                      <td className="px-3 py-2 text-right whitespace-nowrap">
-                        <Link href={`/maestros/pieza/${encodeURIComponent(t.piezaId)}`} className="btn-texto btn-sm">
-                          Usar el tiempo real como estándar →
-                        </Link>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -99,13 +92,6 @@ export default async function TiemposPage() {
           </section>
         </>
       )}
-      <p className="text-xs text-foreground-muted">
-        El resumen anterior de tiempos por operario y por proceso sigue en{" "}
-        <Link href="/indicadores/resumen" className="text-accent hover:underline">
-          Indicadores → resumen
-        </Link>
-        .
-      </p>
     </div>
   );
 }

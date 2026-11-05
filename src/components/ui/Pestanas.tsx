@@ -6,7 +6,9 @@ export type Pestana = { href: string; label: string; contador?: number };
  * cada una, se cambia de vista sin salir de la sección. */
 export function Pestanas({ items, actual }: { items: Pestana[]; actual: string }) {
   return (
-    <div className="flex gap-1 border-b border-border mt-4 overflow-x-auto print:hidden">
+    // La línea de abajo va como sombra interna, no como borde con las pestañas en -1px: ese píxel de más hacía que
+    // Windows mostrara una barra de desplazamiento vertical (las "dos flechitas" de la prueba 1).
+    <div className="flex gap-1 mt-4 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--border)] print:hidden">
       {items.map((p) => {
         const activa = p.href === actual;
         return (
@@ -14,7 +16,7 @@ export function Pestanas({ items, actual }: { items: Pestana[]; actual: string }
             key={p.href}
             href={p.href}
             aria-current={activa ? "page" : undefined}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap ${
+            className={`border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap ${
               activa ? "border-accent text-accent" : "border-transparent text-foreground-muted hover:text-foreground"
             }`}
           >

@@ -20,9 +20,9 @@ import type { Tarea, Compra } from "@/lib/planning/motor";
 import type { Tono } from "@/components/ui/Etiqueta";
 import { fechaCorta } from "@/lib/formato";
 
-export type EstadoVisible = "falta_material" | "lista" | "en_curso" | "afuera" | "trabada" | "terminada";
+export type EstadoVisible = "falta_material" | "lista" | "en_curso" | "afuera" | "trabada" | "terminada" | "no_se_compra";
 
-export const ESTADOS_VISIBLES: EstadoVisible[] = ["falta_material", "lista", "en_curso", "afuera", "trabada", "terminada"];
+export const ESTADOS_VISIBLES: EstadoVisible[] = ["falta_material", "lista", "en_curso", "afuera", "trabada", "terminada", "no_se_compra"];
 
 export const ESTADO_VISIBLE: Record<EstadoVisible, { label: string; tono: Tono; icono: string }> = {
   falta_material: { label: "Falta material", tono: "naranja", icono: "alerta" },
@@ -32,6 +32,8 @@ export const ESTADO_VISIBLE: Record<EstadoVisible, { label: string; tono: Tono; 
   afuera: { label: "Afuera", tono: "azul", icono: "tercerizados" },
   trabada: { label: "Trabada", tono: "rojo", icono: "bloqueo" },
   terminada: { label: "Terminada", tono: "verde", icono: "ok" },
+  // Prueba 1 (05/11): "No comprar" no es "terminada": es una decisión tomada al generar la orden.
+  no_se_compra: { label: "No se compra", tono: "gris", icono: "cerrar" },
 };
 
 export type EstadoDePieza = {
@@ -53,8 +55,11 @@ export function estadoDePieza(tareas: Tarea[], compra?: Compra | null, esperaMat
   // Se compra hecha: no tiene pasos.
   if (!pasos.length) {
     if (compra) return { estado: "falta_material", motivo: `Artículo: ${llegada}`, actual: null };
-    return { estado: "terminada", motivo: noSeCompra ? "No se compra: se decidió al cargar la orden" : null, actual: null };
+    if (noSeCompra) return { estado: "no_se_compra", motivo: "Se decidió no comprarla al generar la orden", actual: null };
+    return { estado: "terminada", motivo: null, actual: null };
   }
+  // Se compra hecha (su ruta es sólo Compras) y se eligió "No comprar": el paso queda dado por hecho, pero no está terminada.
+  if (noSeCompra && pasos.every((t) => t.tipo === "compras")) return { estado: "no_se_compra", motivo: "Se decidió no comprarla al generar la orden", actual: null };
   if (pasos.every((t) => t.estado === "terminada")) return { estado: "terminada", motivo: null, actual: null };
 
   const empezado = pasos.find((t) => t.estado === "en_curso" || t.estado === "pausada");
