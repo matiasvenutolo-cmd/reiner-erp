@@ -101,7 +101,7 @@ async function estadoDePieza(pieza: OtPieza): Promise<{ estado: EstadoCalculado;
 /** Un paso de la hoja de ruta con su nombre, para mostrar qué es cada
  * segmento de ProgresoOperaciones sin tener que clickear (pedido de
  * Matías, docs/06-backlog-release-3.md). */
-export type PasoOperacion = { id: string; nombre: string; completado: boolean };
+export type PasoOperacion = { id: string; nombre: string; completado: boolean; tipo?: string };
 export type EstadoBatchItem = { estado: EstadoCalculado; sinRouting: boolean; pasos: PasoOperacion[] };
 
 async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBatchItem>> {
@@ -162,7 +162,7 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
     const completadasSet = conLote
       ? avancePasos(ruta.map((r) => r.id), p.cantidadAFabricar, registros.filter((r) => r.otPiezaId === p.id && r.fin), conLote).completados
       : (completadasPorOtPieza.get(p.id) ?? new Set<string>());
-    const pasos = ruta.map((r) => ({ id: r.id, nombre: r.nombre, completado: completadasSet.has(r.id) }));
+    const pasos = ruta.map((r) => ({ id: r.id, nombre: r.nombre, completado: completadasSet.has(r.id), tipo: r.tipo }));
     // Sin control de materia prima (§2.2) el paso de Compras no cuenta para terminar ni para empezar.
     const flujo = pasosQueBloquean(ruta, (r) => r.tipo, mp);
     const completadas = flujo.filter((x) => completadasSet.has(x.id)).length;

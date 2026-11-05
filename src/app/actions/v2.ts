@@ -38,7 +38,7 @@ async function correr(volver: string, fn: () => Promise<string | void>) {
   const sep = base.includes("?") ? "&" : "?";
   const con = (q: string) => `${base}${sep}${q}${ancla ? `#${ancla}` : ""}`;
   if (error) redirect(con(`error=${encodeURIComponent(error)}`));
-  for (const r of ["/inicio", "/planificacion", "/proyectos", "/llegamos", "/pedir", "/liberacion", "/taller", "/stock", "/admin", "/operaciones", "/maestros", "/tercerizados"])
+  for (const r of ["/inicio", "/planificacion", "/proyectos", "/llegamos", "/pedir", "/liberacion", "/taller", "/stock", "/admin", "/operaciones", "/maestros", "/tercerizados", "/gestion", "/ot"])
     revalidatePath(r, "layout");
   revalidateTag("contadores", { expire: 0 });
   redirect(ok ? con(`ok=${encodeURIComponent(ok)}`) : volver);

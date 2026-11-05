@@ -5,7 +5,7 @@
  *
  * Lo que no es de la orden se conserva y sólo pierde el vínculo:
  * - las piezas que ya entraron al stock siguen en el stock (existen físicamente) y sus movimientos quedan;
- * - las solicitudes que Compras ya armó quedan en Compras, sin la pieza de origen;
+ * - las solicitudes que Compras ya armó (cotizadas, confirmadas o pagadas) quedan en Compras, sin la pieza ni el pedido de origen;
  * - los remitos ya emitidos quedan, sin la pieza de la orden.
  * Las reservas se borran, así que ese stock vuelve a quedar libre.
  */
@@ -55,6 +55,9 @@ export async function eliminarOrden(otMaquinaId: string): Promise<{ codigo: stri
       // Lo que no es de la orden queda, sin el vínculo.
       await tx.update(movimientoStock).set({ otPiezaId: null }).where(inArray(movimientoStock.otPiezaId, piezas));
       await tx.update(solicitudCompra).set({ otPiezaId: null }).where(inArray(solicitudCompra.otPiezaId, piezas));
+      // La compra confirmada queda en Compras (con su cotización y sus pagos), sin el pedido de la orden.
+      const pedidos = (await tx.select({ id: pedidoCompra.id }).from(pedidoCompra).where(inArray(pedidoCompra.otPiezaId, piezas))).map((x) => x.id);
+      if (pedidos.length) await tx.update(solicitudCompra).set({ pedidoCompraId: null }).where(inArray(solicitudCompra.pedidoCompraId, pedidos));
       await tx.update(remitoItem).set({ otPiezaId: null }).where(inArray(remitoItem.otPiezaId, piezas));
 
       for (const t of [registroOperacion, tareaRevision, asignacionTrabajo, avisoPlanta, colaTarea, controlCalidad, pedidoCompra, planAjuste, tareaAdelanto, tareaBloqueo, tareaLote, necesidadCompraOrden])

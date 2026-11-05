@@ -219,6 +219,8 @@ export async function previaConfirmacion(b: NonNullable<Awaited<ReturnType<typeo
     compras: conResto.filter((f) => (f.grupo === "compro" || f.grupo === "falta_material") && f.comprar).length,
     noComprar: conResto.filter((f) => (f.grupo === "compro" || f.grupo === "falta_material") && !f.comprar).length,
     alPlan: modo.automatica ? fabricoYa.length - sinPlano : 0,
+    /** Con la entrada a mano: piezas con material que quedan listas para mandar a producción desde Gestión. */
+    paraEnviar: modo.automatica ? 0 : fabricoYa.length,
     esperanMaterial: conResto.filter((f) => f.grupo === "falta_material" && f.comprar).length,
   };
 }

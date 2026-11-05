@@ -12,17 +12,16 @@
  * "Esperando el paso anterior", "Liberada" y "Futura" no se muestran. La
  * urgencia (el margen) tampoco es un estado: va aparte.
  *
- * Criterio, hasta la entrada automática al plan: una pieza con material que
- * todavía no pasó al plan queda "Trabada · Falta pasarla al plan", porque
- * nadie la va a empezar hasta que alguien la pase.
+ * Una pieza con material que todavía no pasó al plan queda "Por enviar": se
+ * manda a producción desde Gestión (prueba 1, 05/11).
  */
 import type { Tarea, Compra } from "@/lib/planning/motor";
 import type { Tono } from "@/components/ui/Etiqueta";
 import { fechaCorta } from "@/lib/formato";
 
-export type EstadoVisible = "falta_material" | "lista" | "en_curso" | "afuera" | "trabada" | "terminada" | "no_se_compra";
+export type EstadoVisible = "falta_material" | "lista" | "en_curso" | "afuera" | "trabada" | "terminada" | "no_se_compra" | "por_enviar";
 
-export const ESTADOS_VISIBLES: EstadoVisible[] = ["falta_material", "lista", "en_curso", "afuera", "trabada", "terminada", "no_se_compra"];
+export const ESTADOS_VISIBLES: EstadoVisible[] = ["falta_material", "lista", "en_curso", "afuera", "trabada", "terminada", "no_se_compra", "por_enviar"];
 
 export const ESTADO_VISIBLE: Record<EstadoVisible, { label: string; tono: Tono; icono: string }> = {
   falta_material: { label: "Falta material", tono: "naranja", icono: "alerta" },
@@ -34,6 +33,8 @@ export const ESTADO_VISIBLE: Record<EstadoVisible, { label: string; tono: Tono; 
   terminada: { label: "Terminada", tono: "verde", icono: "ok" },
   // Prueba 1 (05/11): "No comprar" no es "terminada": es una decisión tomada al generar la orden.
   no_se_compra: { label: "No se compra", tono: "gris", icono: "cerrar" },
+  // Prueba 1 (05/11): tiene material pero todavía no se mandó a producción (se hace desde Gestión).
+  por_enviar: { label: "Por enviar", tono: "gris", icono: "reloj" },
 };
 
 export type EstadoDePieza = {
@@ -69,9 +70,9 @@ export function estadoDePieza(tareas: Tarea[], compra?: Compra | null, esperaMat
 
   const actual = pasos.find((t) => t.estado !== "terminada")!;
   if (actual.tipo === "compras" || actual.motivoTraba === "Falta material" || actual.motivoTraba === "Esperando material")
-    return { estado: "falta_material", motivo: llegada ? `Material: ${llegada}` : "Esperando material", actual };
+    return { estado: "falta_material", motivo: llegada ? `${pasos.every((t) => t.tipo === "compras") ? "Artículo" : "Material"}: ${llegada}` : "Esperando material", actual };
   if (esperaMaterial) return { estado: "falta_material", motivo: esperaMaterial, actual };
   if (actual.estado === "trabada") return { estado: "trabada", motivo: actual.motivoTraba ?? "Sin motivo cargado", actual };
-  if (actual.estado === "futura") return { estado: "trabada", motivo: "Falta pasarla al plan", actual };
+  if (actual.estado === "futura") return { estado: "por_enviar", motivo: "Esperando el envío a producción, desde Gestión", actual };
   return { estado: "lista", motivo: null, actual };
 }

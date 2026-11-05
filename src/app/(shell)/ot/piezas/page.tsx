@@ -58,8 +58,8 @@ export default async function OtPiezasPage({
           <option value="todas">Todas</option>
         </select>
         <select name="produccion" defaultValue={produccion ?? ""} className="input w-auto">
-          <option value="">En ingeniería y en producción</option>
-          <option value="ingenieria">Sólo en ingeniería (sin enviar)</option>
+          <option value="">Por enviar y en producción</option>
+          <option value="ingenieria">Sólo las que esperan el envío a producción</option>
           <option value="enviada">Sólo enviadas a producción</option>
         </select>
         <button type="submit" className="text-sm text-accent hover:underline">
@@ -100,7 +100,7 @@ export default async function OtPiezasPage({
                   <td className="px-4 py-2.5">
                     <div className="flex flex-wrap items-center gap-1">
                       <EstadoBadge estado={p.estado} />
-                      {!p.enviada && <span className="badge-estado badge-pendiente">En ingeniería</span>}
+                      {!p.enviada && <span className="badge-estado badge-pendiente">Esperando envío</span>}
                     </div>
                   </td>
                 </tr>

@@ -13,6 +13,7 @@ import { and, asc, desc, eq, inArray, isNotNull, max } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { colaTarea, usuario, usuarioCentroTrabajo, operacion, proceso, centroTrabajo, proveedor, proveedorServicio, remito, remitoItem } from "@/lib/db/schema";
 import { getPlan } from "@/lib/planning/datos";
+import { evaluarEntrada } from "./entrada-plan";
 import { esHabil } from "@/lib/planning/calendario";
 import type { Tarea, Nivel } from "@/lib/planning/motor";
 
@@ -68,10 +69,27 @@ function nombreCorto(config: string | null | undefined, cliente: string | null |
   return `${maquina} · ${cliente ?? (destino === "stock" ? "Stock" : "Repuesto")}`;
 }
 
+/** Una pieza que espera el envío a producción (prueba 1, 05/11: se manda sólo desde Gestión). */
+export type FilaParaEnviar = {
+  otPiezaId: string;
+  pieza: string;
+  codigo: string;
+  cantidad: number;
+  orden: string;
+  ordenId: string;
+  /** Horas de taller de toda su hoja de ruta. */
+  horas: number;
+  pasos: number;
+  /** Por qué todavía no se puede mandar (falta material o plano); null = se puede. */
+  motivo: string | null;
+  holgura: number;
+};
+
 export async function getGestion() {
   const plan = await getPlan();
   const { resultado: r, entrada, proyectosInfo } = plan;
-  const tareas = r.tareas.filter((t) => t.estado !== "terminada" && t.tipo !== "compras");
+  // Lo que todavía no entró al plan (paso "futura") no se asigna: espera el envío a producción, arriba.
+  const tareas = r.tareas.filter((t) => t.estado !== "terminada" && t.tipo !== "compras" && t.estado !== "futura");
   const opIds = [...new Set(tareas.map((t) => t.operacionId))];
   const [cola, operarios, habilitaciones, ops, centros] = await Promise.all([
     db.select().from(colaTarea),
@@ -170,7 +188,30 @@ export async function getGestion() {
     filas,
     entrada,
   );
-  return { filas, operarios: operarios.map((o) => ({ ...o, centros: centrosDe.get(o.id) ?? [] })), centros, carga, hoy: entrada.hoy };
+  // Para enviar a producción: las piezas a fabricar que no entraron al plan, por urgencia de su primer paso.
+  const evaluadas = await evaluarEntrada({});
+  const pasosDe = new Map<string, Tarea[]>();
+  for (const t of r.tareas) if (t.tipo !== "compras") pasosDe.set(t.otPiezaId, [...(pasosDe.get(t.otPiezaId) ?? []), t]);
+  const paraEnviar: FilaParaEnviar[] = evaluadas
+    .map((x) => {
+      const ps = (pasosDe.get(x.otPiezaId) ?? []).sort((a, b) => a.posicion - b.posicion);
+      const info = proyectosInfo.get(x.otMaquinaId);
+      const proy = entrada.proyectos.find((p) => p.id === x.otMaquinaId);
+      return {
+        otPiezaId: x.otPiezaId,
+        pieza: x.nombre,
+        codigo: x.codigo,
+        cantidad: x.cantidad,
+        orden: nombreCorto(info?.configuracion, info?.cliente, proy?.tipo ?? "maquina", info?.referencia),
+        ordenId: x.otMaquinaId,
+        horas: ps.reduce((n, t) => n + t.horas, 0),
+        pasos: ps.length,
+        motivo: x.motivo,
+        holgura: ps[0]?.holgura ?? 0,
+      };
+    })
+    .sort((a, b) => Number(!!a.motivo) - Number(!!b.motivo) || a.holgura - b.holgura || a.orden.localeCompare(b.orden));
+  return { filas, paraEnviar, operarios: operarios.map((o) => ({ ...o, centros: centrosDe.get(o.id) ?? [] })), centros, carga, hoy: entrada.hoy };
 }
 
 /** Horas que el operario puede trabajar en un día: las del plan (calendario × eficiencia), 0 si falta o no es hábil. */

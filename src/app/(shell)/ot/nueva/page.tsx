@@ -253,8 +253,8 @@ export default async function GenerarOrdenPage({
     previa.noComprar > 0 && `${plural(previa.noComprar, "compra")} marcada${previa.noComprar === 1 ? "" : "s"} "No comprar": no se pide${previa.noComprar === 1 ? "" : "n"}.`,
     previa.alPlan > 0 && `${plural(previa.alPlan, "pieza")} con material entra${previa.alPlan === 1 ? "" : "n"} al plan.`,
     previa.esperanPlano > 0 && `${plural(previa.esperanPlano, "pieza")} con material espera${previa.esperanPlano === 1 ? "" : "n"} el plano: entra${previa.esperanPlano === 1 ? "" : "n"} al plan cuando ingeniería lo cargue.`,
-    previa.manual && "La entrada al plan está en manual (ADMIN): las piezas se pasan desde Entrada al plan.",
-    previa.esperanMaterial > 0 && `${plural(previa.esperanMaterial, "pieza")} queda${previa.esperanMaterial === 1 ? "" : "n"} esperando material.`,
+    previa.manual && previa.paraEnviar > 0 && `${plural(previa.paraEnviar, "pieza")} con material queda${previa.paraEnviar === 1 ? "" : "n"} lista${previa.paraEnviar === 1 ? "" : "s"} para mandar a producción desde Gestión.`,
+    previa.esperanMaterial > 0 && `${plural(previa.esperanMaterial, "pieza")} queda${previa.esperanMaterial === 1 ? "" : "n"} esperando material: cuando llegue, se ${previa.esperanMaterial === 1 ? "puede" : "pueden"} mandar a producción${previa.manual ? " desde Gestión" : ""}.`,
   ].filter(Boolean) as string[];
   return (
     <div className="space-y-4">

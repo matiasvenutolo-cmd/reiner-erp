@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { EsqueletoBloques } from "@/components/ui/EsqueletoBloques";
 import { Vacio } from "@/components/ui/Aviso";
 import { ListaGestion } from "@/components/gestion/ListaGestion";
+import { ParaEnviar } from "@/components/gestion/ParaEnviar";
 import { FiltrosGestion } from "@/components/gestion/FiltrosGestion";
 import { getGestion, type CargaOperario } from "@/lib/data/gestion";
 
@@ -20,7 +21,7 @@ export default async function GestionPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   return (
     <div className="space-y-4">
-      <PageHeader titulo="Gestión" descripcion="Asigná cada tarea eligiendo el operario en su fila. El orden de la cola de cada uno es el que ve en su tablet." />
+      <PageHeader titulo="Gestión" descripcion="Mandá piezas a producción y asigná cada tarea eligiendo el operario en su fila. El orden de la cola de cada uno es el que ve en su tablet." />
       <Suspense fallback={<EsqueletoBloques bloques={5} />}>
         <Contenido sp={sp} />
       </Suspense>
@@ -69,7 +70,7 @@ function PanelCarga({ carga, actual }: { carga: CargaOperario[]; actual?: string
 }
 
 async function Contenido({ sp }: { sp: Params }) {
-  const { filas, operarios, centros, carga, hoy } = await getGestion();
+  const { filas, paraEnviar, operarios, centros, carga, hoy } = await getGestion();
   const ordenes = [...new Map(filas.map((f) => [f.ordenId, { id: f.ordenId, nombre: f.orden }])).values()];
   let lista = filas;
   if (sp.centro) lista = lista.filter((f) => f.centroId === sp.centro);
@@ -80,9 +81,10 @@ async function Contenido({ sp }: { sp: Params }) {
   return (
     <div className="grid xl:grid-cols-[minmax(0,1fr)_20rem] gap-4 items-start">
       <div className="space-y-3 min-w-0">
+        {paraEnviar.length > 0 && <ParaEnviar filas={paraEnviar} />}
         <FiltrosGestion centros={centros} operarios={operarios} ordenes={ordenes} />
         {lista.length === 0 ? (
-          <Vacio>{filas.length === 0 ? "No hay tareas pendientes: cuando se confirme una orden, sus tareas aparecen acá." : "No hay tareas con estos filtros."}</Vacio>
+          <Vacio>{filas.length === 0 ? paraEnviar.length ? "Todavía no hay tareas para asignar: mandá piezas a producción desde arriba." : "No hay tareas pendientes: cuando se confirme una orden, sus piezas aparecen acá para enviar a producción." : "No hay tareas con estos filtros."}</Vacio>
         ) : (
           <ListaGestion filas={lista} operarios={operarios} centros={centros} operarioFiltro={sp.operario ?? null} hoy={hoy} />
         )}

@@ -1,5 +1,4 @@
 import { Icono } from "@/components/ui/Icono";
-import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -10,7 +9,6 @@ import { formatearDuracion } from "@/lib/formato";
 import { getUsuario } from "@/lib/data/usuarios";
 import { getTareasRevisionDePieza, getItemsTareaRevision } from "@/lib/data/revision";
 import { getAsignacionesVigentesBatch } from "@/lib/data/planificacion";
-import { enviarAProduccionAction } from "@/app/actions/ot";
 import {
   resolverTareaRevisionAction,
   agregarItemTareaRevisionAction,
@@ -65,7 +63,7 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
           <span className="flex flex-wrap items-center gap-2">
             {pieza?.nombre ?? otPieza.codigo}
             <EstadoBadge estado={estado} sinRouting={sinRouting} />
-            {!otPieza.enviadaProduccionAt && <span className="badge-estado badge-pendiente">En ingeniería</span>}
+            {!otPieza.enviadaProduccionAt && <span className="badge-estado badge-pendiente">{pieza?.tipo === "comprada" ? "Se compra" : "Esperando envío a producción"}</span>}
             {asignacion && <AsignacionBadge asignacion={asignacion} />}
           </span>
         }
@@ -75,16 +73,10 @@ export default async function OtPiezaPage({ params }: { params: Promise<{ id: st
             <Link href={`/ot/${id}/pieza/${otPieza.id}/imprimir`} className="btn-secundario">
               Imprimir OT
             </Link>
-            {otPieza.enviadaProduccionAt ? (
-              <Link href="/planificacion" className="btn">
-                Planificar →
-              </Link>
-            ) : (
-              <form action={enviarAProduccionAction}>
-                <input type="hidden" name="otPiezaId" value={otPieza.id} />
-                <ConfirmarBoton mensaje="¿Enviar esta pieza a producción? Va a aparecer en Planificación y en el taller.">Enviar a producción</ConfirmarBoton>
-              </form>
-            )}
+            {/* Se manda a producción y se asigna desde Gestión (prueba 1, 05/11). */}
+            <Link href="/gestion" className="btn">
+              Ir a Gestión →
+            </Link>
           </>
         }
       />

@@ -147,7 +147,7 @@ export async function confirmarBorradorAction(fd: FormData) {
   const partes = [
     `${plural(r.reservadas, "pieza")} reservada${r.reservadas === 1 ? "" : "s"} del stock`,
     `${plural(r.compras, "compra")} en Compras`,
-    `${plural(r.alPlan, "pieza")} al plan`,
+    r.alPlan ? `${plural(r.alPlan, "pieza")} al plan` : "las piezas se mandan a producción desde Gestión",
   ];
   if (r.esperanMaterial) partes.push(`${plural(r.esperanMaterial, "pieza")} esperando material`);
   redirect(`/proyectos/${r.otMaquinaId}?ok=${encodeURIComponent(`Orden confirmada: ${partes.join(" · ")}.`)}`);
@@ -185,5 +185,5 @@ export async function crearPiezaAMedidaAction(fd: FormData): Promise<{ ok: false
     return { ok: false, error: e instanceof Error ? e.message : "No se pudo crear la pieza." };
   }
   for (const ruta of ["/inicio", "/planificacion", "/proyectos", "/llegamos", "/gestion", "/stock", "/ot", "/maestros"]) invalidarTodo(ruta, "layout");
-  redirect(`/proyectos/${r.otMaquinaId}?ok=${encodeURIComponent(`Pieza ${r.codigo} creada y orden confirmada: ${plural(r.alPlan, "pieza")} al plan.`)}`);
+  redirect(`/proyectos/${r.otMaquinaId}?ok=${encodeURIComponent(`Pieza ${r.codigo} creada y orden confirmada: ${r.alPlan ? `${plural(r.alPlan, "pieza")} al plan` : "se manda a producción desde Gestión"}.`)}`);
 }

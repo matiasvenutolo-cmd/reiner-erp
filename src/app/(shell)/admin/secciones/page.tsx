@@ -73,7 +73,7 @@ export default async function SeccionesPage({ searchParams }: { searchParams: Pr
             Cómo entran las piezas al plan
             <select name="valor" defaultValue={params.entradaAutomatica ? "automatica" : "manual"} className="input block w-full mt-0.5">
               <option value="automatica">Solas: al confirmar la orden</option>
-              <option value="manual">A mano, por tandas desde Entrada al plan</option>
+              <option value="manual">A mano: el jefe de planta las manda a producción desde Gestión</option>
             </select>
           </label>
           <button className="btn-secundario">Guardar</button>

@@ -187,8 +187,9 @@ export async function calcularQueHaceFalta(
         plazoSupuesto = true;
       }
       material = { clave: `art:${p.id}`, nombre: p.nombre, cantidad: resto, unidad: "u.", especificado: true };
-    } else if (!controlaMP && pasos.length && pasos.every((x) => x.tipo === "compras")) {
-      // Su hoja de ruta es sólo "Compras": se compra hecha, aunque figure como fabricada.
+    } else if (pasos.length && pasos.every((x) => x.tipo === "compras")) {
+      // Su hoja de ruta es sólo "Compras": se compra hecha, aunque figure como fabricada (con o sin control de
+      // materia prima: no hay material que pedir para una pieza que no se fabrica acá).
       grupo = "compro";
       marcas.push("Se compra hecha (su ruta es sólo Compras)");
       plazo = p.plazoCompraDias ?? prv?.plazo ?? pasoCompras?.plazo ?? null;

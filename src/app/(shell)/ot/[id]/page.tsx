@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { EsqueletoBloques } from "@/components/ui/EsqueletoBloques";
-import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { notFound } from "next/navigation";
 import { getOtMaquinaDetalle } from "@/lib/data/ot";
@@ -11,7 +10,7 @@ import { getOtPiezaIdsConRevisionPendiente } from "@/lib/data/revision";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import { ConjuntosView } from "@/components/ot/ConjuntosView";
 import type { ConjuntoData } from "@/components/ot/ConjuntoAccordion";
-import { completarOtConjuntoAction, enviarAProduccionAction } from "@/app/actions/ot";
+import { completarOtConjuntoAction } from "@/app/actions/ot";
 
 /** Detalle de la orden (vista anterior). Carga por bloques (simplificación §4.6): se ve el marco enseguida y el detalle, cuando llega. */
 export default async function OtMaquinaPage({ params }: { params: Promise<{ id: string }> }) {
@@ -77,7 +76,8 @@ async function DetalleOrden({ id }: { id: string }) {
       })),
   );
   const sinPiezas = conjuntos.filter((c) => c.piezas.length === 0);
-  const sinEnviar = conjuntos.reduce((n, c) => n + c.piezas.filter((p) => !p.otPieza.enviadaProduccionAt).length, 0);
+  // Lo que se compra hecho no se manda a producción: sólo cuentan las piezas a fabricar.
+  const sinEnviar = conjuntos.reduce((n, c) => n + c.piezas.filter((p) => !p.otPieza.enviadaProduccionAt && piezasPorId.get(p.otPieza.piezaId)?.tipo !== "comprada" && !(p.pasos.length > 0 && p.pasos.every((x) => x.tipo === "compras"))).length, 0);
   // Cubierto por stock ≠ sin piezas en la lista de la configuración (ej. Lubricación en una PS):
   // el texto anterior decía "el stock cubría la necesidad" para los dos casos.
   const conjuntosSinFabricar = sinPiezas.filter((c) => (piezasConfigPorConjunto.get(c.otConjunto.conjuntoId) ?? []).length > 0);
@@ -108,23 +108,16 @@ async function DetalleOrden({ id }: { id: string }) {
         }
       />
 
+      {/* Prueba 1 (05/11): se manda a producción sólo desde Gestión; acá sólo se ve el estado. */}
       {sinEnviar > 0 && (
-        <form action={enviarAProduccionAction} className="bg-accent-soft rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-          <input type="hidden" name="otMaquinaId" value={otMaquina.id} />
-          <span className="text-sm">
-            {sinEnviar} pieza{sinEnviar === 1 ? "" : "s"} todavía en ingeniería. Al enviarlas a producción aparecen en Planificación para
-            asignarles día y operario.
+        <div className="bg-accent-soft rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span>
+            {sinEnviar} pieza{sinEnviar === 1 ? "" : "s"} esperando el envío a producción. Se mandan desde Gestión.
           </span>
-          <ConfirmarBoton mensaje={`¿Enviar ${sinEnviar} pieza${sinEnviar === 1 ? "" : "s"} a producción? Van a aparecer en Planificación y en el taller.`}>
-            Enviar{" "}
-            {sinEnviar === conjuntos.reduce((n, c) => n + c.piezas.length, 0)
-              ? "toda la OT"
-              : sinEnviar === 1
-                ? "la pieza que falta"
-                : `las ${sinEnviar} piezas que faltan`}{" "}
-            a producción
-          </ConfirmarBoton>
-        </form>
+          <Link href="/gestion" className="btn-secundario btn-sm">
+            Ir a Gestión →
+          </Link>
+        </div>
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

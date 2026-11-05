@@ -320,7 +320,8 @@ export function haciaAtras(p: ProyectoEntrada, centros: Map<string, CentroEntrad
         dias = 0;
         inicio = sumarHabiles(limite, -paso.plazoDias, cal); // pedir antes del…
         if (paso.estado !== "terminada") {
-          compras.push({ pieza: pz, operacionId: paso.operacionId, llegadaNecesaria: limite, plazo: paso.plazoDias, supuesto: paso.plazoSupuesto, esMaterial: true, pedido: !!paso.pedido, llegadaPrevista: paso.llegadaPrevista ?? null });
+          // Con una hoja de ruta sólo de Compras no es material: es la pieza misma, que se compra hecha.
+          compras.push({ pieza: pz, operacionId: paso.operacionId, llegadaNecesaria: limite, plazo: paso.plazoDias, supuesto: paso.plazoSupuesto, esMaterial: pz.pasos.some((x) => x.tipo !== "compras"), pedido: !!paso.pedido, llegadaPrevista: paso.llegadaPrevista ?? null });
         }
       } else if (paso.tipo === "tercerizado") {
         dias = paso.plazoDias;

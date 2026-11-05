@@ -20,7 +20,7 @@ import { tildarPasoInformativoAction, eliminarOrdenAction } from "@/app/actions/
 import { getUsuarioActual } from "@/lib/session";
 import { Etiqueta } from "@/components/ui/Etiqueta";
 import { capitalizar, diasHabiles, numero, plural } from "@/lib/formato";
-import { activarProyectoAction, cambiarEntregaAction, pausarProyectoAction, liberarAction } from "@/app/actions/v2";
+import { activarProyectoAction, cambiarEntregaAction, pausarProyectoAction } from "@/app/actions/v2";
 import type { Causa } from "@/lib/planning/motor";
 
 export const dynamic = "force-dynamic";
@@ -41,8 +41,8 @@ function sugerirEntrega(emision: Date | null, plazo: string | null): string {
 }
 
 // Un estado por pieza, de cinco (simplificación §4.2): lo que frena primero.
-const ORDEN_ESTADO: EstadoVisible[] = ["trabada", "falta_material", "afuera", "en_curso", "lista", "terminada", "no_se_compra"];
-const LABEL_ESTADO: Record<EstadoVisible, string> = { trabada: "Trabadas", falta_material: "Falta material", afuera: "Afuera", en_curso: "En curso", lista: "Listas", terminada: "Terminadas", no_se_compra: "No se compran" };
+const ORDEN_ESTADO: EstadoVisible[] = ["trabada", "falta_material", "por_enviar", "afuera", "en_curso", "lista", "terminada", "no_se_compra"];
+const LABEL_ESTADO: Record<EstadoVisible, string> = { trabada: "Trabadas", falta_material: "Falta material", afuera: "Afuera", en_curso: "En curso", lista: "Listas", terminada: "Terminadas", no_se_compra: "No se compran", por_enviar: "Por enviar" };
 
 type PiezaOrden = { id: string; otConjuntoId: string; nombre: string; cant: number; e: EstadoDePieza; informativo?: { operacionId: string; nombre: string } | null };
 
@@ -279,7 +279,6 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
 
   // ── Activo ─────────────────────────────────────────────────────────────
   const tareas = plan.resultado.tareas.filter((t) => t.proyectoId === id);
-  const tanda = plan.resultado.tandas.find((t) => t.proyectoId === id);
   const [filasPiezas, esperaMaterial, llegadas, noComprar, controlaMP, proveedoresAfuera, informativos] = await Promise.all([
     db
       .select({ id: otPieza.id, otConjuntoId: otPieza.otConjuntoId, nombre: pieza.nombre, cant: otPieza.cantidadAFabricar, necesaria: otPieza.cantidadNecesaria, conjunto: conjunto.nombre, conjuntoCodigo: conjunto.codigo, clase: pieza.clase, tipoPieza: pieza.tipo })
@@ -316,6 +315,8 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
       e: estadoDePieza(tareas.filter((t) => t.otPiezaId === x.id), compraDePieza.get(x.id), esperaMaterial.get(x.id), noComprar.has(x.id), proveedoresAfuera.get(x.id)),
       informativo: controlaMP ? null : (informativos.get(x.id) ?? null),
     }));
+  // Las que ya tienen material y esperan que el jefe de planta las mande (las otras esperan el material).
+  const porEnviar = piezasOrden.filter((x) => x.e.estado === "por_enviar").length;
   const cuenta = (ps: PiezaOrden[]) => Object.fromEntries(ORDEN_ESTADO.map((e) => [e, ps.filter((x) => x.e.estado === e).length])) as Record<EstadoVisible, number>;
 
   // ── Pieza o conjunto suelto: pantalla simple (simplificación §4.1) ─────
@@ -361,16 +362,14 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
                 ))}
             </ul>
           )}
-          {tanda && tanda.otPiezaIds.length > 0 && (
-            <form action={liberarAction} className="mt-3">
-              <input type="hidden" name="volver" value={`/proyectos/${id}`} />
-              {tanda.otPiezaIds.map((pid) => (
-                <input key={pid} type="hidden" name="otPiezaId" value={pid} />
-              ))}
-              <ConfirmarBoton mensaje={`¿Pasar ${plural(tanda.otPiezaIds.length, "pieza")} al plan de la semana?`} className="btn btn-sm">
-                Pasar {plural(tanda.otPiezaIds.length, "pieza")} al plan
-              </ConfirmarBoton>
-            </form>
+          {/* Prueba 1 (05/11): se manda a producción sólo desde Gestión; acá sólo se ve el estado. */}
+          {porEnviar > 0 && (
+            <p className="mt-3 text-sm text-foreground-muted">
+              {plural(porEnviar, "pieza")} con material, esperando el envío a producción.{" "}
+              <Link href="/gestion" className="text-accent hover:underline">
+                Se mandan desde Gestión →
+              </Link>
+            </p>
           )}
         </section>
 
@@ -551,16 +550,15 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
         </div>
       </section>
 
+      {porEnviar > 0 && (
+        <Aviso tipo="info">
+          {plural(porEnviar, "pieza")} con material, esperando el envío a producción.{" "}
+          <Link href="/gestion" className="text-accent hover:underline">
+            Se mandan desde Gestión →
+          </Link>
+        </Aviso>
+      )}
       <div className="flex flex-wrap gap-2 items-start">
-        {tanda && tanda.otPiezaIds.length > 0 && (
-          <form action={liberarAction}>
-            <input type="hidden" name="volver" value={`/proyectos/${id}`} />
-            {tanda.otPiezaIds.map((pid) => (
-              <input key={pid} type="hidden" name="otPiezaId" value={pid} />
-            ))}
-            <ConfirmarBoton mensaje={`¿Pasar ${plural(tanda.otPiezaIds.length, "pieza")} al plan de la semana?`}>Pasar {plural(tanda.otPiezaIds.length, "pieza")} al plan</ConfirmarBoton>
-          </form>
-        )}
         <details className="tarjeta px-3 py-2">
           <summary className="cursor-pointer text-sm font-semibold">Cambiar fecha de entrega</summary>
           <form action={cambiarEntregaAction} className="mt-2 flex flex-wrap items-end gap-2">
@@ -701,6 +699,7 @@ function BarraEstados({ piezas, total }: { piezas: Record<EstadoVisible, number>
     ["afuera", "bg-accent"],
     ["lista", "bg-accent/50"],
     ["falta_material", "bg-naranja"],
+    ["por_enviar", "bg-border"],
     ["trabada", "bg-rojo"],
   ];
   if (!total) return null;

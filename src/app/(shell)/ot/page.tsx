@@ -25,7 +25,7 @@ export default async function OtPage() {
     <div className="space-y-8">
       <PageHeader
         titulo="Órdenes"
-        descripcion="Cada orden nace en ingeniería; cuando está lista se envía a producción y recién ahí aparece para planificar y en el taller."
+        descripcion="Al confirmar una orden sus piezas quedan esperando el envío a producción; se mandan desde Gestión y recién ahí aparecen para asignar y en el taller."
         acciones={
           <Link href="/ot/nueva" className="btn">
             + Generar orden
@@ -168,7 +168,7 @@ function CeldaEstado({ ot }: { ot: Orden }) {
     <td className="px-4 py-2.5">
       <div className="flex flex-wrap items-center gap-1">
         <EstadoBadge estado={ot.estadoCalculado} />
-        {ot.piezasSinEnviar > 0 && <span className="badge-estado badge-pendiente">{ot.piezasSinEnviar} en ingeniería</span>}
+        {ot.piezasSinEnviar > 0 && <span className="badge-estado badge-pendiente">{ot.piezasSinEnviar} por enviar a producción</span>}
       </div>
     </td>
   );

@@ -35,9 +35,9 @@ test("trabada siempre con motivo", () => {
   assert.equal(estadoDePieza([t(1, { estado: "trabada" })]).motivo, "Sin motivo cargado");
 });
 
-test("con material pero fuera del plan: Trabada · Falta pasarla al plan", () => {
+test("con material pero sin mandar a producción: Por enviar (se manda desde Gestión)", () => {
   const e = estadoDePieza([t(1, { estado: "futura" })]);
-  assert.deepEqual([e.estado, e.motivo], ["trabada", "Falta pasarla al plan"]);
+  assert.deepEqual([e.estado, e.motivo], ["por_enviar", "Esperando el envío a producción, desde Gestión"]);
 });
 
 test("confirmada en 'Falta material' y la compra no llegó: Falta material aunque no tenga paso de Compras", () => {
