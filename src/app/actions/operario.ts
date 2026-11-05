@@ -92,7 +92,11 @@ export async function terminarAction(fd: FormData) {
         cierrePieza: ultima ? { piezasNoOk: rechazadas, piezasDefectuosas: num(fd, "piezasDefectuosas"), piezasRetrabajadas: num(fd, "piezasRetrabajadas") } : undefined,
       });
     },
-    () => `${volver}${volver.includes("?") ? "&" : "?"}listo=${registroId}`,
+    // Tanda 2 (05/11): al terminar vuelve a su cola, no a la pieza: el paso siguiente aparece sólo si se lo asignaron.
+    () => {
+      const base = /^\/taller\/[^/?]+/.test(volver) && !volver.startsWith("/taller/centro") ? "/taller" : volver;
+      return `${base}${base.includes("?") ? "&" : "?"}listo=${registroId}`;
+    },
   );
 }
 
@@ -124,6 +128,7 @@ export async function avisarAction(fd: FormData) {
   await correr(fd, async (u) => {
     const tipo = t(fd, "tipo") || "otro";
     await db.insert(avisoPlanta).values({ tipo, texto: t(fd, "texto") || "Aviso desde la planta", otPiezaId: t(fd, "otPiezaId") || null, usuarioId: u });
+    revalidatePath("/gestion");
     return tipo === "falta_plano" ? "Listo, ingeniería ya tiene el aviso." : "Listo, el jefe de planta ya tiene el aviso.";
   });
 }
@@ -161,6 +166,7 @@ export async function resolverAvisoAction(fd: FormData) {
   await db.update(avisoPlanta).set({ resueltoAt: new Date() }).where(eq(avisoPlanta.id, t(fd, "id")));
   revalidatePath("/inicio", "layout");
   revalidatePath("/admin", "layout");
+  revalidatePath("/gestion");
   revalidateTag("contadores", { expire: 0 });
   redirect(`${t(fd, "volver") || "/inicio"}?ok=${encodeURIComponent("Aviso resuelto.")}`);
 }

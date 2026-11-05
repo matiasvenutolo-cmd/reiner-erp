@@ -78,10 +78,9 @@ export function PestanasIndicadores({ actual }: { actual: string }) {
     <Pestanas
       actual={actual}
       items={[
-        { href: "/indicadores", label: "Carga" },
+        { href: "/indicadores/resumen", label: "Resumen" },
         { href: "/indicadores/tiempos", label: "Tiempos" },
         { href: "/indicadores/paradas", label: "Paradas y rechazos" },
-        { href: "/indicadores/resumen", label: "Resumen" },
       ]}
     />
   );

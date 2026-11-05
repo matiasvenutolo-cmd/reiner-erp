@@ -81,7 +81,7 @@ const NAV_ITEMS: NavEntry[] = [
   // La asignación pasó a Gestión; la grilla por días queda oculta (la carga se mira en Indicadores).
   { href: "/planificacion", label: "Plan de la semana", roles: STAFF, grupo: "produccion", oculta: true, ayuda: "Qué se hace en cada centro esta semana" },
   { href: "/centros-trabajo", label: "Colas por centro", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/planificacion" },
-  { href: "/indicadores", label: "Indicadores", roles: STAFF, grupo: "produccion", ayuda: "Carga, si llegamos, tiempos, paradas y rechazos. Sólo consulta" },
+  { href: "/indicadores", label: "Indicadores", roles: STAFF, grupo: "produccion", ayuda: "Resumen, tiempos, paradas y rechazos. Sólo consulta" },
   { href: "/llegamos", label: "¿Llegamos?", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/indicadores" },
   { href: "/avance", label: "Avance de máquinas", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/indicadores" },
   { href: "/inicio", label: "Hoy", roles: STAFF, grupo: "produccion", oculta: true, ayuda: "Qué hay que hacer hoy y qué está trabado" },

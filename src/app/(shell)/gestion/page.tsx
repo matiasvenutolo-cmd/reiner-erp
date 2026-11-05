@@ -9,6 +9,10 @@ import { FiltrosGestion } from "@/components/gestion/FiltrosGestion";
 import { getGestion, type OrdenEnCurso } from "@/lib/data/gestion";
 import { CargaTrabajo } from "@/components/gestion/CargaTrabajo";
 import { fechaCorta } from "@/lib/formato";
+import { and, desc, eq, isNull } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { avisoPlanta, usuario, otPieza, pieza } from "@/lib/db/schema";
+import { resolverAvisoAction } from "@/app/actions/operario";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +32,42 @@ export default async function GestionPage({ searchParams }: { searchParams: Prom
         <Contenido sp={sp} />
       </Suspense>
     </div>
+  );
+}
+
+const TIPO_AVISO: Record<string, string> = { sin_tareas: "Se quedó sin tareas", falta_plano: "Falta un plano (para ingeniería)", otro: "Aviso" };
+
+/** Avisos de la planta (tanda 2, 05/11): lo que el operario manda desde la tablet le llega acá al jefe de planta. */
+async function AvisosPlanta() {
+  const avisos = await db
+    .select({ id: avisoPlanta.id, tipo: avisoPlanta.tipo, texto: avisoPlanta.texto, cuando: avisoPlanta.createdAt, quien: usuario.nombre, pieza: pieza.nombre })
+    .from(avisoPlanta)
+    .innerJoin(usuario, eq(usuario.id, avisoPlanta.usuarioId))
+    .leftJoin(otPieza, eq(otPieza.id, avisoPlanta.otPiezaId))
+    .leftJoin(pieza, eq(pieza.id, otPieza.piezaId))
+    .where(and(isNull(avisoPlanta.resueltoAt)))
+    .orderBy(desc(avisoPlanta.createdAt));
+  if (!avisos.length) return null;
+  const hora = (d: Date) => d.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
+  return (
+    <section className="rounded-lg border border-naranja-borde bg-naranja-tenue px-4 py-3 space-y-2">
+      <h2 className="font-semibold text-naranja-fg">Avisos de la planta · {avisos.length}</h2>
+      <ul className="space-y-1.5">
+        {avisos.map((a) => (
+          <li key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="font-semibold">{a.quien}</span>
+            <span className="badge-estado bg-naranja-bg text-naranja-fg">{TIPO_AVISO[a.tipo] ?? "Aviso"}</span>
+            <span className="flex-1 min-w-48">{a.texto}</span>
+            <span className="text-xs text-foreground-muted">{hora(a.cuando)}</span>
+            <form action={resolverAvisoAction}>
+              <input type="hidden" name="id" value={a.id} />
+              <input type="hidden" name="volver" value="/gestion" />
+              <button className="btn-secundario btn-sm">Listo, resuelto</button>
+            </form>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -76,6 +116,7 @@ async function Contenido({ sp }: { sp: Params }) {
   const despues = sp.operario ? [] : lista.filter((f) => f.estado === "espera");
   return (
     <div className="space-y-4">
+      <AvisosPlanta />
       <OrdenesEnCurso ordenes={enCurso} hoy={hoy} />
       {paraEnviar.length > 0 && <ParaEnviar filas={paraEnviar} />}
       <FiltrosGestion centros={centros} operarios={operarios} ordenes={ordenes} />

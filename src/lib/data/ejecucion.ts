@@ -309,20 +309,19 @@ export async function finalizarOperacion(input: FinalizarOperacionInput): Promis
   }
 }
 
-/** No se declaran más piezas de las que llegaron al paso. Los conteos del
+/** No se declaran más piezas OK de las que llegaron al paso. Las rechazadas van aparte (tanda 2, 05/11): si
+ * había que hacer 1 y la primera salió mal, se termina con 1 OK y 1 rechazada. Los conteos del
  * cierre de la pieza (no OK, defectuosas, retrabajadas) todavía no tienen
  * una definición de si se solapan entre sí (ver docs/06 §25, punto 3.2): por
  * ahora cada uno, por separado, no puede superar las piezas que no salieron OK. */
 function validarCantidades(input: FinalizarOperacionInput, { disponibles }: CantidadesOperacion) {
   const valores = [input.piezasOk, input.piezasRechazadas, ...Object.values(input.cierrePieza ?? {})];
   if (valores.some((v) => !Number.isInteger(v) || v < 0)) throw new Error("Las cantidades tienen que ser números enteros, 0 o más.");
-  if (input.piezasOk + input.piezasRechazadas > disponibles) {
-    throw new Error(
-      `Llegaron ${disponibles} pieza${disponibles === 1 ? "" : "s"} a esta operación: OK + rechazadas no puede pasar de ${disponibles}.`,
-    );
+  if (input.piezasOk > disponibles) {
+    throw new Error(`Llegaron ${disponibles} pieza${disponibles === 1 ? "" : "s"} a esta operación: las OK no pueden pasar de ${disponibles}.`);
   }
   if (input.cierrePieza) {
-    const noSalieronOk = disponibles - input.piezasOk;
+    const noSalieronOk = Math.max(disponibles - input.piezasOk, input.piezasRechazadas);
     const { piezasNoOk, piezasDefectuosas, piezasRetrabajadas } = input.cierrePieza;
     if (Math.max(piezasNoOk, piezasDefectuosas, piezasRetrabajadas) > noSalieronOk) {
       throw new Error(`De ${disponibles} piezas salieron ${input.piezasOk} OK: no OK, defectuosas o retrabajadas no pueden pasar de ${noSalieronOk}.`);

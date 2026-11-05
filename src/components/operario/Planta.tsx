@@ -206,20 +206,12 @@ export function Terminar({ campos, disponibles }: { campos: Record<string, strin
         <Icono nombre="ok" className="w-6 h-6" /> Terminar
       </button>
     );
-  const pasa = ok + rech > disponibles;
+  // Tanda 2 (05/11): las rechazadas se suman aparte. Si había que hacer 1 y la primera salió mal, se termina con
+  // 1 OK y 1 rechazada: lo hecho puede pasar lo pedido; las OK, no.
   return (
     <FormPlanta accion="terminar" campos={campos} className="space-y-3">
-      <Contador label="Piezas OK" valor={ok} set={(n) => setOk(Math.min(n, disponibles - rech))} max={disponibles} />
-      <Contador
-        label="Rechazadas"
-        valor={rech}
-        set={(n) => {
-          const r = Math.min(n, disponibles);
-          setRech(r);
-          setOk((o) => Math.min(o, disponibles - r));
-        }}
-        max={disponibles}
-      />
+      <Contador label="Piezas OK" valor={ok} set={(n) => setOk(Math.min(n, disponibles))} max={disponibles} />
+      <Contador label="Rechazadas" valor={rech} set={setRech} max={99} />
       <input type="hidden" name="piezasOk" value={ok} />
       <input type="hidden" name="piezasRechazadas" value={rech} />
       <input type="hidden" name="motivoRechazo" value={motivo} />
@@ -235,8 +227,8 @@ export function Terminar({ campos, disponibles }: { campos: Record<string, strin
           </div>
         </div>
       )}
-      {pasa && <p className="text-rojo-fg font-semibold">Llegaron {disponibles}: OK + rechazadas no puede pasar de {disponibles}.</p>}
-      <button disabled={pasa || (rech > 0 && !motivo)} className="btn w-full text-lg">
+      <p className="text-[15px] text-foreground-muted">Hacían falta {disponibles}. Si alguna salió mal y la volviste a hacer, sumala en Rechazadas.</p>
+      <button disabled={rech > 0 && !motivo} className="btn w-full text-lg">
         Confirmar
       </button>
       <button type="button" onClick={() => setAbierto(false)} className="btn-texto w-full">

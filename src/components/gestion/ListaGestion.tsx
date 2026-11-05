@@ -37,8 +37,6 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [tildadas, setTildadas] = useState<Set<string>>(new Set());
-  const [paraVarias, setParaVarias] = useState("");
   // Lo elegido se ve al instante, mientras se guarda.
   const [operarioDe, setOperarioDe] = useState<Record<string, string | null>>({});
   const [centroDe, setCentroDe] = useState<Record<string, string>>({});
@@ -57,8 +55,6 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
     ejecutar(() => asignarTareasAction(claves, operarioId));
   };
 
-  const asignables = filas.filter((f) => f.tipo === "interno" && f.estado !== "en_curso");
-  const todasTildadas = asignables.length > 0 && asignables.every((f) => tildadas.has(f.clave));
 
   return (
     <div className="space-y-3">
@@ -78,49 +74,12 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
         </div>
       )}
 
-      {tildadas.size > 0 && (
-        <div className="sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-lg border border-accent bg-accent-soft px-3 py-2 text-sm">
-          <span className="font-semibold">{tildadas.size} tildada{tildadas.size === 1 ? "" : "s"}</span>
-          <select value={paraVarias} onChange={(e) => setParaVarias(e.target.value)} className="input py-1 w-auto">
-            <option value="">Asignar a…</option>
-            {operarios.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.nombre}
-              </option>
-            ))}
-            <option value="-">— Sin asignar —</option>
-          </select>
-          <button
-            className="btn btn-sm"
-            disabled={!paraVarias || pendiente}
-            onClick={() => {
-              asignar([...tildadas], paraVarias === "-" ? null : paraVarias);
-              setTildadas(new Set());
-              setParaVarias("");
-            }}
-          >
-            Asignar
-          </button>
-          <button className="btn-texto btn-sm" onClick={() => setTildadas(new Set())}>
-            Destildar
-          </button>
-        </div>
-      )}
-
       <div className="tarjeta overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-xs text-foreground-muted">
             <tr className="border-b border-border">
-              <th className="px-3 py-2 w-8">
-                <input
-                  type="checkbox"
-                  aria-label="Tildar todas"
-                  checked={todasTildadas}
-                  onChange={(e) => setTildadas(e.target.checked ? new Set(asignables.map((f) => f.clave)) : new Set())}
-                />
-              </th>
               {operarioFiltro && <th className="px-1 py-2 font-medium">Orden</th>}
-              <th className="text-left px-2 py-2 font-medium">Pieza y orden</th>
+              <th className="text-left px-3 py-2 font-medium">Pieza y orden</th>
               <th className="text-left px-2 py-2 font-medium">Paso y centro</th>
               <th className="text-right px-2 py-2 font-medium">Horas</th>
               <th className="text-left px-2 py-2 font-medium">Operario</th>
@@ -137,21 +96,6 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
               const fueraDeLista = operarioId && !opciones.some((o) => o.id === operarioId) ? operarios.find((o) => o.id === operarioId) : null;
               return (
                 <tr key={f.clave} className={`border-t border-border first:border-t-0 align-middle ${f.estado === "espera" ? "text-foreground-muted" : ""}`}>
-                  <td className="px-3 py-2">
-                    {interno && f.estado !== "en_curso" && (
-                      <input
-                        type="checkbox"
-                        aria-label={`Tildar ${f.pieza}`}
-                        checked={tildadas.has(f.clave)}
-                        onChange={(e) => {
-                          const s = new Set(tildadas);
-                          if (e.target.checked) s.add(f.clave);
-                          else s.delete(f.clave);
-                          setTildadas(s);
-                        }}
-                      />
-                    )}
-                  </td>
                   {operarioFiltro && (
                     <td className="px-1 py-2 whitespace-nowrap">
                       <button className="px-1.5 rounded hover:bg-surface-muted disabled:opacity-30" disabled={i === 0 || pendiente} aria-label="Subir" onClick={() => ejecutar(() => moverEnColaAction(f.clave, "arriba"))}>
@@ -167,7 +111,7 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
                       </button>
                     </td>
                   )}
-                  <td className="px-2 py-2">
+                  <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
                       <Urgencia f={f} />
                       {/* Prueba 1 (05/11): la ficha de la pieza muestra todos sus pasos, asignaciones y tiempos, y se imprime. */}

@@ -74,63 +74,77 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
 
       <div className="space-y-8">
         <Seccion id="necesidades" titulo={PASOS[0].titulo} ayuda={PASOS[0].ayuda} cantidad={necesidades.length}>
-          <div className="tarjeta overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-xs text-foreground-muted">
-                <tr className="border-b border-border">
-                  <th className="text-left px-4 py-2 font-medium">Qué hay que comprar</th>
-                  <th className="text-left px-4 py-2 font-medium">Orden de trabajo</th>
-                  <th className="text-right px-4 py-2 font-medium">Cantidad</th>
-                  <th className="text-left px-4 py-2 font-medium">Pedir antes del</th>
-                  <th className="px-4 py-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {necesidades.map((n) => (
-                  <tr key={n.otPiezaId} className="border-t border-border first:border-t-0">
-                    <td className="px-4 py-2.5">
-                      <div className="font-medium">{n.descripcion ?? (n.operacionCompraId ? `Material para ${n.piezaNombre}` : n.piezaNombre)}</div>
-                      <div className="text-xs text-foreground-muted">
-                        {n.piezaCodigo} · {n.esMaterial || n.operacionCompraId ? "pieza a fabricar, falta el material" : "pieza que se compra hecha"}
-                      </div>
-                      {n.observacion && <div className="text-xs text-foreground-muted mt-0.5">{n.observacion}</div>}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="font-mono text-xs">{n.otPiezaCodigo}</div>
-                      <div className="text-xs text-foreground-muted">{n.conjuntoNombre}</div>
-                    </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{n.cantidad}</td>
-                    <td className="px-4 py-2.5 text-xs">
-                      {compraDe.get(n.otPiezaId) ? (
-                        <>
-                          {/* Nunca una fecha pasada (simplificación §3): lo que nació tarde es "Pedir ya"; "vencida" queda para lo que tenía fecha futura y no se pidió a tiempo. */}
-                          {compraDe.get(n.otPiezaId)!.pedirAntes < hoy && compraDe.get(n.otPiezaId)!.pedirYa ? (
-                            <div className="text-sm font-semibold text-naranja-fg">Pedir ya</div>
-                          ) : (
-                            <div className={`text-sm font-semibold ${compraDe.get(n.otPiezaId)!.pedirAntes < hoy ? "text-rojo-fg" : ""}`}>
-                              {formatearFecha(compraDe.get(n.otPiezaId)!.pedirAntes)}
-                              {compraDe.get(n.otPiezaId)!.pedirAntes < hoy && " · vencida"}
-                            </div>
-                          )}
-                          <div className="text-foreground-muted">se necesita el {formatearFecha(compraDe.get(n.otPiezaId)!.llegadaNecesaria)}</div>
-                        </>
-                      ) : (
-                        <span className="text-foreground-muted">{n.primeraPlanificada ? `1ª operación el ${formatearFecha(n.primeraPlanificada)}` : "Sin fecha: la orden no está activa"}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <form action={tomarNecesidadAction}>
-                        <input type="hidden" name="otPiezaId" value={n.otPiezaId} />
-                        <button type="submit" className="btn btn-sm">
-                          Empezar a cotizar
-                        </button>
-                      </form>
-                    </td>
+          {/* Tanda 2 (05/11): separado lo que es material para fabricar de las piezas comerciales que se compran terminadas. */}
+          {[
+            { titulo: "Materiales para fabricar", ayuda: "Materia prima para piezas que se fabrican en el taller. Al llegar entra a Stock → Materia prima.", lista: necesidades.filter((n) => n.esMaterial || n.operacionCompraId) },
+            { titulo: "Piezas comerciales", ayuda: "Piezas que se compran terminadas. Al llegar entran a Stock → Productos terminados.", lista: necesidades.filter((n) => !(n.esMaterial || n.operacionCompraId)) },
+          ]
+            .filter((g) => g.lista.length)
+            .map(({ titulo, ayuda, lista }) => (
+              <div key={titulo} className="space-y-1.5">
+                <h3 className="font-semibold">
+                  {titulo} <span className="text-foreground-muted font-normal">· {lista.length}</span>
+                </h3>
+                <p className="text-xs text-foreground-muted">{ayuda}</p>
+            <div className="tarjeta overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-xs text-foreground-muted">
+                  <tr className="border-b border-border">
+                    <th className="text-left px-4 py-2 font-medium">Qué hay que comprar</th>
+                    <th className="text-left px-4 py-2 font-medium">Orden de trabajo</th>
+                    <th className="text-right px-4 py-2 font-medium">Cantidad</th>
+                    <th className="text-left px-4 py-2 font-medium">Pedir antes del</th>
+                    <th className="px-4 py-2"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {lista.map((n) => (
+                    <tr key={n.otPiezaId} className="border-t border-border first:border-t-0">
+                      <td className="px-4 py-2.5">
+                        <div className="font-medium">{n.descripcion ?? (n.operacionCompraId ? `Material para ${n.piezaNombre}` : n.piezaNombre)}</div>
+                        <div className="text-xs text-foreground-muted">
+                          {n.piezaCodigo} · {n.esMaterial || n.operacionCompraId ? "pieza a fabricar, falta el material" : "pieza que se compra hecha"}
+                        </div>
+                        {n.observacion && <div className="text-xs text-foreground-muted mt-0.5">{n.observacion}</div>}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="font-mono text-xs">{n.otPiezaCodigo}</div>
+                        <div className="text-xs text-foreground-muted">{n.conjuntoNombre}</div>
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">{n.cantidad}</td>
+                      <td className="px-4 py-2.5 text-xs">
+                        {compraDe.get(n.otPiezaId) ? (
+                          <>
+                            {/* Nunca una fecha pasada (simplificación §3): lo que nació tarde es "Pedir ya"; "vencida" queda para lo que tenía fecha futura y no se pidió a tiempo. */}
+                            {compraDe.get(n.otPiezaId)!.pedirAntes < hoy && compraDe.get(n.otPiezaId)!.pedirYa ? (
+                              <div className="text-sm font-semibold text-naranja-fg">Pedir ya</div>
+                            ) : (
+                              <div className={`text-sm font-semibold ${compraDe.get(n.otPiezaId)!.pedirAntes < hoy ? "text-rojo-fg" : ""}`}>
+                                {formatearFecha(compraDe.get(n.otPiezaId)!.pedirAntes)}
+                                {compraDe.get(n.otPiezaId)!.pedirAntes < hoy && " · vencida"}
+                              </div>
+                            )}
+                            <div className="text-foreground-muted">se necesita el {formatearFecha(compraDe.get(n.otPiezaId)!.llegadaNecesaria)}</div>
+                          </>
+                        ) : (
+                          <span className="text-foreground-muted">{n.primeraPlanificada ? `1ª operación el ${formatearFecha(n.primeraPlanificada)}` : "Sin fecha: la orden no está activa"}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <form action={tomarNecesidadAction}>
+                          <input type="hidden" name="otPiezaId" value={n.otPiezaId} />
+                          <button type="submit" className="btn btn-sm">
+                            Empezar a cotizar
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+              </div>
+            ))}
         </Seccion>
 
         <Seccion id="cotizar" titulo={PASOS[1].titulo} ayuda={PASOS[1].ayuda} cantidad={porEstado("sin_cotizar").length}>

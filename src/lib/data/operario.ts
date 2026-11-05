@@ -61,18 +61,13 @@ export async function getColaOperario(usuarioId: string): Promise<ColaOperario> 
   const porClave = new Map(plan.resultado.tareas.map((t) => [t.clave, t]));
   // Gestión (reorganización 30/10 §3): si el jefe le armó la cola, la tablet muestra exactamente esa cola, en ese
   // orden. Las que esperan el paso anterior aparecen recién cuando se habilitan.
-  const conCola = cola.length > 0;
-  const confirmada = conCola || !!semana || asignadas.length > 0;
-  let tareas: Tarea[];
-  if (conCola) {
-    tareas = cola
-      .map((c) => porClave.get(`${c.otPiezaId}::${c.operacionId}`))
-      .filter((t): t is Tarea => !!t && ["lista", "en_curso", "pausada"].includes(t.estado));
-  } else if (confirmada) {
-    tareas = [...new Set(asignadas.map((a) => `${a.otPiezaId}::${a.operacionId}`))].map((c) => porClave.get(c)).filter((t): t is Tarea => !!t);
-  } else {
-    tareas = plan.resultado.tareas.filter((t) => t.tipo === "interno" && t.operarioId === usuarioId && t.fechaPlan && t.fechaPlan <= hoy && !["terminada", "futura"].includes(t.estado));
-  }
+  // Tanda 2 (05/11): la cola de Gestión es lo único que ve el operario, aunque esté vacía. Antes, sin cola, la
+  // tablet caía en el reparto automático del plan y mostraba pasos que nadie le había asignado.
+  const conCola = true;
+  const confirmada = cola.length > 0 || !!semana || asignadas.length > 0;
+  let tareas: Tarea[] = cola
+    .map((c) => porClave.get(`${c.otPiezaId}::${c.operacionId}`))
+    .filter((t): t is Tarea => !!t && ["lista", "en_curso", "pausada"].includes(t.estado));
   tareas = tareas.filter((t) => t.estado !== "terminada");
   const ordenAdelanto = new Map<string, number>();
   adelantos.forEach((a, i) => {
