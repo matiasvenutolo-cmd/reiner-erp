@@ -20,10 +20,11 @@ const ESTADO: Record<EstadoGestion, { label: string; clase: string }> = {
   trabada: { label: "Trabada", clase: "bg-rojo-bg text-rojo-fg" },
 };
 
+/** La lista ya viene ordenada por urgencia; el punto sólo marca lo que conviene hacer primero (prueba 1: sin "días tarde"). */
 function Urgencia({ f }: { f: FilaGestion }) {
-  if (f.nivel === "atrasada" || f.holgura < 0) return <span className="inline-flex items-center gap-1.5 text-xs text-rojo-fg font-semibold"><span className="w-2 h-2 rounded-full bg-rojo" />{Math.abs(f.holgura)} día{Math.abs(f.holgura) === 1 ? "" : "s"} tarde</span>;
-  if (f.nivel === "urgente") return <span className="inline-flex items-center gap-1.5 text-xs text-naranja-fg font-semibold"><span className="w-2 h-2 rounded-full bg-naranja" />{f.holgura} día{f.holgura === 1 ? "" : "s"} de margen</span>;
-  return <span className="w-2 h-2 rounded-full bg-border inline-block" aria-label="En plazo" />;
+  if (f.nivel === "atrasada" || f.holgura < 0) return <span className="w-2 h-2 rounded-full bg-rojo inline-block shrink-0" title="Primero: es lo que más corre el fin estimado" />;
+  if (f.nivel === "urgente") return <span className="w-2 h-2 rounded-full bg-naranja inline-block shrink-0" title="Urgente" />;
+  return <span className="w-2 h-2 rounded-full bg-border inline-block shrink-0" title="En plazo" />;
 }
 
 const habilitados = (operarios: Operario[], centroId: string | null) => operarios.filter((o) => !o.centros.length || (centroId != null && o.centros.includes(centroId)));
@@ -119,11 +120,8 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
                 />
               </th>
               {operarioFiltro && <th className="px-1 py-2 font-medium">Orden</th>}
-              <th className="text-left px-2 py-2 font-medium">Urgencia</th>
-              <th className="text-left px-2 py-2 font-medium">Pieza</th>
-              <th className="text-left px-2 py-2 font-medium">Orden de trabajo</th>
-              <th className="text-left px-2 py-2 font-medium">Paso</th>
-              <th className="text-left px-2 py-2 font-medium">Centro</th>
+              <th className="text-left px-2 py-2 font-medium">Pieza y orden</th>
+              <th className="text-left px-2 py-2 font-medium">Paso y centro</th>
               <th className="text-right px-2 py-2 font-medium">Horas</th>
               <th className="text-left px-2 py-2 font-medium">Operario</th>
               <th className="text-left px-2 py-2 font-medium">Estado</th>
@@ -169,24 +167,25 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
                       </button>
                     </td>
                   )}
-                  <td className="px-2 py-2 whitespace-nowrap">
-                    <Urgencia f={f} />
-                  </td>
-                  <td className="px-2 py-2 min-w-48">
-                    <div className="font-medium">
-                      {f.pieza} × {f.cantidad}
+                  <td className="px-2 py-2">
+                    <div className="flex items-center gap-2">
+                      <Urgencia f={f} />
+                      {/* Prueba 1 (05/11): la ficha de la pieza muestra todos sus pasos, asignaciones y tiempos, y se imprime. */}
+                      <Link href={`/gestion/pieza/${f.otPiezaId}`} className="font-medium hover:text-accent hover:underline">
+                        {f.pieza} × {f.cantidad}
+                      </Link>
                     </div>
-                    <div className="font-mono text-[12px] text-foreground-muted">{f.codigo}</div>
-                  </td>
-                  <td className="px-2 py-2 whitespace-nowrap">
-                    <Link href={`/proyectos/${f.ordenId}`} className="hover:text-accent hover:underline">
-                      {f.orden}
-                    </Link>
-                  </td>
-                  <td className="px-2 py-2 whitespace-nowrap">
-                    {f.paso} · {f.posicion} de {f.totalPasos}
+                    <div className="text-[12px] text-foreground-muted pl-4">
+                      <span className="font-mono">{f.codigo}</span> ·{" "}
+                      <Link href={`/proyectos/${f.ordenId}`} className="hover:text-accent hover:underline">
+                        {f.orden}
+                      </Link>
+                    </div>
                   </td>
                   <td className="px-2 py-2">
+                    <div className="whitespace-nowrap">
+                      {f.paso} <span className="text-foreground-muted">· {f.posicion} de {f.totalPasos}</span>
+                    </div>
                     {interno && f.centros.length > 1 ? (
                       <select
                         value={centroId ?? ""}
@@ -195,7 +194,7 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
                           setCentroDe((m) => ({ ...m, [f.clave]: e.target.value }));
                           ejecutar(() => cambiarCentroAction(f.clave, e.target.value));
                         }}
-                        className="input py-1 w-auto"
+                        className="input py-0.5 text-xs w-auto mt-0.5"
                       >
                         {f.centros.map((c) => (
                           <option key={c} value={c}>
@@ -204,13 +203,13 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
                         ))}
                       </select>
                     ) : (
-                      <span className="whitespace-nowrap">{interno ? (nombreCentro.get(centroId ?? "") ?? "—") : "Tercerizado"}</span>
+                      <div className="text-xs text-foreground-muted whitespace-nowrap">{interno ? (nombreCentro.get(centroId ?? "") ?? "—") : "Tercerizado"}</div>
                     )}
                   </td>
                   <td className="px-2 py-2 text-right tabular-nums">{interno ? f.horas.toLocaleString("es-AR", { maximumFractionDigits: 1 }) : "—"}</td>
                   <td className="px-2 py-2">
                     {interno ? (
-                      <select value={operarioId ?? ""} disabled={pendiente || f.estado === "en_curso"} onChange={(e) => asignar([f.clave], e.target.value || null)} className="input py-1 w-auto min-w-32">
+                      <select value={operarioId ?? ""} disabled={pendiente || f.estado === "en_curso"} onChange={(e) => asignar([f.clave], e.target.value || null)} className="input py-1 w-auto min-w-28">
                         <option value="">— Sin asignar —</option>
                         {fueraDeLista && <option value={fueraDeLista.id}>{fueraDeLista.nombre} (otro centro)</option>}
                         {opciones.map((o) => (

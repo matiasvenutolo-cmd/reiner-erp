@@ -85,6 +85,8 @@ export type FilaParaEnviar = {
   holgura: number;
 };
 
+export type OrdenEnCurso = { id: string; codigo: string; nombre: string; finEstimado: string; avancePct: number; tareas: number; porEnviar: number };
+
 export async function getGestion() {
   const plan = await getPlan();
   const { resultado: r, entrada, proyectosInfo } = plan;
@@ -211,7 +213,25 @@ export async function getGestion() {
       };
     })
     .sort((a, b) => Number(!!a.motivo) - Number(!!b.motivo) || a.holgura - b.holgura || a.orden.localeCompare(b.orden));
-  return { filas, paraEnviar, operarios: operarios.map((o) => ({ ...o, centros: centrosDe.get(o.id) ?? [] })), centros, carga, hoy: entrada.hoy };
+  // Arriba de Gestión (prueba 1, 05/11): cada orden en curso con su fecha estimada de finalización, que se va
+  // corriendo con lo que pasa en el taller. No es un compromiso: es lo que da el plan hoy.
+  const ordenes: OrdenEnCurso[] = r.proyectos
+    .filter((p) => filas.some((f) => f.ordenId === p.id) || paraEnviar.some((x) => x.ordenId === p.id))
+    .map((p) => {
+      const info = proyectosInfo.get(p.id);
+      const proy = entrada.proyectos.find((x) => x.id === p.id);
+      return {
+        id: p.id,
+        codigo: p.codigo,
+        nombre: nombreCorto(info?.configuracion, info?.cliente, proy?.tipo ?? "maquina", info?.referencia),
+        finEstimado: p.finEstimado,
+        avancePct: p.avancePct,
+        tareas: filas.filter((f) => f.ordenId === p.id).length,
+        porEnviar: paraEnviar.filter((x) => x.ordenId === p.id).length,
+      };
+    })
+    .sort((a, b) => a.finEstimado.localeCompare(b.finEstimado));
+  return { filas, paraEnviar, ordenes, operarios: operarios.map((o) => ({ ...o, centros: centrosDe.get(o.id) ?? [] })), centros, carga, hoy: entrada.hoy };
 }
 
 /** Horas que el operario puede trabajar en un día: las del plan (calendario × eficiencia), 0 si falta o no es hábil. */

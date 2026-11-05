@@ -10,7 +10,7 @@ import { habilesEntre } from "@/lib/planning/calendario";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Aviso } from "@/components/ui/Aviso";
 import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
-import { Holgura, fechaCorta, Estimado, CausaRaiz, textoCausa, margenEntrega } from "@/components/v2/Plan";
+import { Holgura, fechaCorta, Estimado, CausaRaiz, textoCausa } from "@/components/v2/Plan";
 import { EstadoPiezaChip } from "@/components/v2/EstadoPieza";
 import { estadoDePieza, type EstadoDePieza, type EstadoVisible } from "@/lib/estado-pieza";
 import { getEsperaMaterialDeOrden, getNoComprarDeOrden } from "@/lib/data/gestion-compras";
@@ -20,7 +20,7 @@ import { tildarPasoInformativoAction, eliminarOrdenAction } from "@/app/actions/
 import { getUsuarioActual } from "@/lib/session";
 import { Etiqueta } from "@/components/ui/Etiqueta";
 import { capitalizar, diasHabiles, numero, plural } from "@/lib/formato";
-import { activarProyectoAction, cambiarEntregaAction, pausarProyectoAction } from "@/app/actions/v2";
+import { activarProyectoAction, pausarProyectoAction } from "@/app/actions/v2";
 import type { Causa } from "@/lib/planning/motor";
 
 export const dynamic = "force-dynamic";
@@ -321,7 +321,6 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
 
   // ── Pieza o conjunto suelto: pantalla simple (simplificación §4.1) ─────
   if (m.tipo === "suelta") {
-    const margen = margenEntrega(p.diferenciaDias);
     const comprasOrden = plan.resultado.compras.filter((c) => c.proyectoId === id);
     const nombreDe = new Map(filasPiezas.map((x) => [x.id, x.nombre]));
     // Qué y cuánto (§4.1): la pieza con su cantidad, o el conjunto.
@@ -339,8 +338,9 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
           <div className="text-lg font-semibold mb-3">{que}</div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <Grande titulo="Para" valor={fila.cliente ?? (m.destino === "stock" ? "Stock" : "—")} />
-            <Grande titulo="Entrega comprometida" valor={fechaCorta(p.entrega, hoy)} />
-            <Grande titulo="Margen" valor={margen.texto} color={{ rojo: "text-rojo-fg", naranja: "text-naranja-fg", verde: "text-verde-fg" }[margen.tono as "rojo" | "naranja" | "verde"]} />
+            {/* Prueba 1 (05/11): la fecha que importa es la estimada, que se va corriendo con el trabajo real. */}
+            <Grande titulo="Fin estimado" valor={fechaCorta(p.finEstimado, hoy)} />
+            <Grande titulo="Avance" valor={`${p.avancePct}%`} />
           </div>
           {p.causas.length > 0 && (
             <div className="mt-4">
@@ -414,21 +414,6 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
 
         <div className="flex flex-wrap gap-2 items-start">
           <details className="tarjeta px-3 py-2">
-            <summary className="cursor-pointer text-sm font-semibold">Cambiar fecha de entrega</summary>
-            <form action={cambiarEntregaAction} className="mt-2 flex flex-wrap items-end gap-2">
-              <input type="hidden" name="id" value={id} />
-              <label className="block">
-                <span className="etiqueta">Nueva fecha</span>
-                <input type="date" name="fechaEntrega" required defaultValue={p.entrega} className="input" />
-              </label>
-              <label className="block">
-                <span className="etiqueta">Motivo *</span>
-                <input name="motivo" required placeholder="ej. el cliente adelantó la entrega" className="input w-72" />
-              </label>
-              <button className="btn btn-sm">Cambiar y recalcular</button>
-            </form>
-          </details>
-          <details className="tarjeta px-3 py-2">
             <summary className="cursor-pointer text-sm font-semibold">Pausar</summary>
             <form action={pausarProyectoAction} className="mt-2 flex flex-wrap items-end gap-2">
               <input type="hidden" name="id" value={id} />
@@ -459,7 +444,7 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
 
   // ── Máquina completa: conjunto por conjunto ────────────────────────────
   const inicioEje = [hoy, ...p.conjuntos.map((c) => c.fabricacionDesde ?? hoy)].sort()[0];
-  const finEje = [p.finEstimado, p.entrega].sort().at(-1)!;
+  const finEje = p.finEstimado;
   const total = Math.max(1, habilesEntre(inicioEje, finEje, cal));
   const x = (f: string) => `${Math.min(100, Math.max(0, (habilesEntre(inicioEje, f, cal) / total) * 100))}%`;
   const ancho = (a: string, b: string) => `${Math.max(0.8, (habilesEntre(a, b, cal) / total) * 100)}%`;
@@ -531,16 +516,12 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
       {error && <Aviso tipo="error">{error}</Aviso>}
 
       <section className="tarjeta p-5 space-y-4">
-        <div className="grid grid-cols-3 gap-4">
-          <Grande titulo="Entrega comprometida" valor={fechaCorta(p.entrega, hoy)} />
+        {/* Prueba 1 (05/11): la fecha que importa es la estimada, que se va corriendo con el trabajo real. */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <Grande titulo="Fin estimado" valor={fechaCorta(p.finEstimado, hoy)} />
-          <Grande
-            titulo="Margen"
-            valor={margenEntrega(p.diferenciaDias).texto}
-            color={{ rojo: "text-rojo-fg", naranja: "text-naranja-fg", verde: "text-verde-fg" }[margenEntrega(p.diferenciaDias).tono as "rojo" | "naranja" | "verde"]}
-          />
+          <Grande titulo="Avance" valor={`${p.avancePct}%`} />
         </div>
-        {p.causas.length > 0 ? <CausaRaiz codigo={p.codigo} causas={p.causas} hoy={hoy} /> : <p className="text-sm text-verde-fg">Llega a tiempo con el plan actual.</p>}
+        <CausaRaiz codigo={p.codigo} causas={p.causas} hoy={hoy} />
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-foreground-muted border-t border-border pt-3">
           <span>
             Avance: <strong className="text-foreground">{p.avancePct}%</strong> en horas ({numero(Math.round(p.horasHechas))} de {numero(Math.round(p.horasTotales))} h)
@@ -559,21 +540,6 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
         </Aviso>
       )}
       <div className="flex flex-wrap gap-2 items-start">
-        <details className="tarjeta px-3 py-2">
-          <summary className="cursor-pointer text-sm font-semibold">Cambiar fecha de entrega</summary>
-          <form action={cambiarEntregaAction} className="mt-2 flex flex-wrap items-end gap-2">
-            <input type="hidden" name="id" value={id} />
-            <label className="block">
-              <span className="etiqueta">Nueva fecha</span>
-              <input type="date" name="fechaEntrega" required defaultValue={p.entrega} className="input" />
-            </label>
-            <label className="block">
-              <span className="etiqueta">Motivo *</span>
-              <input name="motivo" required placeholder="ej. el cliente adelantó la entrega" className="input w-72" />
-            </label>
-            <button className="btn btn-sm">Cambiar y recalcular</button>
-          </form>
-        </details>
         <details className="tarjeta px-3 py-2">
           <summary className="cursor-pointer text-sm font-semibold">Pausar</summary>
           <form action={pausarProyectoAction} className="mt-2 flex flex-wrap items-end gap-2">
@@ -601,13 +567,11 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
           </div>
         </div>
         <div className="relative">
-          <div className="absolute inset-y-0 w-px bg-rojo/60" style={{ left: `calc(12rem + (100% - 12rem) * ${parseFloat(x(p.entrega)) / 100})` }} title={`Entrega ${fechaCorta(p.entrega)}`} />
           <div className="absolute inset-y-0 w-px bg-accent/50" style={{ left: `calc(12rem + (100% - 12rem) * ${parseFloat(x(hoy)) / 100})` }} title="Hoy" />
           <div className="flex text-[11px] text-foreground-muted mb-1">
             <div className="w-48 shrink-0" />
             <div className="flex-1 flex justify-between">
               <span>{fechaCorta(inicioEje)}</span>
-              <span className="text-rojo-fg">entrega {fechaCorta(p.entrega)}</span>
               <span>{fechaCorta(finEje)}</span>
             </div>
           </div>

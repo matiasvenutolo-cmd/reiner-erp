@@ -13,7 +13,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PestanasOt } from "@/components/ui/PestanasSecciones";
 import { Etiqueta } from "@/components/ui/Etiqueta";
 import { Aviso, Vacio } from "@/components/ui/Aviso";
-import { fechaCorta, textoCausa, margenEntrega, MargenEntrega } from "@/components/v2/Plan";
+import { fechaCorta, textoCausa } from "@/components/v2/Plan";
 import { capitalizar, plural } from "@/lib/formato";
 import type { ProyectoPlan } from "@/lib/planning/motor";
 
@@ -27,15 +27,12 @@ const GRUPOS = [
   { tipo: "stock", titulo: "Órdenes para stock" },
 ] as const;
 
-function Diferencia({ p }: { p: ProyectoPlan }) {
-  return <MargenEntrega dias={p.diferenciaDias} />;
-}
 
 /** Tarjeta de proyecto (§2.3): máquina y cliente en grande, avance en horas y la diferencia con la entrega. */
 function TarjetaProyecto({ x, p, hoy }: { x: Fila; p: ProyectoPlan; hoy: string }) {
   const causa = p.causas[0] ? textoCausa(p.causas[0].causa, hoy) : null;
   return (
-    <Link href={`/proyectos/${x.m.id}`} className={`tarjeta franja ${margenEntrega(p.diferenciaDias).franja} p-4 block hover:border-accent transition-colors`}>
+    <Link href={`/proyectos/${x.m.id}`} className="tarjeta p-4 block hover:border-accent transition-colors">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="text-lg font-bold leading-tight">{x.cliente ?? x.config ?? x.m.codigo}</div>
@@ -45,7 +42,11 @@ function TarjetaProyecto({ x, p, hoy }: { x: Fila; p: ProyectoPlan; hoy: string 
             {x.m.prioridad === "alta" && <span className="ml-2"><Etiqueta tono="naranja" sinIcono>prioridad alta</Etiqueta></span>}
           </div>
         </div>
-        <Diferencia p={p} />
+        {/* Prueba 1 (05/11): se ve la fecha estimada, que se va corriendo; no un margen contra una entrega. */}
+        <div className="text-right">
+          <div className="text-xs text-foreground-muted">Fin estimado</div>
+          <div className="font-semibold">{fechaCorta(p.finEstimado, hoy)}</div>
+        </div>
       </div>
       <div className="flex items-center gap-3 mt-3 text-sm">
         <div className="h-2 flex-1 rounded-full bg-surface-muted overflow-hidden">
@@ -53,10 +54,7 @@ function TarjetaProyecto({ x, p, hoy }: { x: Fila; p: ProyectoPlan; hoy: string 
         </div>
         <span className="tabular-nums text-foreground-muted whitespace-nowrap">{p.avancePct}% en horas</span>
       </div>
-      <div className="text-sm text-foreground-muted mt-2">
-        Entrega {fechaCorta(p.entrega, hoy)} · fin estimado {fechaCorta(p.finEstimado, hoy)}
-      </div>
-      {causa && <div className="text-sm mt-1">Atrasa: {causa.texto}.</div>}
+      {causa && <div className="text-sm mt-2">Lo que más la corre: {causa.texto}.</div>}
     </Link>
   );
 }

@@ -120,10 +120,11 @@ export function CausaRaiz({ codigo, causas, hoy, chico }: { codigo: string; caus
             <span className="flex-1 min-w-0">
               {i === 0 ? (
                 <>
-                  <strong>{codigo}</strong> llega {diasHabiles(dias)} tarde porque {c.texto}.
+                  {/* Prueba 1 (05/11): no hay una fecha que cumplir; el fin estimado se corre y se explica por qué. */}
+                  El fin estimado de <strong>{codigo}</strong> se corrió {diasHabiles(dias)} porque {c.texto}.
                 </>
               ) : (
-                <>Además, {c.texto} (atrasa {diasHabiles(dias)}).</>
+                <>Además, {c.texto} (corre {diasHabiles(dias)}).</>
               )}
             </span>
             <Link href={c.href} className={i === 0 ? "btn btn-sm" : "btn-texto btn-sm"}>
