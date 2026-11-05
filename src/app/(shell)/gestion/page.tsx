@@ -77,7 +77,8 @@ function OrdenesEnCurso({ ordenes, hoy }: { ordenes: OrdenEnCurso[]; hoy: string
   return (
     <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {ordenes.map((o) => (
-        <Link key={o.id} href={`/proyectos/${o.id}`} className="tarjeta px-4 py-3 hover:border-accent transition-colors">
+        <div key={o.id}>
+        <Link href={`/proyectos/${o.id}`} className="tarjeta block px-4 py-3 hover:border-accent transition-colors">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="font-semibold truncate">{o.nombre}</div>
@@ -97,6 +98,10 @@ function OrdenesEnCurso({ ordenes, hoy }: { ordenes: OrdenEnCurso[]; hoy: string
             {o.avancePct}%
           </div>
         </Link>
+        <Link href={`/proyectos/${o.id}/informe`} className="block text-xs text-accent hover:underline mt-1 px-1">
+          Informe para imprimir →
+        </Link>
+        </div>
       ))}
     </section>
   );

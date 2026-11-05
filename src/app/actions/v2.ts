@@ -398,6 +398,19 @@ export async function guardarParametroAction(fd: FormData) {
   });
 }
 
+/** Horario del taller (tanda 2, 05/11): desde qué hora y hasta qué hora se trabaja. Lo usa la carga de Gestión. */
+export async function guardarJornadaAction(fd: FormData) {
+  await getUsuarioDePlanta();
+  await correr(t(fd, "volver") || "/admin/secciones", async () => {
+    const desde = t(fd, "desde");
+    const hasta = t(fd, "hasta");
+    if (!/^\d{2}:\d{2}$/.test(desde) || !/^\d{2}:\d{2}$/.test(hasta) || desde >= hasta) throw new Error("El horario tiene que ser «desde» antes que «hasta», con hora y minutos.");
+    for (const [clave, valor] of [["jornada_desde", desde], ["jornada_hasta", hasta]])
+      await db.insert(parametro).values({ clave, valor }).onConflictDoUpdate({ target: parametro.clave, set: { valor } });
+    return `Horario guardado: de ${desde} a ${hasta}.`;
+  });
+}
+
 export async function aprobarReclasificacionAction(fd: FormData) {
   await getUsuarioDePlanta();
   const ids = fd.getAll("piezaId").map(String);

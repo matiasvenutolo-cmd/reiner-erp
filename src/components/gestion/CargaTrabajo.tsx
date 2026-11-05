@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { moverTareaADiaAction } from "@/app/actions/gestion";
 import type { CargaOperario, CargaPorDia, TramoCarga } from "@/lib/data/gestion";
 import { horas } from "@/lib/formato";
 
@@ -25,7 +27,7 @@ const etiquetaDia = (f: string) => {
   return { dia: DIA[d.getUTCDay()], num: `${d.getUTCDate()}/${d.getUTCMonth() + 1}`, lunes: d.getUTCDay() === 1 };
 };
 
-type Barra = { clave: string; otPiezaId: string; operarioId: string; pieza: string; paso: string; posicion: number; totalPasos: number; orden: string; inicio: number; fin: number; horas: number; totalHoras: number; carril: number };
+type Barra = { clave: string; otPiezaId: string; operarioId: string; pieza: string; paso: string; posicion: number; totalPasos: number; orden: string; inicio: number; fin: number; horas: number; totalHoras: number; carril: number; movidaAl: string | null };
 
 /**
  * Los tramos de cada tarea se juntan en una barra, medida en días (con la parte del día que ocupa: una tarea que
@@ -45,7 +47,7 @@ function barras(tramos: TramoCarga[], dias: string[]): { lista: Barra[]; carrile
       b.fin = Math.max(b.fin, i + t.hasta);
       b.horas += t.horas;
     } else
-      porTarea.set(k, { clave: t.clave, otPiezaId: t.otPiezaId, operarioId: t.operarioId, pieza: t.pieza, paso: t.paso, posicion: t.posicion, totalPasos: t.totalPasos, orden: t.orden, inicio: i + t.desde, fin: i + t.hasta, horas: t.horas, totalHoras: t.totalHoras, carril: 0 });
+      porTarea.set(k, { clave: t.clave, otPiezaId: t.otPiezaId, operarioId: t.operarioId, pieza: t.pieza, paso: t.paso, posicion: t.posicion, totalPasos: t.totalPasos, orden: t.orden, inicio: i + t.desde, fin: i + t.hasta, horas: t.horas, totalHoras: t.totalHoras, carril: 0, movidaAl: t.movidaAl });
   }
   const lista = [...porTarea.values()].sort((a, b) => a.inicio - b.inicio || b.fin - a.fin);
   const finDe: number[] = [];
@@ -59,6 +61,58 @@ function barras(tramos: TramoCarga[], dias: string[]): { lista: Barra[]; carrile
     b.carril = c;
   }
   return { lista, carriles: Math.max(1, finDe.length) };
+}
+
+/**
+ * Una tarea en la carga (tanda 2, 05/11): se arrastra a otro día para que no empiece antes ("recién arranca el
+ * lunes"); soltarla en el primer día la devuelve a su lugar. Un toque, sin arrastrar, abre la ficha de la pieza.
+ */
+function BarraTarea({ b, dias, estilo, operario, conOperario }: { b: Barra; dias: string[]; estilo: React.CSSProperties; operario: string; conOperario: boolean }) {
+  const router = useRouter();
+  const [dx, setDx] = useState(0);
+  const [pendiente, startTransition] = useTransition();
+  const arranque = useRef<{ x: number; ancho: number } | null>(null);
+  const soltar = (e: React.PointerEvent<HTMLDivElement>) => {
+    const a = arranque.current;
+    arranque.current = null;
+    if (!a) return;
+    const mover = e.clientX - a.x;
+    setDx(0);
+    if (Math.abs(mover) < 6) {
+      router.push(`/gestion/pieza/${b.otPiezaId}`);
+      return;
+    }
+    const dia = Math.min(dias.length - 1, Math.max(0, Math.floor(b.inicio) + Math.round(mover / (a.ancho / dias.length))));
+    if (dia === Math.floor(b.inicio)) return;
+    startTransition(async () => {
+      await moverTareaADiaAction(b.clave, dia === 0 ? null : dias[dia]);
+      router.refresh();
+    });
+  };
+  return (
+    <div
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === "Enter" && router.push(`/gestion/pieza/${b.otPiezaId}`)}
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        arranque.current = { x: e.clientX, ancho: e.currentTarget.parentElement?.clientWidth ?? 1 };
+      }}
+      onPointerMove={(e) => arranque.current && setDx(e.clientX - arranque.current.x)}
+      onPointerUp={soltar}
+      onPointerCancel={() => {
+        arranque.current = null;
+        setDx(0);
+      }}
+      title={`${b.pieza} · ${b.paso} (paso ${b.posicion} de ${b.totalPasos}) · ${b.orden}\n${operario} · ${horas(b.totalHoras)} en total${b.horas < b.totalHoras - 0.05 ? ` (${horas(b.horas)} en estos días)` : ""}${b.movidaAl ? `\nMovida: no empieza antes del ${b.movidaAl.slice(8, 10)}/${b.movidaAl.slice(5, 7)}` : ""}\nArrastrala a otro día para correrla.`}
+      className={`absolute h-7 rounded border px-1.5 text-[11px] leading-7 truncate select-none touch-none hover:brightness-95 ${dx ? "cursor-grabbing shadow-lg z-10 opacity-90" : "cursor-grab"} ${pendiente ? "opacity-50" : ""}`}
+      style={{ ...estilo, left: `calc(${(b.inicio / dias.length) * 100}% + 1px)`, width: `calc(${((b.fin - b.inicio) / dias.length) * 100}% - 2px)`, top: `${b.carril * 2}rem`, transform: dx ? `translateX(${dx}px)` : undefined }}
+    >
+      {b.movidaAl && <span aria-label="Movida a mano">⇥ </span>}
+      {conOperario ? `${operario} · ` : ""}
+      {b.pieza} · {b.paso} {b.posicion}/{b.totalPasos}
+    </div>
+  );
 }
 
 /**
@@ -99,7 +153,7 @@ export function CargaTrabajo({ carga, resumen, operarios, centros, hoy }: { carg
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-semibold">Carga de trabajo</h2>
-          <p className="text-xs text-foreground-muted">La cola de cada operario repartida en sus horas de cada día. Tocá una barra para ver la pieza.</p>
+          <p className="text-xs text-foreground-muted">La cola de cada operario repartida en sus horas de cada día, desde ahora. Arrastrá una tarea a otro día para que arranque recién ahí; tocala para ver la pieza.</p>
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
           <div className="inline-flex rounded-md border border-border overflow-hidden">
@@ -177,16 +231,14 @@ export function CargaTrabajo({ carga, resumen, operarios, centros, hoy }: { carg
                   </div>
                   <div className="relative" style={{ height: `${carriles * 2}rem` }}>
                     {lista.map((b) => (
-                      <Link
+                      <BarraTarea
                         key={`${b.operarioId}|${b.clave}`}
-                        href={`/gestion/pieza/${b.otPiezaId}`}
-                        title={`${b.pieza} · ${b.paso} (paso ${b.posicion} de ${b.totalPasos}) · ${b.orden}\n${nombre.get(b.operarioId) ?? ""} · ${horas(b.totalHoras)} en total${b.horas < b.totalHoras - 0.05 ? ` (${horas(b.horas)} en estos días)` : ""}`}
-                        className="absolute h-7 rounded border px-1.5 text-[11px] leading-7 truncate hover:brightness-95"
-                        style={{ ...colorDe(indice.get(b.operarioId) ?? 0), left: `calc(${(b.inicio / dias.length) * 100}% + 1px)`, width: `calc(${((b.fin - b.inicio) / dias.length) * 100}% - 2px)`, top: `${b.carril * 2}rem` }}
-                      >
-                        {vista === "centro" ? `${nombre.get(b.operarioId) ?? ""} · ` : ""}
-                        {b.pieza} · {b.paso} {b.posicion}/{b.totalPasos}
-                      </Link>
+                        b={b}
+                        dias={dias}
+                        estilo={colorDe(indice.get(b.operarioId) ?? 0)}
+                        operario={nombre.get(b.operarioId) ?? ""}
+                        conOperario={vista === "centro"}
+                      />
                     ))}
                   </div>
                 </div>

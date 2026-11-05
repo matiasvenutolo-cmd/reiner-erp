@@ -4,7 +4,7 @@ import { GRUPO_LABEL, seccionesConfigurables, seccionVisible } from "@/lib/nav";
 import { getVisibilidadSecciones } from "@/lib/data/secciones";
 import { getParametros } from "@/lib/planning/datos";
 import { guardarSeccionesAction } from "@/app/actions/admin";
-import { guardarParametroAction } from "@/app/actions/v2";
+import { guardarParametroAction, guardarJornadaAction } from "@/app/actions/v2";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +88,20 @@ export default async function SeccionesPage({ searchParams }: { searchParams: Pr
               <option value="si">Sí: sin plano y revisión, la pieza queda trabada esperando a ingeniería</option>
             </select>
           </label>
+          <button className="btn-secundario">Guardar</button>
+        </form>
+        {/* Tanda 2 (05/11): la carga de Gestión arranca desde la hora actual; fuera de horario, al día hábil siguiente. */}
+        <form action={guardarJornadaAction} className="flex flex-wrap items-end gap-2 text-sm">
+          <input type="hidden" name="volver" value="/admin/secciones" />
+          <label>
+            Horario del taller: desde
+            <input type="time" name="desde" defaultValue={valor("jornada_desde") ?? "07:00"} required className="input block mt-0.5" />
+          </label>
+          <label>
+            hasta
+            <input type="time" name="hasta" defaultValue={valor("jornada_hasta") ?? "16:00"} required className="input block mt-0.5" />
+          </label>
+          <span className="flex-1 min-w-60 text-xs text-foreground-muted">La carga de Gestión cuenta las horas que quedan del día: lo que se asigna después del cierre arranca al día hábil siguiente.</span>
           <button className="btn-secundario">Guardar</button>
         </form>
       </section>

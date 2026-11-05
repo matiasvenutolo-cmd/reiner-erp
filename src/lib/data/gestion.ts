@@ -11,7 +11,8 @@
  */
 import { and, asc, desc, eq, inArray, isNotNull, max } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { colaTarea, usuario, usuarioCentroTrabajo, operacion, proceso, centroTrabajo, proveedor, proveedorServicio, remito, remitoItem } from "@/lib/db/schema";
+import { colaTarea, usuario, usuarioCentroTrabajo, operacion, proceso, centroTrabajo, proveedor, proveedorServicio, remito, remitoItem, parametro, planAjuste } from "@/lib/db/schema";
+import { hoyISO } from "@/lib/fecha";
 import { getPlan } from "@/lib/planning/datos";
 import { evaluarEntrada } from "./entrada-plan";
 import { esHabil } from "@/lib/planning/calendario";
@@ -102,6 +103,8 @@ export type TramoCarga = {
   /** Qué parte del día ocupa (0 a 1): dos tareas seguidas comparten el día sin superponerse. */
   desde: number;
   hasta: number;
+  /** Movida a mano desde la carga: no empieza antes de este día. */
+  movidaAl: string | null;
 };
 export type CargaPorDia = {
   /** Días hábiles desde hoy (cuatro semanas). */
@@ -242,7 +245,7 @@ export async function getGestion() {
     })
     .sort((a, b) => Number(!!a.motivo) - Number(!!b.motivo) || a.holgura - b.holgura || a.orden.localeCompare(b.orden));
   const operariosConCentros = operarios.map((o) => ({ ...o, centros: centrosDe.get(o.id) ?? [] }));
-  const cargaDia = cargaPorDia(operariosConCentros, filas, entrada, new Map(r.tareas.map((t) => [t.clave, t])));
+  const cargaDia = cargaPorDia(operariosConCentros, filas, entrada, new Map(r.tareas.map((t) => [t.clave, t])), await queQuedaDeHoy(entrada.hoy));
 
   // Arriba de Gestión (prueba 1, 05/11): cada orden en curso con su fecha estimada de finalización, que se va
   // corriendo con lo que pasa en el taller. No es un compromiso: es lo que da el plan hoy.
@@ -276,6 +279,7 @@ function cargaPorDia(
   filas: FilaGestion[],
   entrada: Awaited<ReturnType<typeof getPlan>>["entrada"],
   tareaDe: Map<string, Tarea>,
+  queda: number,
 ): CargaPorDia {
   const cal = entrada.calendario;
   const dias: string[] = [];
@@ -285,7 +289,7 @@ function cargaPorDia(
   for (let d = siguienteDia(dias.at(-1)!); horizonte.length < 60; d = siguienteDia(d)) if (esHabil(d, cal)) horizonte.push(d);
 
   const capacidad: CargaPorDia["capacidad"] = {};
-  for (const o of operarios) capacidad[o.id] = Object.fromEntries(dias.map((d) => [d, horasDelDia(o.id, d, entrada)]));
+  for (const o of operarios) capacidad[o.id] = Object.fromEntries(dias.map((d, i) => [d, horasDelDia(o.id, d, entrada) * (i === 0 ? queda : 1)]));
 
   // Como en la tablet: cada día el operario sigue con la que tiene empezada y, si no, toma la primera de su cola
   // que ya se pueda hacer. Un paso se puede hacer cuando terminó el anterior de la misma pieza: si ese anterior
@@ -301,6 +305,9 @@ function cargaPorDia(
   );
   const empezada = new Map<string, string | null>();
   const puedeEl = (f: FilaGestion, i: number): boolean => {
+    // Movida a otro día desde la carga: no arranca antes.
+    const movida = entrada.ajustes.get(f.clave)?.fecha;
+    if (movida && horizonte[i] < movida) return false;
     if (f.estado !== "espera") return true;
     const anterior = claveDePaso.get(`${f.otPiezaId}#${f.posicion - 1}`);
     if (anterior && simuladas.has(anterior)) {
@@ -312,7 +319,8 @@ function cargaPorDia(
   };
   for (let i = 0; i < horizonte.length; i++) {
     for (const o of operarios) {
-      const delDia = horasDelDia(o.id, horizonte[i], entrada);
+      // Hoy cuenta sólo lo que queda de la jornada (tanda 2: asignar a las 19 h no ocupa la mañana que ya pasó).
+      const delDia = horasDelDia(o.id, horizonte[i], entrada) * (i === 0 ? queda : 1);
       let libre = delDia;
       const cola = colas.get(o.id) ?? [];
       while (libre > 0.01) {
@@ -320,10 +328,11 @@ function cargaPorDia(
         const f = actual ? cola.find((x) => x.clave === actual) : cola.find((x) => (resto.get(x.clave) ?? 0) > 0.01 && puedeEl(x, i));
         if (!f) break;
         const toma = Math.min(libre, resto.get(f.clave)!);
-        if (i < dias.length)
+        if (i < dias.length && delDia > 0)
           tramos.push({
             clave: f.clave, otPiezaId: f.otPiezaId, operarioId: o.id, centroId: f.centroId, pieza: f.pieza, paso: f.paso, posicion: f.posicion, totalPasos: f.totalPasos,
             orden: f.orden, dia: horizonte[i], horas: toma, totalHoras: f.horas, desde: (delDia - libre) / delDia, hasta: (delDia - libre + toma) / delDia,
+            movidaAl: entrada.ajustes.get(f.clave)?.fecha ?? null,
           });
         libre -= toma;
         resto.set(f.clave, resto.get(f.clave)! - toma);
@@ -342,6 +351,21 @@ function cargaPorDia(
       x.horas += f.horas;
     }
   return { dias, tramos, capacidad, sinAsignar };
+}
+
+/**
+ * Qué parte de la jornada de hoy queda (0 a 1), según el horario del taller de ADMIN (7 a 16 h por defecto).
+ * Si el "hoy" del plan no es hoy (fin de semana), el día está entero.
+ */
+async function queQuedaDeHoy(hoyPlan: string): Promise<number> {
+  if (hoyPlan !== hoyISO()) return 1;
+  const filas = await db.select().from(parametro).where(inArray(parametro.clave, ["jornada_desde", "jornada_hasta"]));
+  const min = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+  const desde = min(filas.find((f) => f.clave === "jornada_desde")?.valor ?? "07:00");
+  const hasta = min(filas.find((f) => f.clave === "jornada_hasta")?.valor ?? "16:00");
+  const ahora = min(new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" }));
+  if (hasta <= desde) return 1;
+  return Math.max(0, Math.min(1, (hasta - Math.max(ahora, desde)) / (hasta - desde)));
 }
 
 function siguienteDia(f: string): string {
@@ -433,6 +457,19 @@ export async function asignarTareas(claves: string[], operarioId: string | null,
       .values({ otPiezaId, operacionId, operarioId, posicion, asignadoPorId: por })
       .onConflictDoUpdate({ target: [colaTarea.otPiezaId, colaTarea.operacionId], set: { operarioId, posicion, asignadoPorId: por, updatedAt: new Date() } });
   }
+}
+
+/**
+ * Mover una tarea a otro día desde la carga (tanda 2, 05/11): "no empieza antes de ese día". Es el mismo ajuste
+ * que usa el plan, así que corre también el fin estimado. Sin fecha (o con una que ya pasó) vuelve a su lugar.
+ */
+export async function moverTareaADia(c: string, fecha: string | null, por: string): Promise<void> {
+  const { otPiezaId, operacionId } = partir(c);
+  const f = fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha) && fecha > hoyISO() ? fecha : null;
+  await db
+    .insert(planAjuste)
+    .values({ otPiezaId, operacionId, fecha: f, usuarioId: por, fijada: false })
+    .onConflictDoUpdate({ target: [planAjuste.otPiezaId, planAjuste.operacionId], set: { fecha: f, usuarioId: por, updatedAt: new Date() } });
 }
 
 /** Cambia el centro de una tarea. Si el operario asignado no está habilitado para el centro nuevo, queda sin asignar. */

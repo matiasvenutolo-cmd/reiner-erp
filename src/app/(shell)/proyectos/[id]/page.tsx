@@ -122,6 +122,10 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
           <Link href={`/ot/${m.id}`} className="btn-secundario">
             Detalle de la orden
           </Link>
+          {/* Tanda 2 (05/11): cómo viene cada pieza en su hoja de ruta, para imprimir. */}
+          <Link href={`/proyectos/${m.id}/informe`} className="btn-secundario">
+            Informe para imprimir
+          </Link>
           {/* Prueba 1 (05/11): eliminar una orden, sólo dirección. */}
           {yo.rol === "direccion" && (
             <form action={eliminarOrdenAction}>

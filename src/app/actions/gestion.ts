@@ -3,7 +3,7 @@
 // Gestión no cambia el plan (no reparte fechas): sólo se refrescan Gestión y la tablet del operario.
 import { revalidatePath } from "next/cache";
 import { getUsuarioDePlanta } from "@/lib/session";
-import { asignarTareas, cambiarCentro, moverEnCola, ordenarPorUrgencia, getGestion } from "@/lib/data/gestion";
+import { asignarTareas, cambiarCentro, moverEnCola, ordenarPorUrgencia, getGestion, moverTareaADia } from "@/lib/data/gestion";
 import { evaluarEntrada } from "@/lib/data/entrada-plan";
 import { enviarAProduccion } from "@/lib/data/ot";
 import { revalidatePath as revalidarConPlan } from "@/lib/revalidar";
@@ -57,6 +57,20 @@ export async function enviarAProduccionAction(otPiezaIds: string[]): Promise<{ o
     // Entrar al plan cambia el plan: se invalida entero.
     for (const r of ["/gestion", "/proyectos", "/ot", "/taller", "/indicadores", "/llegamos"]) revalidarConPlan(r, "layout");
     return { ok: true, enviadas, esperan: evaluadas.length - listas.length };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    return { ok: false, error: !msg || msg.startsWith("Failed query") ? "No se pudo guardar. Probá de nuevo." : msg };
+  }
+}
+
+/** Mover una tarea a otro día en la carga (tanda 2, 05/11). Cambia el plan: se invalida entero. */
+export async function moverTareaADiaAction(clave: string, fecha: string | null): Promise<Res> {
+  try {
+    const u = await getUsuarioDePlanta();
+    if (u.rol === "operario") throw new Error("No autorizado.");
+    await moverTareaADia(clave, fecha, u.id);
+    for (const r of ["/gestion", "/proyectos", "/taller"]) revalidarConPlan(r, "layout");
+    return { ok: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
     return { ok: false, error: !msg || msg.startsWith("Failed query") ? "No se pudo guardar. Probá de nuevo." : msg };
