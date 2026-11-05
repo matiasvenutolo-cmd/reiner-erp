@@ -6,7 +6,8 @@ import { Vacio } from "@/components/ui/Aviso";
 import { ListaGestion } from "@/components/gestion/ListaGestion";
 import { ParaEnviar } from "@/components/gestion/ParaEnviar";
 import { FiltrosGestion } from "@/components/gestion/FiltrosGestion";
-import { getGestion, type CargaOperario, type OrdenEnCurso } from "@/lib/data/gestion";
+import { getGestion, type OrdenEnCurso } from "@/lib/data/gestion";
+import { CargaTrabajo } from "@/components/gestion/CargaTrabajo";
 import { fechaCorta } from "@/lib/formato";
 
 export const dynamic = "force-dynamic";
@@ -27,46 +28,6 @@ export default async function GestionPage({ searchParams }: { searchParams: Prom
         <Contenido sp={sp} />
       </Suspense>
     </div>
-  );
-}
-
-function Barra({ ocupadas, disponibles, label }: { ocupadas: number; disponibles: number; label: string }) {
-  // Sin horas disponibles (fin de semana, feriado o ausencia): la barra queda vacía, salvo que tenga algo asignado.
-  const pct = disponibles > 0 ? Math.min(100, (ocupadas / disponibles) * 100) : ocupadas > 0 ? 100 : 0;
-  return (
-    <div className="flex items-center gap-2 text-[11px] text-foreground-muted">
-      <span className="w-16 shrink-0">{label}</span>
-      <div className="flex-1 h-2 rounded-full bg-surface-muted overflow-hidden" title={`${Math.round(ocupadas)} de ${Math.round(disponibles)} h`}>
-        <div className={`h-full ${pct >= 100 ? "bg-naranja" : "bg-accent"}`} style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function PanelCarga({ carga, actual }: { carga: CargaOperario[]; actual?: string }) {
-  return (
-    <aside className="tarjeta p-4 space-y-3">
-      <div>
-        <h2 className="font-semibold">Carga por persona</h2>
-        <p className="text-xs text-foreground-muted">Sólo para ver quién tiene espacio. Tocá un nombre para ver su cola.</p>
-      </div>
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {carga.map((c) => (
-          <li key={c.id}>
-            <Link href={actual === c.id ? "/gestion" : `/gestion?operario=${c.id}`} className={`block rounded-md px-2 py-1.5 -mx-2 hover:bg-surface-muted ${actual === c.id ? "bg-accent-soft" : ""}`}>
-              <div className="text-sm">
-                <span className="font-semibold">{c.nombre}</span>
-                <span className="text-foreground-muted"> · {Math.round(c.horasPendientes)} h · {c.texto}</span>
-              </div>
-              <div className="mt-1 space-y-1">
-                <Barra label="Esta semana" ocupadas={c.esta.ocupadas} disponibles={c.esta.disponibles} />
-                <Barra label="La próxima" ocupadas={c.proxima.ocupadas} disponibles={c.proxima.disponibles} />
-              </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </aside>
   );
 }
 
@@ -102,7 +63,7 @@ function OrdenesEnCurso({ ordenes, hoy }: { ordenes: OrdenEnCurso[]; hoy: string
 }
 
 async function Contenido({ sp }: { sp: Params }) {
-  const { filas, paraEnviar, ordenes: enCurso, operarios, centros, carga, hoy } = await getGestion();
+  const { filas, paraEnviar, ordenes: enCurso, operarios, centros, carga, cargaDia, hoy } = await getGestion();
   const ordenes = [...new Map(filas.map((f) => [f.ordenId, { id: f.ordenId, nombre: f.orden }])).values()];
   let lista = filas;
   if (sp.centro) lista = lista.filter((f) => f.centroId === sp.centro);
@@ -145,7 +106,7 @@ async function Contenido({ sp }: { sp: Params }) {
           )}
         </>
       )}
-      <PanelCarga carga={carga} actual={sp.operario} />
+      <CargaTrabajo carga={cargaDia} resumen={carga} operarios={operarios} centros={centros} hoy={hoy} />
     </div>
   );
 }

@@ -85,6 +85,34 @@ export type FilaParaEnviar = {
   holgura: number;
 };
 
+/** Un tramo de trabajo de un operario en un día (prueba 1, 05/11: la carga se ve en Gestión, por día). */
+export type TramoCarga = {
+  clave: string;
+  otPiezaId: string;
+  operarioId: string;
+  centroId: string | null;
+  pieza: string;
+  paso: string;
+  posicion: number;
+  totalPasos: number;
+  orden: string;
+  dia: string;
+  horas: number;
+  totalHoras: number;
+  /** Qué parte del día ocupa (0 a 1): dos tareas seguidas comparten el día sin superponerse. */
+  desde: number;
+  hasta: number;
+};
+export type CargaPorDia = {
+  /** Días hábiles desde hoy (cuatro semanas). */
+  dias: string[];
+  tramos: TramoCarga[];
+  /** Horas que puede trabajar cada operario cada día (0 = no viene o no es hábil). */
+  capacidad: Record<string, Record<string, number>>;
+  /** Tareas internas sin operario, por centro: no entran en la carga hasta que se asignan. */
+  sinAsignar: Record<string, { tareas: number; horas: number }>;
+};
+
 export type OrdenEnCurso = { id: string; codigo: string; nombre: string; finEstimado: string; avancePct: number; tareas: number; porEnviar: number };
 
 export async function getGestion() {
@@ -213,6 +241,9 @@ export async function getGestion() {
       };
     })
     .sort((a, b) => Number(!!a.motivo) - Number(!!b.motivo) || a.holgura - b.holgura || a.orden.localeCompare(b.orden));
+  const operariosConCentros = operarios.map((o) => ({ ...o, centros: centrosDe.get(o.id) ?? [] }));
+  const cargaDia = cargaPorDia(operariosConCentros, filas, entrada, new Map(r.tareas.map((t) => [t.clave, t])));
+
   // Arriba de Gestión (prueba 1, 05/11): cada orden en curso con su fecha estimada de finalización, que se va
   // corriendo con lo que pasa en el taller. No es un compromiso: es lo que da el plan hoy.
   const ordenes: OrdenEnCurso[] = r.proyectos
@@ -231,7 +262,92 @@ export async function getGestion() {
       };
     })
     .sort((a, b) => a.finEstimado.localeCompare(b.finEstimado));
-  return { filas, paraEnviar, ordenes, operarios: operarios.map((o) => ({ ...o, centros: centrosDe.get(o.id) ?? [] })), centros, carga, hoy: entrada.hoy };
+  return { filas, paraEnviar, ordenes, operarios: operariosConCentros, centros, carga, cargaDia, hoy: entrada.hoy };
+}
+
+/**
+ * La cola de cada operario repartida en los días (prueba 1, 05/11). Es la misma cuenta que la carga por persona,
+ * pero día por día: las tareas se hacen en el orden de su cola, cada día con las horas que el operario tiene según
+ * el calendario y sus ausencias. Una tarea larga (20 h o más) ocupa varios días seguidos. Una tarea que espera el
+ * paso anterior no se toma hasta que ese paso termina; mientras, el operario sigue con lo siguiente de su cola.
+ */
+function cargaPorDia(
+  operarios: { id: string; nombre: string; centros: string[] }[],
+  filas: FilaGestion[],
+  entrada: Awaited<ReturnType<typeof getPlan>>["entrada"],
+  tareaDe: Map<string, Tarea>,
+): CargaPorDia {
+  const cal = entrada.calendario;
+  const dias: string[] = [];
+  for (let d = entrada.hoy; dias.length < 20; d = siguienteDia(d)) if (esHabil(d, cal)) dias.push(d);
+  // Se simula un poco más allá de lo que se muestra, para que una tarea larga no quede cortada en el borde.
+  const horizonte: string[] = [...dias];
+  for (let d = siguienteDia(dias.at(-1)!); horizonte.length < 60; d = siguienteDia(d)) if (esHabil(d, cal)) horizonte.push(d);
+
+  const capacidad: CargaPorDia["capacidad"] = {};
+  for (const o of operarios) capacidad[o.id] = Object.fromEntries(dias.map((d) => [d, horasDelDia(o.id, d, entrada)]));
+
+  // Como en la tablet: cada día el operario sigue con la que tiene empezada y, si no, toma la primera de su cola
+  // que ya se pueda hacer. Un paso se puede hacer cuando terminó el anterior de la misma pieza: si ese anterior
+  // también está en alguna cola se usa el día en que termina acá; si no, la fecha que le da el plan.
+  const tramos: TramoCarga[] = [];
+  const internas = filas.filter((f) => f.tipo === "interno" && f.operarioId);
+  const claveDePaso = new Map(filas.map((f) => [`${f.otPiezaId}#${f.posicion}`, f.clave]));
+  const simuladas = new Set(internas.map((f) => f.clave));
+  const terminaEn = new Map<string, number>(); // clave → índice del día en que termina
+  const resto = new Map(internas.map((f) => [f.clave, f.horas]));
+  const colas = new Map(
+    operarios.map((o) => [o.id, internas.filter((f) => f.operarioId === o.id).sort((a, b) => (a.lugar ?? 1e9) - (b.lugar ?? 1e9))]),
+  );
+  const empezada = new Map<string, string | null>();
+  const puedeEl = (f: FilaGestion, i: number): boolean => {
+    if (f.estado !== "espera") return true;
+    const anterior = claveDePaso.get(`${f.otPiezaId}#${f.posicion - 1}`);
+    if (anterior && simuladas.has(anterior)) {
+      const fin = terminaEn.get(anterior);
+      return fin !== undefined && fin < i;
+    }
+    const desde = tareaDe.get(f.clave)?.fechaPlan;
+    return !desde || horizonte[i] >= desde;
+  };
+  for (let i = 0; i < horizonte.length; i++) {
+    for (const o of operarios) {
+      const delDia = horasDelDia(o.id, horizonte[i], entrada);
+      let libre = delDia;
+      const cola = colas.get(o.id) ?? [];
+      while (libre > 0.01) {
+        const actual = empezada.get(o.id);
+        const f = actual ? cola.find((x) => x.clave === actual) : cola.find((x) => (resto.get(x.clave) ?? 0) > 0.01 && puedeEl(x, i));
+        if (!f) break;
+        const toma = Math.min(libre, resto.get(f.clave)!);
+        if (i < dias.length)
+          tramos.push({
+            clave: f.clave, otPiezaId: f.otPiezaId, operarioId: o.id, centroId: f.centroId, pieza: f.pieza, paso: f.paso, posicion: f.posicion, totalPasos: f.totalPasos,
+            orden: f.orden, dia: horizonte[i], horas: toma, totalHoras: f.horas, desde: (delDia - libre) / delDia, hasta: (delDia - libre + toma) / delDia,
+          });
+        libre -= toma;
+        resto.set(f.clave, resto.get(f.clave)! - toma);
+        if (resto.get(f.clave)! <= 0.01) {
+          terminaEn.set(f.clave, i);
+          empezada.set(o.id, null);
+        } else empezada.set(o.id, f.clave);
+      }
+    }
+  }
+  const sinAsignar: CargaPorDia["sinAsignar"] = {};
+  for (const f of filas)
+    if (f.tipo === "interno" && !f.operarioId && f.centroId) {
+      const x = (sinAsignar[f.centroId] ??= { tareas: 0, horas: 0 });
+      x.tareas += 1;
+      x.horas += f.horas;
+    }
+  return { dias, tramos, capacidad, sinAsignar };
+}
+
+function siguienteDia(f: string): string {
+  const x = new Date(`${f}T12:00:00Z`);
+  x.setUTCDate(x.getUTCDate() + 1);
+  return x.toISOString().slice(0, 10);
 }
 
 /** Horas que el operario puede trabajar en un día: las del plan (calendario × eficiencia), 0 si falta o no es hábil. */
