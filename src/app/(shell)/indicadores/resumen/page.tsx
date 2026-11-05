@@ -38,7 +38,7 @@ export default async function IndicadoresPage() {
         <Metric label="Piezas defectuosas" value={String(resumen.piezasDefectuosas)} alerta={resumen.piezasDefectuosas > 0} />
         <Metric label="Piezas retrabajadas" value={String(resumen.piezasRetrabajadas)} alerta={resumen.piezasRetrabajadas > 0} />
         <Metric label="Paradas" value={`${resumen.paradasCantidad} · ${fmtHoras(resumen.paradasHoras)}`} />
-        <Metric label="Espera setup → fabricación (promedio)" value={promedio === null ? "—" : `${formatearDuracion(promedio)} · ${cerradas.length} vez${cerradas.length === 1 ? "" : "es"}`} />
+        <Metric label="Espera setup → fabricación (promedio)" value={promedio === null ? "—" : `${formatearDuracion(promedio)} · ${cerradas.length} ${cerradas.length === 1 ? "vez" : "veces"}`} />
       </div>
 
       {/* Prueba 1 (05/11): el tiempo muerto entre terminar el setup e iniciar la fabricación. */}

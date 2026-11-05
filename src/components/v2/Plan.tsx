@@ -102,9 +102,10 @@ export function textoCausa(c: Causa, hoy: string): { texto: string; accion: stri
     case "tercerizado":
       return { texto: `el ${c.paso.toLowerCase()} de ${c.pieza} vuelve el ${fc(c.vuelta, hoy)}`, accion: "Ver tercerizados", href: "/tercerizados", hacer: `Reclamar el ${c.paso.toLowerCase()} de ${c.pieza}` };
     case "capacidad":
-      return { texto: `${c.centro} no tiene lugar para ${c.pieza} (${c.conjunto}) hasta el ${fc(c.desde, hoy)}`, accion: "Ver el plan", href: `/planificacion?centro=${encodeURIComponent(c.centroId)}`, hacer: `Hacer lugar en ${c.centro}` };
+      return { texto: `${c.centro} no tiene lugar para ${c.pieza} (${c.conjunto}) hasta el ${fc(c.desde, hoy)}`, accion: "Ver la carga", href: `/gestion?centro=${encodeURIComponent(c.centroId)}`, hacer: `Hacer lugar en ${c.centro}` };
     case "sin_liberar":
-      return { texto: `las piezas de ${c.conjunto} todavía no entraron al plan`, accion: "Pasar al plan", href: "/liberacion", hacer: `Pasar al plan las piezas de ${c.conjunto}` };
+      // Prueba 1 (05/11): se mandan a producción desde Gestión.
+      return { texto: `las piezas de ${c.conjunto} todavía no se mandaron a producción`, accion: "Ir a Gestión", href: "/gestion", hacer: `Mandar a producción las piezas de ${c.conjunto}` };
   }
 }
 
