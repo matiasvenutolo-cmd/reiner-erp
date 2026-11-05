@@ -134,5 +134,5 @@ export async function cargarPiezaTerminadaAction(formData: FormData) {
     redirect(`${volver}&error=${encodeURIComponent(e instanceof Error ? e.message : "No se pudo cargar.")}`);
   }
   revalidarStock();
-  redirect(`${volver}&ok=${encodeURIComponent("Pieza cargada en Piezas terminadas.")}`);
+  redirect(`${volver}&ok=${encodeURIComponent("Pieza cargada en Productos terminados.")}`);
 }

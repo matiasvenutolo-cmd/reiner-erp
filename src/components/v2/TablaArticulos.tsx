@@ -1,7 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { plural } from "@/lib/formato";
 import { db } from "@/lib/db/client";
-import { articuloStock, proveedor } from "@/lib/db/schema";
+import { articuloStock, proveedor, otPieza } from "@/lib/db/schema";
 import { retirarArticuloAction } from "@/app/actions/v2";
 
 const num = (n: number) => (Math.round(n * 100) / 100).toLocaleString("es-AR");
@@ -9,9 +9,10 @@ const num = (n: number) => (Math.round(n * 100) / 100).toLocaleString("es-AR");
 /** Materia prima y consumibles de taller: artículos que no son piezas del maestro. */
 export async function TablaArticulos({ tipo }: { tipo: "materia_prima" | "consumible" }) {
   const filas = await db
-    .select({ a: articuloStock, proveedor: proveedor.razonSocial })
+    .select({ a: articuloStock, proveedor: proveedor.razonSocial, reservadaPara: otPieza.codigo })
     .from(articuloStock)
     .leftJoin(proveedor, eq(proveedor.id, articuloStock.proveedorId))
+    .leftJoin(otPieza, eq(otPieza.id, articuloStock.otPiezaId))
     .where(and(eq(articuloStock.tipo, tipo)))
     .orderBy(asc(articuloStock.nombre));
   const bajo = filas.filter((f) => f.a.cantidad < f.a.minimo).length;
@@ -42,7 +43,7 @@ export async function TablaArticulos({ tipo }: { tipo: "materia_prima" | "consum
               </tr>
             </thead>
             <tbody>
-              {filas.map(({ a, proveedor: prov }) => {
+              {filas.map(({ a, proveedor: prov, reservadaPara }) => {
                 const debajo = a.cantidad < a.minimo;
                 return (
                   <tr key={a.id} className={`border-t border-border ${debajo ? "bg-rojo-tenue" : ""}`}>
@@ -50,6 +51,8 @@ export async function TablaArticulos({ tipo }: { tipo: "materia_prima" | "consum
                       {a.nombre}
                       {a.esDemo && <span className="badge-estado bg-demo-bg text-demo-fg ml-2">demo</span>}
                       {debajo && <div className="text-xs text-rojo-fg font-semibold">debajo del mínimo</div>}
+                      {/* Tanda 2 (05/11): comprado para una pieza de una orden; sale cuando arranca su primer paso. */}
+                      {reservadaPara && <div className="text-xs text-accent">Reservado para {reservadaPara} · sale al empezar a fabricarla</div>}
                     </td>
                     {esMP && <td className="px-3 py-2 text-foreground-muted">{a.medida ?? "—"}</td>}
                     <td className="px-3 py-2 text-right tabular-nums">
@@ -66,12 +69,16 @@ export async function TablaArticulos({ tipo }: { tipo: "materia_prima" | "consum
                     <td className="px-3 py-2 text-right tabular-nums text-foreground-muted">{num(a.minimo)}</td>
                     <td className="px-3 py-2 text-foreground-muted">{esMP ? [a.ubicacion, prov].filter(Boolean).join(" · ") || "—" : a.centroUso ?? "—"}</td>
                     <td className="px-4 py-2 text-right">
+                      {reservadaPara ? (
+                        <span className="text-xs text-foreground-muted">sale solo</span>
+                      ) : (
                       <form action={retirarArticuloAction} className="inline-flex items-center gap-1">
                         <input type="hidden" name="id" value={a.id} />
                         <input type="hidden" name="vista" value={vista} />
                         <input name="cantidad" type="number" min="0" step="any" className="input text-xs py-0.5 w-16" aria-label={`Cantidad de ${a.nombre}`} />
                         <button className="btn-secundario btn-sm">Retirar</button>
                       </form>
+                      )}
                     </td>
                   </tr>
                 );

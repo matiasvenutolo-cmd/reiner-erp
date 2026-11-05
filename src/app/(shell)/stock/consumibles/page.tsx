@@ -1,20 +1,6 @@
-import { PageHeader } from "@/components/ui/PageHeader";
-import { PestanasStock } from "@/components/ui/PestanasSecciones";
-import { Aviso } from "@/components/ui/Aviso";
-import { TablaArticulos } from "@/components/v2/TablaArticulos";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function Page({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
-  const { ok, error } = await searchParams;
-  return (
-    <div className="space-y-5">
-      <PageHeader titulo="Stock" descripcion="Insertos, mechas, discos, lubricantes y elementos de protección. Se registra cada retiro.">
-        <PestanasStock actual="/stock/consumibles" />
-      </PageHeader>
-      {ok && <Aviso tipo="ok">{ok}</Aviso>}
-      {error && <Aviso tipo="error">{error}</Aviso>}
-      <TablaArticulos tipo="consumible" />
-    </div>
-  );
+/** Tanda 2 (05/11): los consumibles están en Insumos, junto con las piezas comerciales. */
+export default function ConsumiblesPage() {
+  redirect("/stock/insumos");
 }

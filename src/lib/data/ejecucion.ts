@@ -18,7 +18,7 @@ import { ingresarPiezaTerminada } from "./stock";
 import { getColaDe } from "./gestion";
 import { eq, and, isNull, isNotNull, sql, desc, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { registroOperacion, parada, tipoParada, otPieza, tareaRevision, usuario, pieza } from "@/lib/db/schema";
+import { registroOperacion, parada, tipoParada, otPieza, tareaRevision, usuario, pieza, articuloStock, movimientoStock } from "@/lib/db/schema";
 import { getRoutingPieza, nombreOperacion } from "./maestros";
 import { cantidadQueEntraAlPaso, pasoHabilitadoParaOperario, getCentrosDeUsuario } from "./produccion";
 import { getAsignacionesDeHoy } from "./planificacion";
@@ -212,7 +212,32 @@ export async function iniciarOperacion(
     .update(otPieza)
     .set({ fechaInicio: registro.inicio })
     .where(and(eq(otPieza.id, input.otPiezaId), isNull(otPieza.fechaInicio)));
+  await usarMateriaPrima(input.otPiezaId, input.usuarioId);
   return { ok: true, id: registro.id };
+}
+
+/**
+ * Tanda 2 (05/11): al arrancar el primer paso de la pieza (setup o fabricación), su material sale de Materia
+ * prima. Queda el movimiento como historia. Si no había material reservado (o ya salió), no hace nada.
+ */
+async function usarMateriaPrima(otPiezaId: string, usuarioId: string): Promise<void> {
+  const reservados = await db.select().from(articuloStock).where(eq(articuloStock.otPiezaId, otPiezaId));
+  if (!reservados.length) return;
+  const [op] = await db.select({ piezaId: otPieza.piezaId, codigo: otPieza.codigo }).from(otPieza).where(eq(otPieza.id, otPiezaId));
+  if (!op) return;
+  await db.transaction(async (tx) => {
+    for (const a of reservados) {
+      await tx.delete(articuloStock).where(eq(articuloStock.id, a.id));
+      await tx.insert(movimientoStock).values({
+        piezaId: op.piezaId,
+        tipo: "egreso",
+        cantidad: Math.max(1, Math.round(a.cantidad)),
+        otPiezaId,
+        usuarioId,
+        observacion: `Materia prima usada — ${op.codigo} (${a.nombre})`,
+      });
+    }
+  });
 }
 
 export async function pausarOperacion(registroOperacionId: string, tipoParadaId: string, usuarioId: string, cuando?: Date): Promise<void> {

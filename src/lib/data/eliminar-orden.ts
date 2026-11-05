@@ -7,7 +7,7 @@
  * - las piezas que ya entraron al stock siguen en el stock (existen físicamente) y sus movimientos quedan;
  * - las solicitudes que Compras ya armó (cotizadas, confirmadas o pagadas) quedan en Compras, sin la pieza ni el pedido de origen;
  * - los remitos ya emitidos quedan, sin la pieza de la orden.
- * Las reservas se borran, así que ese stock vuelve a quedar libre.
+ * Las reservas se borran, así que ese stock vuelve a quedar libre; el material que ya llegó queda en Materia prima, libre.
  */
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
@@ -36,6 +36,8 @@ import {
   tareaLote,
   tareaRevision,
   tareaRevisionItem,
+  articuloStock,
+  stockConjunto,
 } from "@/lib/db/schema";
 
 export async function eliminarOrden(otMaquinaId: string): Promise<{ codigo: string }> {
@@ -59,12 +61,16 @@ export async function eliminarOrden(otMaquinaId: string): Promise<{ codigo: stri
       const pedidos = (await tx.select({ id: pedidoCompra.id }).from(pedidoCompra).where(inArray(pedidoCompra.otPiezaId, piezas))).map((x) => x.id);
       if (pedidos.length) await tx.update(solicitudCompra).set({ pedidoCompraId: null }).where(inArray(solicitudCompra.pedidoCompraId, pedidos));
       await tx.update(remitoItem).set({ otPiezaId: null }).where(inArray(remitoItem.otPiezaId, piezas));
+      // El material que ya llegó existe: queda en Materia prima, libre.
+      await tx.update(articuloStock).set({ otPiezaId: null, asignada: 0 }).where(inArray(articuloStock.otPiezaId, piezas));
 
       for (const t of [registroOperacion, tareaRevision, asignacionTrabajo, avisoPlanta, colaTarea, controlCalidad, pedidoCompra, planAjuste, tareaAdelanto, tareaBloqueo, tareaLote, necesidadCompraOrden])
         await tx.delete(t).where(inArray(t.otPiezaId, piezas));
       await tx.delete(otPieza).where(inArray(otPieza.id, piezas));
     }
     if (conjuntos.length) await tx.delete(controlArmado).where(inArray(controlArmado.otConjuntoId, conjuntos));
+    // Un conjunto ya armado existe: queda en Productos terminados, libre.
+    await tx.update(stockConjunto).set({ otMaquinaId: null, otConjuntoId: null }).where(eq(stockConjunto.otMaquinaId, orden.id));
     await tx.delete(otConjunto).where(eq(otConjunto.otMaquinaId, orden.id));
     await tx.delete(necesidadCompraOrden).where(eq(necesidadCompraOrden.otMaquinaId, orden.id));
     await tx.delete(reservaStock).where(eq(reservaStock.otMaquinaId, orden.id));

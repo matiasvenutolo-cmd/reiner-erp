@@ -982,6 +982,27 @@ export const articuloStock = pgTable("articulo_stock", {
   proveedorId: text("proveedor_id"),
   centroUso: text("centro_uso"),
   esDemo: boolean("es_demo").notNull().default(false),
+  /**
+   * Tanda 2 (05/11): material comprado para fabricar una pieza de una orden. Entra a Materia prima reservado para
+   * esa pieza y sale cuando arranca su primer paso. Sin FK: si la orden se borra, el material queda libre.
+   */
+  otPiezaId: text("ot_pieza_id"),
+});
+
+/**
+ * Conjunto terminado en stock (tanda 2, 05/11): entra con el control de armado OK de un conjunto de una orden; sus
+ * piezas salen del stock de piezas. Queda reservado para la orden (o libre, si la orden era para stock).
+ */
+export const stockConjunto = pgTable("stock_conjunto", {
+  id: id(),
+  conjuntoId: text("conjunto_id")
+    .notNull()
+    .references(() => conjunto.id),
+  configuracionId: text("configuracion_id").references(() => configuracion.id),
+  otConjuntoId: text("ot_conjunto_id"),
+  otMaquinaId: text("ot_maquina_id"),
+  cantidad: integer("cantidad").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // ── Tipos inferidos (usados en toda la app) ─────────────────────────────

@@ -26,6 +26,7 @@ import {
   remito,
   remitoItem,
   solicitudCompra,
+  articuloStock,
 } from "@/lib/db/schema";
 import { getStockDisponible, ingresarPiezaTerminada } from "./stock";
 import { esUltimaOperacion, getCantidadesOperacion } from "./ejecucion";
@@ -192,7 +193,7 @@ export async function registrarLlegadaPedido(input: {
   usuarioId: string;
 }): Promise<void> {
   const [row] = await db
-    .select({ pedido: pedidoCompra, otPieza, tipoPieza: pieza.tipo, otMaquinaId: otConjunto.otMaquinaId })
+    .select({ pedido: pedidoCompra, otPieza, tipoPieza: pieza.tipo, piezaNombre: pieza.nombre, piezaMaterial: pieza.material, otMaquinaId: otConjunto.otMaquinaId })
     .from(pedidoCompra)
     .innerJoin(otPieza, eq(otPieza.id, pedidoCompra.otPiezaId))
     .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
@@ -232,6 +233,18 @@ export async function registrarLlegadaPedido(input: {
         });
       await tx.insert(reservaStock).values({ otMaquinaId: row.otMaquinaId, piezaId: row.otPieza.piezaId, cantidad: row.pedido.cantidad });
     } else if (input.operacionCompraId) {
+      // Tanda 2 (05/11): el material entra a Materia prima, reservado para esta pieza, y sale cuando arranca su
+      // primer paso (`usarMateriaPrima`). La cantidad es "para cuántas piezas": la pieza no siempre tiene el
+      // material especificado con su medida.
+      await tx.insert(articuloStock).values({
+        tipo: "materia_prima",
+        nombre: (row.otPieza.material ?? row.piezaMaterial)?.trim() || `Material para ${row.piezaNombre}`,
+        unidad: row.pedido.cantidad === 1 ? "pieza" : "piezas",
+        cantidad: row.pedido.cantidad,
+        asignada: row.pedido.cantidad,
+        proveedorId: row.pedido.proveedorId,
+        otPiezaId: row.otPieza.id,
+      });
       await tx.insert(registroOperacion).values({
         otPiezaId: row.otPieza.id,
         operacionId: input.operacionCompraId,

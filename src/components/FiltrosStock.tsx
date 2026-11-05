@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 /**
- * Filtros de conjunto / máquina / tipo para los listados de Stock —
+ * Filtros de conjunto / máquina para los listados de Stock (las compradas están en Insumos) —
  * devolución del cliente (docs/06-backlog-release-3.md): "el listado de
  * piezas es difícil de visualizar... poder filtrar por conjunto y/o máquina
  * al que se aplica, y por si es una pieza comprada o que ya se fabricó".
@@ -52,11 +52,6 @@ export function FiltrosStock({
             {c.nombre}
           </option>
         ))}
-      </select>
-      <select className="input text-sm w-auto" value={searchParams.get("tipo") ?? ""} onChange={(e) => actualizar("tipo", e.target.value)}>
-        <option value="">Compradas y fabricadas</option>
-        <option value="fabricada">Sólo fabricadas</option>
-        <option value="comprada">Sólo compradas</option>
       </select>
     </div>
   );

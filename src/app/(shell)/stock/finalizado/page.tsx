@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Aviso, Vacio } from "@/components/ui/Aviso";
 import { and, desc, eq, gt, like, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { reservaStock, otMaquina, movimientoStock, otPieza, otConjunto, pieza } from "@/lib/db/schema";
+import { reservaStock, otMaquina, movimientoStock, otPieza, otConjunto, pieza, stockConjunto, conjunto as conjuntoT, configuracion, cliente } from "@/lib/db/schema";
+import { redirect } from "next/navigation";
 import { reservaVigente } from "@/lib/data/stock";
 import { getUsuarioActual } from "@/lib/session";
 import { cargarPiezaTerminadaAction } from "@/app/actions/stock";
@@ -23,7 +24,9 @@ export default async function StockFinalizadoPage({
   searchParams: Promise<{ conjunto?: string; maquina?: string; tipo?: string; estado?: string; ok?: string; error?: string }>;
 }) {
   const { conjunto, maquina, tipo, estado, ok, error } = await searchParams;
-  const tipoFiltro = tipo === "fabricada" || tipo === "comprada" ? tipo : undefined;
+  // Tanda 2 (05/11): las piezas compradas están en Insumos; acá, los productos terminados.
+  if (tipo === "comprada") redirect("/stock/insumos");
+  const tipoFiltro = "fabricada" as const;
 
   const [todasPiezas, conjuntos, configuraciones, reservas, origenes, usuario, catalogo] = await Promise.all([
     getPiezasFinalizadas({ conjuntoId: conjunto, configuracionId: maquina, tipo: tipoFiltro }),
@@ -47,6 +50,22 @@ export default async function StockFinalizadoPage({
     getUsuarioActual(),
     db.select({ id: pieza.id, codigo: pieza.codigo, nombre: pieza.nombre }).from(pieza).where(eq(pieza.tipo, "fabricada")).orderBy(pieza.nombre),
   ]);
+  const [conjuntosStock, maquinasTerminadas] = await Promise.all([
+    db
+      .select({ s: stockConjunto, codigo: conjuntoT.codigo, nombre: conjuntoT.nombre, config: configuracion.nombre, orden: otMaquina.codigo, destino: otMaquina.destino })
+      .from(stockConjunto)
+      .innerJoin(conjuntoT, eq(conjuntoT.id, stockConjunto.conjuntoId))
+      .leftJoin(configuracion, eq(configuracion.id, stockConjunto.configuracionId))
+      .leftJoin(otMaquina, eq(otMaquina.id, stockConjunto.otMaquinaId))
+      .where(gt(stockConjunto.cantidad, 0))
+      .orderBy(desc(stockConjunto.createdAt)),
+    db
+      .select({ id: otMaquina.id, codigo: otMaquina.codigo, serie: otMaquina.numeroSerie, config: configuracion.nombre, cliente: cliente.razonSocial })
+      .from(otMaquina)
+      .leftJoin(configuracion, eq(configuracion.id, otMaquina.configuracionId))
+      .leftJoin(cliente, eq(cliente.id, otMaquina.clienteId))
+      .where(and(eq(otMaquina.destino, "maquina"), eq(otMaquina.estadoProyecto, "terminado"))),
+  ]);
   const reservasDe = new Map<string, { codigo: string; cantidad: number }[]>();
   for (const r of reservas) reservasDe.set(r.piezaId, [...(reservasDe.get(r.piezaId) ?? []), r]);
   const origenDe = new Map(origenes.map((o) => [o.piezaId, o.codigo]));
@@ -59,9 +78,9 @@ export default async function StockFinalizadoPage({
     <div className="space-y-6">
       <PageHeader
         titulo="Stock"
-        descripcion={`Almacén: existencias físicas reales. ${piezas.length} pieza${piezas.length === 1 ? "" : "s"} distinta${piezas.length === 1 ? "" : "s"} · ${totalUnidades} unidades, ${totalComprometido} reservadas para una orden.`}
+        descripcion={`Productos terminados: piezas, conjuntos y máquinas. ${piezas.length} pieza${piezas.length === 1 ? "" : "s"} distinta${piezas.length === 1 ? "" : "s"} · ${totalUnidades} unidades, ${totalComprometido} reservadas para una orden.`}
       >
-        <PestanasStock actual={tipoFiltro ? `/stock/finalizado?tipo=${tipoFiltro}` : "/stock/finalizado"} />
+        <PestanasStock actual="/stock/finalizado?tipo=fabricada" />
       </PageHeader>
 
       <FiltrosStock
@@ -107,6 +126,7 @@ export default async function StockFinalizadoPage({
           </Link>
         </p>
       )}
+      <h2 className="text-lg font-semibold">Piezas</h2>
       {piezas.length === 0 ? (
         <Vacio neutro>No hay piezas con stock que coincidan con el filtro.</Vacio>
       ) : (
@@ -141,6 +161,51 @@ export default async function StockFinalizadoPage({
           })}
         </ul>
       )}
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold">Conjuntos</h2>
+        <p className="text-sm text-foreground-muted">Entran con el control de armado OK; sus piezas salen de la lista de piezas.</p>
+        {conjuntosStock.length === 0 ? (
+          <Vacio neutro>Todavía no hay conjuntos armados en stock.</Vacio>
+        ) : (
+          <ul className="tarjeta divide-y divide-border">
+            {conjuntosStock.map(({ s: c, codigo, nombre, config, orden, destino }) => (
+              <li key={c.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
+                <span className="flex-1 min-w-48">
+                  <span className="font-medium">
+                    {codigo} {nombre}
+                  </span>
+                  {config && <span className="block text-xs text-foreground-muted">{config}</span>}
+                </span>
+                <span className="tabular-nums">{numero(c.cantidad)} armado{c.cantidad === 1 ? "" : "s"}</span>
+                {orden && destino !== "stock" ? (
+                  <Etiqueta tono={ESTADO_STOCK.asignada.tono} sinIcono>reservado para {orden}</Etiqueta>
+                ) : (
+                  <Etiqueta tono={ESTADO_STOCK.libre.tono} sinIcono>libre</Etiqueta>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold">Máquinas</h2>
+        {maquinasTerminadas.length === 0 ? (
+          <Vacio neutro>No hay máquinas terminadas sin entregar.</Vacio>
+        ) : (
+          <ul className="tarjeta divide-y divide-border">
+            {maquinasTerminadas.map((m) => (
+              <li key={m.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
+                <Link href={`/proyectos/${m.id}`} className="flex-1 min-w-48 font-medium hover:text-accent hover:underline">
+                  {m.config ?? m.codigo} · serie {m.serie}
+                </Link>
+                <span className="text-foreground-muted">{m.cliente ?? "Para stock"}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

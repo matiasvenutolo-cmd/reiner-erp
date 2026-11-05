@@ -93,8 +93,11 @@ const NAV_ITEMS: NavEntry[] = [
   { href: "/proveedores", label: "Proveedores", roles: [...STAFF, ...COMPRAS], grupo: "compras" },
   { href: "/pedir", label: "Pedir esta semana", roles: [...STAFF, ...COMPRAS], grupo: "compras", oculta: true, ayuda: "Qué hay que pedir y a quién" },
 
-  { href: "/stock/finalizado", url: "/stock/finalizado?tipo=fabricada", label: "Piezas terminadas", roles: STAFF, grupo: "stock", ayuda: "Piezas terminadas, libres o reservadas para una orden" },
-  { href: "/stock", label: "Stock (todas las pestañas)", roles: STAFF, grupo: "stock", oculta: true, ayuda: "Materia prima, insumos, en proceso y terminados" },
+  // Tanda 2 (05/11): Stock en tres listas: materia prima, insumos y productos terminados.
+  { href: "/stock/finalizado", url: "/stock/finalizado?tipo=fabricada", label: "Productos terminados", roles: STAFF, grupo: "stock", ayuda: "Piezas, conjuntos y máquinas terminados, libres o reservados para una orden" },
+  { href: "/stock/materia-prima", label: "Materia prima", roles: STAFF, grupo: "stock", ayuda: "El material comprado para fabricar, reservado para su pieza" },
+  { href: "/stock/insumos", label: "Insumos", roles: STAFF, grupo: "stock", ayuda: "Piezas comerciales y consumibles de taller" },
+  { href: "/stock", label: "Stock (todas las pestañas)", roles: STAFF, grupo: "stock", oculta: true, ayuda: "Materia prima, insumos y productos terminados" },
 
   { href: "/maestros", label: "Piezas y hojas de ruta", roles: STAFF, grupo: "ingenieria", ayuda: "Máquinas, conjuntos, piezas, rutas y tiempos" },
   { href: "/maestros/importar", label: "Importar desde Excel", roles: STAFF, grupo: "ingenieria", ayuda: "Cargar o actualizar piezas y hojas de ruta desde una planilla" },

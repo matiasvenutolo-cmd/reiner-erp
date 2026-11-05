@@ -31,29 +31,26 @@ export function PestanasPlanificacion({ actual }: { actual: string }) {
 }
 
 /** Pestañas de Stock con el número de ítems de cada una (§2.6). */
+/**
+ * Stock (tanda 2, 05/11): materia prima (lo comprado para fabricar), insumos (piezas comerciales y consumibles,
+ * una sola lista) y productos terminados (piezas, conjuntos y máquinas). Lo que está en fabricación no es stock:
+ * se ve en Gestión.
+ */
 export async function PestanasStock({ actual }: { actual: string }) {
-  // Reorganización 30/10 §5.3: mientras no se controle la materia prima, sólo se ve Piezas terminadas.
-  const [mp] = await db.execute<{ valor: string | null }>(sql`select valor from parametro where clave = 'controlar_materia_prima'`);
-  if ((mp?.valor ?? "no") !== "si") return <Pestanas actual={actual} items={[{ href: "/stock/finalizado?tipo=fabricada", label: "Piezas terminadas" }]} />;
-  const [c] = await db.execute<{ mp: number; cons: number; insumos: number; terminados: number; proceso: number; maquinas: number }>(sql`
+  const [c] = await db.execute<{ mp: number; insumos: number; terminados: number }>(sql`
     select
-      (select count(*) from articulo_stock where tipo = 'materia_prima')::int mp,
-      (select count(*) from articulo_stock where tipo = 'consumible')::int cons,
-      (select count(*) from stock_pieza s join pieza p on p.id = s.pieza_id where s.cantidad_disponible > 0 and (p.tipo = 'comprada' or p.clase <> 'fabricada'))::int insumos,
-      (select count(*) from stock_pieza s join pieza p on p.id = s.pieza_id where s.cantidad_disponible > 0 and p.tipo = 'fabricada' and p.clase = 'fabricada')::int terminados,
-      (select count(*) from ot_pieza where fecha_inicio is not null and fecha_fin is null)::int proceso,
-      (select count(*) from ot_maquina where destino = 'maquina' and estado_proyecto in ('en_montaje','terminado','entregado'))::int maquinas`);
+      (select count(*) from articulo_stock where tipo = 'materia_prima' and cantidad > 0)::int mp,
+      (select count(*) from articulo_stock where tipo = 'consumible')::int
+        + (select count(*) from stock_pieza s join pieza p on p.id = s.pieza_id where s.cantidad_disponible > 0 and (p.tipo = 'comprada' or p.clase <> 'fabricada'))::int insumos,
+      (select count(*) from stock_pieza s join pieza p on p.id = s.pieza_id where s.cantidad_disponible > 0 and p.tipo = 'fabricada' and p.clase = 'fabricada')::int
+        + (select count(*) from stock_conjunto where cantidad > 0)::int terminados`);
   return (
     <Pestanas
       actual={actual}
       items={[
-        { href: "/stock", label: "Resumen" },
         { href: "/stock/materia-prima", label: "Materia prima", contador: c.mp },
-        { href: "/stock/finalizado?tipo=comprada", label: "Insumos comprados", contador: c.insumos },
-        { href: "/stock/consumibles", label: "Consumibles", contador: c.cons },
-        { href: "/stock/en-proceso", label: "En fabricación", contador: c.proceso },
-        { href: "/stock/finalizado?tipo=fabricada", label: "Terminados", contador: c.terminados },
-        { href: "/stock/maquinas", label: "Máquinas", contador: c.maquinas },
+        { href: "/stock/insumos", label: "Insumos", contador: c.insumos },
+        { href: "/stock/finalizado?tipo=fabricada", label: "Productos terminados", contador: c.terminados },
         { href: "/stock/movimientos", label: "Movimientos" },
       ]}
     />

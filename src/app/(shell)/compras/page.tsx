@@ -77,7 +77,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           {/* Tanda 2 (05/11): separado lo que es material para fabricar de las piezas comerciales que se compran terminadas. */}
           {[
             { titulo: "Materiales para fabricar", ayuda: "Materia prima para piezas que se fabrican en el taller. Al llegar entra a Stock → Materia prima.", lista: necesidades.filter((n) => n.esMaterial || n.operacionCompraId) },
-            { titulo: "Piezas comerciales", ayuda: "Piezas que se compran terminadas. Al llegar entran a Stock → Productos terminados.", lista: necesidades.filter((n) => !(n.esMaterial || n.operacionCompraId)) },
+            { titulo: "Piezas comerciales", ayuda: "Piezas que se compran terminadas (resortes, wipers, tornillos…). Al llegar entran a Stock → Insumos.", lista: necesidades.filter((n) => !(n.esMaterial || n.operacionCompraId)) },
           ]
             .filter((g) => g.lista.length)
             .map(({ titulo, ayuda, lista }) => (

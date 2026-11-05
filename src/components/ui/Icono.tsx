@@ -95,6 +95,8 @@ export const ICONO_RUTA: Record<string, string> = {
   "/admin/demo": "demo",
   "/admin/configuracion": "configuracion",
   "/stock/finalizado": "stock",
+  "/stock/materia-prima": "maestros",
+  "/stock/insumos": "taller",
   "/admin/secciones": "configuracion",
   "/admin/archivados": "completitud",
   "/maestros/importar": "liberacion",

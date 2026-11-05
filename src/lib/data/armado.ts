@@ -7,9 +7,9 @@
  * terminadas?") se calcula donde ya se calculaba el estado del conjunto
  * (src/lib/data/ot.ts) — acá sólo se guarda y se lee el control en sí.
  */
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { controlArmado, procedimiento, usuario } from "@/lib/db/schema";
+import { controlArmado, procedimiento, usuario, otConjunto, otMaquina, otPieza, stockPieza, reservaStock, movimientoStock, stockConjunto } from "@/lib/db/schema";
 import type { Procedimiento } from "@/lib/db/schema";
 
 export async function getProcedimientos(): Promise<Procedimiento[]> {
@@ -60,5 +60,56 @@ export async function registrarControlArmado(input: RegistrarControlArmadoInput)
     resultado: input.resultado,
     observacion: input.observacion,
     revisadoPorId: input.usuarioId,
+  });
+  if (input.resultado === "ok") await entrarConjuntoAlStock(input.otConjuntoId, input.usuarioId);
+}
+
+/**
+ * Tanda 2 (05/11): con el armado OK, el conjunto entra a Productos terminados (reservado para su orden, o libre si
+ * la orden era para stock) y sus piezas salen del stock de piezas: dejan de figurar sueltas. Si el conjunto ya
+ * había entrado (un segundo control OK), no se vuelve a sumar.
+ */
+async function entrarConjuntoAlStock(otConjuntoId: string, usuarioId: string): Promise<void> {
+  const [oc] = await db
+    .select({ oc: otConjunto, m: otMaquina })
+    .from(otConjunto)
+    .innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId))
+    .where(eq(otConjunto.id, otConjuntoId));
+  if (!oc) return;
+  const [ya] = await db.select({ id: stockConjunto.id }).from(stockConjunto).where(eq(stockConjunto.otConjuntoId, otConjuntoId));
+  if (ya) return;
+  const piezas = await db.select().from(otPieza).where(eq(otPieza.otConjuntoId, otConjuntoId));
+  const paraStock = oc.m.destino === "stock";
+  await db.transaction(async (tx) => {
+    for (const p of piezas) {
+      const [st] = await tx.select().from(stockPieza).where(eq(stockPieza.piezaId, p.piezaId));
+      const sale = Math.min(p.cantidadNecesaria, st?.cantidadDisponible ?? 0);
+      if (sale <= 0) continue;
+      await tx.update(stockPieza).set({ cantidadDisponible: (st?.cantidadDisponible ?? 0) - sale, updatedAt: new Date() }).where(eq(stockPieza.piezaId, p.piezaId));
+      // Lo reservado para esta orden se consume primero.
+      let resta = sale;
+      const reservas = await tx.select().from(reservaStock).where(and(eq(reservaStock.otMaquinaId, oc.m.id), eq(reservaStock.piezaId, p.piezaId)));
+      for (const r of reservas) {
+        if (resta <= 0) break;
+        const usa = Math.min(resta, r.cantidad);
+        await tx.update(reservaStock).set({ cantidad: r.cantidad - usa }).where(eq(reservaStock.id, r.id));
+        resta -= usa;
+      }
+      await tx.insert(movimientoStock).values({
+        piezaId: p.piezaId,
+        tipo: "egreso",
+        cantidad: sale,
+        otPiezaId: p.id,
+        usuarioId,
+        observacion: `Armado del conjunto — ${oc.oc.codigo}`,
+      });
+    }
+    await tx.insert(stockConjunto).values({
+      conjuntoId: oc.oc.conjuntoId,
+      configuracionId: oc.m.configuracionId,
+      otConjuntoId,
+      otMaquinaId: paraStock ? null : oc.m.id,
+      cantidad: 1,
+    });
   });
 }

@@ -25,4 +25,7 @@ export async function registrarControlArmadoAction(formData: FormData) {
     usuarioId: usuario.id,
   });
   revalidatePath(`/ot/${otMaquinaId}`);
+  // Con el armado OK el conjunto entra a Productos terminados (tanda 2, 05/11).
+  revalidatePath("/stock", "layout");
+  revalidatePath(`/proyectos/${otMaquinaId}`);
 }

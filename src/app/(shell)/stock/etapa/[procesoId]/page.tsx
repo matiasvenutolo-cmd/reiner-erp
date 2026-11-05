@@ -33,7 +33,7 @@ export default async function StockEtapaPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        migas={[{ href: "/stock", label: "Stock" }, { href: "/stock/en-proceso", label: "En fabricación" }, { label: proceso.nombre }]}
+        migas={[{ href: "/stock/finalizado?tipo=fabricada", label: "Stock" }, { label: proceso.nombre }]}
         titulo={proceso.nombre}
         descripcion={`${piezasDistintas} pieza${piezasDistintas === 1 ? "" : "s"} distinta${piezasDistintas === 1 ? "" : "s"} en ${items.length} ${items.length === 1 ? "orden" : "órdenes"} de trabajo · ${totalUnidades} unidades en esta etapa ahora mismo.`}
       />
