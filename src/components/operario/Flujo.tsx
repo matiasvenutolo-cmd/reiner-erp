@@ -9,7 +9,7 @@ import { Cronometro, FormPlanta, Motivos, Terminar } from "./Planta";
 /**
  * Vista de operario (mejoras de usabilidad §3): una sola tarea grande y un
  * solo botón principal por estado. Por empezar → Empezar setup; En setup →
- * Terminé el setup; Fabricando → Terminar; Parada → Seguir.
+ * Terminé el setup; Setup terminado → Iniciar fabricación; Fabricando → Terminar; Parada → Seguir.
  */
 
 const MOTIVOS_NO_PUEDO = [
@@ -117,9 +117,50 @@ export function TarjetaPlanta({ tarea, detalle, hoy, cantidad, campos, children 
   );
 }
 
-/** Estado "Por empezar": Empezar setup (principal), sin setup, o "No puedo hacer esta". */
-export function BotonesPorEmpezar({ tarea, campos }: { tarea: Tarea; campos: Record<string, string> }) {
+/** Cuándo terminó el setup, dicho como en planta: "a las 10:35", "ayer a las 17:10", "el 03/11 a las 9:00". */
+function cuandoTermino(f: Date): string {
+  const hora = f.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
+  const dia = f.toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
+  const hoy = hoyISO();
+  const ayer = new Date(`${hoy}T12:00:00Z`);
+  ayer.setUTCDate(ayer.getUTCDate() - 1);
+  if (dia === hoy) return `a las ${hora}`;
+  if (dia === ayer.toISOString().slice(0, 10)) return `ayer a las ${hora}`;
+  return `el ${dia.slice(8, 10)}/${dia.slice(5, 7)} a las ${hora}`;
+}
+
+/**
+ * Estado "Por empezar": Empezar setup (principal), sin setup, o "No puedo hacer esta". Con el setup ya terminado
+ * (prueba 1, 05/11) el botón principal es "Iniciar fabricación": la espera entre los dos queda medida.
+ */
+export function BotonesPorEmpezar({ tarea, campos, setupTerminado }: { tarea: Tarea; campos: Record<string, string>; setupTerminado?: Date | null }) {
   const base = { ...campos, otPiezaId: tarea.otPiezaId, operacionId: tarea.operacionId };
+  if (setupTerminado)
+    return (
+      <div className="space-y-3 pt-1">
+        <div className="rounded-xl bg-verde-bg text-verde-fg px-4 py-3 font-semibold">
+          <Icono nombre="ok" className="w-5 h-5 inline -mt-0.5 mr-1" /> Setup terminado {cuandoTermino(setupTerminado)}
+        </div>
+        <FormPlanta accion="empezar" campos={{ ...base, tipo: "ejecucion" }}>
+          <button className="btn w-full text-lg">
+            <Icono nombre="empezar" className="w-6 h-6" /> Iniciar fabricación
+          </button>
+        </FormPlanta>
+        <Motivos
+          accion="noPuedo"
+          campos={base}
+          nombre="motivo"
+          motivos={MOTIVOS_NO_PUEDO}
+          titulo="¿Por qué no podés hacerla?"
+          conTexto="Contalo en pocas palabras (opcional)"
+          boton={
+            <>
+              <Icono nombre="bloqueo" className="w-5 h-5" /> No puedo hacer esta
+            </>
+          }
+        />
+      </div>
+    );
   return (
     <div className="space-y-3 pt-1">
       <FormPlanta accion="empezar" campos={{ ...base, tipo: "setup" }}>

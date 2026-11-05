@@ -114,7 +114,35 @@ export type DetalleTarea = {
   despues: string | null;
   planos: { nombre: string; url: string }[];
   notas: string[];
+  /** Prueba 1 (05/11): el setup ya se terminó y la fabricación todavía no empezó (cuándo terminó el setup). */
+  setupTerminado: Date | null;
 };
+
+/**
+ * Prueba 1 (05/11): "Terminé el setup" ya no arranca la fabricación. Si el último registro de este paso es un
+ * setup cerrado y todavía no hay fabricación, la tarea queda esperando "Iniciar fabricación".
+ */
+export async function setupSinFabricar(otPiezaId: string, operacionId: string): Promise<Date | null> {
+  const regs = await db
+    .select({ tipo: registroOperacion.tipo, fin: registroOperacion.fin })
+    .from(registroOperacion)
+    .where(and(eq(registroOperacion.otPiezaId, otPiezaId), eq(registroOperacion.operacionId, operacionId)))
+    .orderBy(desc(registroOperacion.inicio));
+  if (regs.some((r) => r.tipo === "ejecucion")) return null;
+  return regs[0]?.tipo === "setup" && regs[0].fin ? regs[0].fin : null;
+}
+
+/** La tarea de este operario con el setup hecho y sin empezar a fabricar, si la hay: es la que le toca seguir. */
+export async function getSetupPendienteDe(usuarioId: string): Promise<{ otPiezaId: string; operacionId: string } | null> {
+  const [ultimo] = await db
+    .select({ otPiezaId: registroOperacion.otPiezaId, operacionId: registroOperacion.operacionId })
+    .from(registroOperacion)
+    .where(and(eq(registroOperacion.usuarioId, usuarioId), eq(registroOperacion.tipo, "setup"), isNotNull(registroOperacion.fin), sql`${registroOperacion.fin} > now() - interval '30 days'`))
+    .orderBy(desc(registroOperacion.fin))
+    .limit(1);
+  if (!ultimo) return null;
+  return (await setupSinFabricar(ultimo.otPiezaId, ultimo.operacionId)) ? ultimo : null;
+}
 
 /** Lo que muestra la tarjeta del operario (§3.2), en orden de importancia. */
 export async function getDetalleTarea(t: Pick<Tarea, "otPiezaId" | "operacionId" | "piezaCodigo" | "cantidad" | "posicion">): Promise<DetalleTarea> {
@@ -148,6 +176,7 @@ export async function getDetalleTarea(t: Pick<Tarea, "otPiezaId" | "operacionId"
       .limit(1);
     finAnterior = r?.fin ? fechaISO(r.fin) : null;
   }
+  const setupTerminado = await setupSinFabricar(t.otPiezaId, t.operacionId);
   const setup = actual?.o.setupMin ?? actual?.ds ?? 30;
   const porUnidad = actual?.o.minPorUnidad ?? actual?.dm ?? 15;
   const nombre = (x: (typeof ruta)[number] | null | undefined) => (x ? (x.o.descripcion ? `${x.nombre} · ${x.o.descripcion}` : x.nombre) : null);
@@ -162,6 +191,7 @@ export async function getDetalleTarea(t: Pick<Tarea, "otPiezaId" | "operacionId"
     despues: nombre(ruta[i + 1]),
     planos: adj.map((a) => ({ nombre: a.nombreArchivo, url: urlDeAdjunto(a.pathname) })),
     notas: notas.map((n) => n.texto),
+    setupTerminado,
   };
 }
 

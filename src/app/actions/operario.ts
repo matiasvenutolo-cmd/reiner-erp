@@ -52,13 +52,13 @@ export async function empezarAction(fd: FormData) {
   });
 }
 
-/** "Terminé el setup": cierra el setup y arranca la fabricación en el mismo toque. */
+/**
+ * "Terminé el setup": cierra el setup y nada más (prueba 1, 05/11). La fabricación arranca cuando el operario
+ * toca "Iniciar fabricación": puede ser enseguida o al día siguiente, y esa espera queda medida en Indicadores.
+ */
 export async function terminarSetupAction(fd: FormData) {
   await correr(fd, async (u) => {
-    const momento = cuando(fd);
-    await finalizarOperacion({ registroOperacionId: t(fd, "registroId"), usuarioId: u, piezasOk: 0, piezasRechazadas: 0, cuando: momento });
-    const r = await iniciarOperacion({ otPiezaId: t(fd, "otPiezaId"), operacionId: t(fd, "operacionId"), usuarioId: u, tipo: "ejecucion", cuando: momento });
-    if (!r.ok) throw new Error(r.error);
+    await finalizarOperacion({ registroOperacionId: t(fd, "registroId"), usuarioId: u, piezasOk: 0, piezasRechazadas: 0, cuando: cuando(fd) });
   });
 }
 

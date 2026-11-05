@@ -139,3 +139,60 @@ export async function getTiempoPorProceso(): Promise<TiempoPorProceso[]> {
   }
   return [...porProceso.values()].sort((a, b) => b.horasSetup + b.horasEjecucion - (a.horasSetup + a.horasEjecucion));
 }
+
+export type EsperaSetup = {
+  otPiezaId: string;
+  pieza: string;
+  paso: string;
+  operario: string;
+  finSetup: Date;
+  inicioFabricacion: Date | null;
+  /** Desde que terminó el setup hasta que empezó a fabricar (o hasta ahora, si todavía no empezó). */
+  esperaSeg: number;
+};
+
+/**
+ * Espera entre setup y fabricación (prueba 1, 05/11): desde "Terminé el setup" hasta "Iniciar fabricación" en el
+ * mismo paso de la misma pieza. Puede ser un rato o el día siguiente; se mide en tiempo corrido. Las que todavía
+ * no empezaron a fabricar cuentan hasta ahora.
+ */
+export async function getEsperasSetup(): Promise<EsperaSetup[]> {
+  const rows = await db
+    .select({
+      otPiezaId: registroOperacion.otPiezaId,
+      operacionId: registroOperacion.operacionId,
+      tipo: registroOperacion.tipo,
+      inicio: registroOperacion.inicio,
+      fin: registroOperacion.fin,
+      operario: usuario.nombre,
+      pieza: otPieza.codigo,
+      paso: proceso.nombre,
+    })
+    .from(registroOperacion)
+    .innerJoin(usuario, eq(usuario.id, registroOperacion.usuarioId))
+    .innerJoin(otPieza, eq(otPieza.id, registroOperacion.otPiezaId))
+    .innerJoin(operacion, eq(operacion.id, registroOperacion.operacionId))
+    .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
+    .where(eq(usuario.rol, "operario"))
+    .orderBy(registroOperacion.inicio);
+  const ahora = Date.now();
+  const esperas: EsperaSetup[] = [];
+  for (const s of rows) {
+    if (s.tipo !== "setup" || !s.fin) continue;
+    const fin = s.fin;
+    const fab = rows.find((r) => r.tipo === "ejecucion" && r.otPiezaId === s.otPiezaId && r.operacionId === s.operacionId && r.inicio >= fin);
+    // Un setup que se repitió antes de fabricar: cuenta sólo el último.
+    const otroSetup = rows.find((r) => r.tipo === "setup" && r !== s && r.otPiezaId === s.otPiezaId && r.operacionId === s.operacionId && r.inicio >= fin && (!fab || r.inicio <= fab.inicio));
+    if (otroSetup) continue;
+    esperas.push({
+      otPiezaId: s.otPiezaId,
+      pieza: s.pieza,
+      paso: s.paso,
+      operario: s.operario,
+      finSetup: fin,
+      inicioFabricacion: fab?.inicio ?? null,
+      esperaSeg: Math.max(0, Math.round(((fab?.inicio.getTime() ?? ahora) - fin.getTime()) / 1000)),
+    });
+  }
+  return esperas.sort((a, b) => b.finSetup.getTime() - a.finSetup.getTime());
+}

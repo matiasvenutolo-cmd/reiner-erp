@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { tipoParada } from "@/lib/db/schema";
 import { getOperacionesAbiertas, getParadaAbierta, getCantidadesOperacion } from "@/lib/data/ejecucion";
-import { getColaOperario, getDetalleTarea, getTareaDePieza, getNombreDeRegistro, HORAS_OPERARIO_DIA } from "@/lib/data/operario";
+import { getColaOperario, getDetalleTarea, getTareaDePieza, getNombreDeRegistro, getSetupPendienteDe, HORAS_OPERARIO_DIA } from "@/lib/data/operario";
 import { Icono } from "@/components/ui/Icono";
 import { capitalizar, horas, numero, plural } from "@/lib/formato";
 import { TarjetaPlanta, BotonesPorEmpezar, BotonesEnCurso } from "./Flujo";
@@ -57,13 +57,15 @@ export async function PantallaOperario({
         </TarjetaPlanta>
       );
   } else {
-    actual = otPiezaId ? await getTareaDePieza(otPiezaId) : (cola.tareas.find((t) => t.estado === "lista") ?? null);
+    // Con el setup hecho y sin empezar a fabricar, sigue esa (prueba 1, 05/11): es la que tiene la máquina preparada.
+    const conSetup = otPiezaId ? null : await getSetupPendienteDe(usuarioId);
+    actual = otPiezaId ? await getTareaDePieza(otPiezaId) : conSetup ? await getTareaDePieza(conSetup.otPiezaId, conSetup.operacionId) : (cola.tareas.find((t) => t.estado === "lista") ?? null);
     if (actual && (actual.estado === "lista" || otPiezaId)) {
       const [detalle, cantidades] = await Promise.all([getDetalleTarea(actual), getCantidadesOperacion(actual.otPiezaId, actual.operacionId)]);
       contenido = (
         <TarjetaPlanta tarea={actual} detalle={detalle} hoy={hoy} cantidad={actual.lote ? Math.min(cantidades.disponibles || actual.cantidad, actual.cantidad) : cantidades.disponibles || actual.cantidad} campos={campos}>
           {actual.tipo === "interno" ? (
-            <BotonesPorEmpezar tarea={actual} campos={campos} />
+            <BotonesPorEmpezar tarea={actual} campos={campos} setupTerminado={detalle.setupTerminado} />
           ) : (
             <p className="rounded-xl bg-surface-muted p-4">{actual.tipo === "compras" ? "Esperando el material: todavía no hay nada para hacer en taller." : "Es un proceso tercerizado: sale con remito desde Tercerizados."}</p>
           )}
