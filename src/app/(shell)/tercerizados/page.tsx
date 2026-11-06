@@ -2,11 +2,11 @@ import { Aviso } from "@/components/ui/Aviso";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PestanasTercerizados } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
-import { buscarPiezas } from "@/lib/data/maestros";
-import { getStockDisponible } from "@/lib/data/stock";
 import { getProveedores, listarMovimientos } from "@/lib/data/logistica";
 import { getPiezasAfueraTercerizado } from "@/lib/data/produccion";
-import { registrarIngresoAction, registrarVueltaAction } from "@/app/actions/logistica";
+import { registrarVueltaAction } from "@/app/actions/logistica";
+import { OBS_VUELTA_TERCERIZADO } from "@/lib/data/compras";
+import { AvisoProximos, type ProximoTercerizado } from "@/components/logistica/AvisoProximos";
 import { TipoMovimientoSelect } from "@/components/TipoMovimientoSelect";
 import { MovimientosTabla } from "@/components/MovimientosTabla";
 import { ArmadoRemito, type SugerenciaProceso } from "@/components/logistica/ArmadoRemito";
@@ -35,11 +35,9 @@ export default async function TercerizadosPage({
   searchParams: Promise<{ q?: string; tipo?: string; error?: string; desde?: string }>;
 }) {
   const { q, tipo, error, desde } = await searchParams;
-  const query = (q ?? "").trim();
   const tipoFiltro = (tipo ?? "") as MovimientoStock["tipo"] | "";
 
-  const [piezasEncontradas, proveedores, enPasoTercerizado, movimientos, usuario, plan] = await Promise.all([
-    query ? buscarPiezas(query) : Promise.resolve([]),
+  const [proveedores, enPasoTercerizado, movimientos, usuario, plan] = await Promise.all([
     getProveedores(),
     getPiezasAfueraTercerizado(),
     listarMovimientos(tipoFiltro || undefined),
@@ -78,17 +76,27 @@ export default async function TercerizadosPage({
         .innerJoin(proveedor, eq(proveedor.id, operacion.proveedorId))
         .where(inArray(operacion.id, [...new Set(paraMandar.map((a) => a.operacionId))]))
     : [];
+  // Tanda 2 (05/11): los proveedores que hacen cada servicio (Proveedores → servicios), para elegir de una lista.
+  const servicios = await db
+    .select({ proceso: proceso.nombre, proveedor: proveedor.razonSocial })
+    .from(proveedorServicio)
+    .innerJoin(proceso, eq(proceso.id, proveedorServicio.procesoId))
+    .innerJoin(proveedor, eq(proveedor.id, proveedorServicio.proveedorId));
+  const elegiblesDe = (proc: string) => [...new Set(servicios.filter((x) => x.proceso === proc).map((x) => x.proveedor))];
+  // "Importante": lo que se estima que va a estar listo para mandar en las próximas dos semanas.
+  const enDosSemanas = sumarHabiles(hoy, 10, entrada.calendario);
+  const proximos: ProximoTercerizado[] = terc
+    .filter((t) => t.estado === "liberada" && t.fechaPlan && t.fechaPlan <= enDosSemanas)
+    .sort((a, b) => (a.fechaPlan ?? "").localeCompare(b.fechaPlan ?? ""))
+    .map((t) => ({ clave: t.clave, servicio: t.paso, pieza: t.piezaNombre.charAt(0).toUpperCase() + t.piezaNombre.slice(1), cantidad: t.cantidad, orden: t.proyectoCodigo, fechaTexto: fechaCorta(t.fechaPlan!, hoy) }));
   const sugerencias: Record<string, SugerenciaProceso> = {};
   for (const a of paraMandar) {
     const h = habituales.find((x) => x.proceso === a.procesoNombre);
     // Si todas las piezas de ese proceso tienen el mismo proveedor en su paso, se propone ése.
     const grupo = paraMandar.filter((x) => x.procesoNombre === a.procesoNombre).map((x) => delPaso.find((d) => d.id === x.operacionId));
     const propio = grupo.every((d) => d && d.proveedor === grupo[0]?.proveedor) ? grupo[0] : undefined;
-    sugerencias[a.procesoNombre] = { proveedor: propio?.proveedor ?? h?.proveedor ?? null, plazo: propio ? (propio.plazo ?? h?.plazo ?? null) : (h?.plazo ?? null), proximas: pronto.filter((t) => t.paso === a.procesoNombre).length };
+    sugerencias[a.procesoNombre] = { proveedor: propio?.proveedor ?? h?.proveedor ?? null, plazo: propio ? (propio.plazo ?? h?.plazo ?? null) : (h?.plazo ?? null), proximas: pronto.filter((t) => t.paso === a.procesoNombre).length, elegibles: elegiblesDe(a.procesoNombre) };
   }
-  const resultados = await Promise.all(
-    piezasEncontradas.map(async (p) => ({ pieza: p, stock: await getStockDisponible(p.id) })),
-  );
 
   return (
     <div className="space-y-8">
@@ -100,6 +108,8 @@ export default async function TercerizadosPage({
       </PageHeader>
 
       {error && <Aviso tipo="error">{error}</Aviso>}
+
+      <AvisoProximos proximos={proximos} />
 
       <div id="esperando">
         <h2 className="text-sm font-semibold mb-1">Afuera, esperando que vuelvan ({afuera.length})</h2>
@@ -214,10 +224,11 @@ export default async function TercerizadosPage({
 
       <div>
         <h2 className="text-lg font-semibold mb-1">Para mandar — armar remito</h2>
-        <p className="text-sm text-foreground-muted mb-2">Tildá un grupo con &ldquo;Armar remito con estas&rdquo;: el proveedor habitual se propone solo. Primero se ve la vista previa; al confirmar se guarda y registra el egreso de cada pieza.</p>
+        <p className="text-sm text-foreground-muted mb-2">Elegí el servicio: aparecen las piezas que ya están listas para mandar y los proveedores que lo hacen. Primero se ve la vista previa; al confirmar se guarda y registra la salida de cada pieza.</p>
         <ArmadoRemito
           usuarioNombre={usuario.nombre}
           sugerencias={sugerencias}
+          proveedores={proveedores.map((p) => p.razonSocial)}
           paraMandar={paraMandar.map((a) => ({
             mandarAntes: tareaDe.get(`${a.otPiezaId}::${a.operacionId}`)?.inicioMasTardio ?? null,
             mandarAntesTexto: tareaDe.get(`${a.otPiezaId}::${a.operacionId}`) ? fechaCorta(tareaDe.get(`${a.otPiezaId}::${a.operacionId}`)!.inicioMasTardio, hoy) : null,
@@ -246,44 +257,10 @@ export default async function TercerizadosPage({
             <button className="btn-secundario btn-sm">Filtrar</button>
           </form>
         </div>
-        <MovimientosTabla movimientos={desde ? movimientos.filter((m) => new Date(m.fecha).toISOString().slice(0, 10) >= desde) : movimientos} />
+        {/* Tanda 2 (05/11): acá sólo salidas a terceros (con remito) y sus vueltas; el resto del stock está en Stock → Movimientos. */}
+        <MovimientosTabla movimientos={movimientos.filter((m) => (m.remitoId || m.observacion?.startsWith(OBS_VUELTA_TERCERIZADO)) && (!desde || new Date(m.fecha).toISOString().slice(0, 10) >= desde))} />
       </div>
 
-      <details open={!!query} className="tarjeta p-4">
-        <summary className="cursor-pointer text-sm font-semibold">Registrar un ingreso sin pedido ni remito previo</summary>
-        <p className="text-xs text-foreground-muted mt-2 mb-3">
-          Para lo que llega sin haber salido con remito ni pedido (ej. una devolución). Buscá la pieza y cargá el ingreso con su control.
-        </p>
-        <form className="max-w-md mb-3">
-          <input type="search" name="q" defaultValue={q ?? ""} placeholder="Código o nombre de la pieza…" className="input" />
-        </form>
-        {query &&
-          (resultados.length === 0 ? (
-            <p className="text-sm text-foreground-muted">Sin resultados para &ldquo;{q}&rdquo;</p>
-          ) : (
-            <ul className="space-y-2">
-              {resultados.map(({ pieza, stock }) => (
-                <li key={pieza.id} className="border border-border rounded-md px-3 py-2">
-                  <div className="text-sm">
-                    <span className="font-mono text-xs text-foreground-muted mr-2">{pieza.codigo}</span>
-                    {pieza.nombre}
-                    <span className="text-xs text-foreground-muted ml-2">· en almacén: {stock}</span>
-                  </div>
-                  <form action={registrarIngresoAction} className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                    <input type="hidden" name="piezaId" value={pieza.id} />
-                    <input name="cantidad" type="number" min={1} placeholder="Cant." required className="input w-16 text-xs py-1" />
-                    <ProveedorSelect proveedores={proveedores} />
-                    <ControlSelect />
-                    <input name="observacion" placeholder="Motivo" className="input text-xs py-1 w-40" />
-                    <button type="submit" className="text-xs bg-accent text-accent-foreground px-2.5 py-1 rounded-md hover:opacity-90">
-                      Registrar ingreso
-                    </button>
-                  </form>
-                </li>
-              ))}
-            </ul>
-          ))}
-      </details>
     </div>
   );
 }

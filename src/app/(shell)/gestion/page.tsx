@@ -35,7 +35,7 @@ export default async function GestionPage({ searchParams }: { searchParams: Prom
   );
 }
 
-const TIPO_AVISO: Record<string, string> = { sin_tareas: "Se quedó sin tareas", falta_plano: "Falta un plano (para ingeniería)", otro: "Aviso" };
+const TIPO_AVISO: Record<string, string> = { sin_tareas: "Se quedó sin tareas", falta_plano: "Falta un plano (para ingeniería)", volvio_tercerizado: "Volvió del tercerizado", otro: "Aviso" };
 
 /** Avisos de la planta (tanda 2, 05/11): lo que el operario manda desde la tablet le llega acá al jefe de planta. */
 async function AvisosPlanta() {
@@ -51,7 +51,7 @@ async function AvisosPlanta() {
   const hora = (d: Date) => d.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
   return (
     <section className="rounded-lg border border-naranja-borde bg-naranja-tenue px-4 py-3 space-y-2">
-      <h2 className="font-semibold text-naranja-fg">Avisos de la planta · {avisos.length}</h2>
+      <h2 className="font-semibold text-naranja-fg">Avisos · {avisos.length}</h2>
       <ul className="space-y-1.5">
         {avisos.map((a) => (
           <li key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">

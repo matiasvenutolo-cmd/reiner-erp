@@ -27,6 +27,9 @@ import {
   remitoItem,
   solicitudCompra,
   articuloStock,
+  avisoPlanta,
+  operacion,
+  proceso,
 } from "@/lib/db/schema";
 import { getStockDisponible, ingresarPiezaTerminada } from "./stock";
 import { esUltimaOperacion, getCantidadesOperacion } from "./ejecucion";
@@ -314,4 +317,22 @@ export async function registrarVueltaTercerizado(input: {
   });
   // Reorganización 30/10 §2.6: si era el último paso, lo que volvió OK entra a Piezas terminadas.
   if (cierraLaPieza && input.controlResultado === "ok") await ingresarPiezaTerminada({ otPiezaId: op.id, cantidad: input.cantidad, usuarioId: input.usuarioId });
+  // Tanda 2 (05/11): al jefe de planta le llega en Gestión que la pieza volvió, para asignar el paso siguiente.
+  if (input.controlResultado === "ok" && !cierraLaPieza) {
+    const [pz] = await db.select({ nombre: pieza.nombre }).from(pieza).where(eq(pieza.id, op.piezaId));
+    const ruta = await db
+      .select({ id: operacion.id, secuencia: operacion.secuencia, proceso: proceso.nombre })
+      .from(operacion)
+      .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
+      .where(eq(operacion.piezaId, op.piezaId))
+      .orderBy(operacion.secuencia);
+    const i = ruta.findIndex((r) => r.id === input.operacionId);
+    const siguiente = i >= 0 ? ruta[i + 1] : undefined;
+    await db.insert(avisoPlanta).values({
+      tipo: "volvio_tercerizado",
+      texto: `Volvió ${pz?.nombre ?? op.codigo} (${op.codigo}) de ${ruta[i]?.proceso ?? "su tercerizado"}${siguiente ? `: ya se puede asignar ${siguiente.proceso} (paso ${siguiente.secuencia})` : ""}.`,
+      otPiezaId: op.id,
+      usuarioId: input.usuarioId,
+    });
+  }
 }

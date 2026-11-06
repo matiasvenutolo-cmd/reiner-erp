@@ -35,7 +35,7 @@ export type PiezaParaMandar = {
 };
 
 /** v2 — por proceso: proveedor habitual (se propone solo como destino) y cuántas piezas más llegan en 3 días. */
-export type SugerenciaProceso = { proveedor?: string | null; plazo?: number | null; proximas: number };
+export type SugerenciaProceso = { proveedor?: string | null; plazo?: number | null; proximas: number; /** Proveedores que hacen este servicio (Proveedores → servicios). */ elegibles?: string[] };
 
 /**
  * Armar un remito con varias piezas antes de finalizarlo — pedido
@@ -47,7 +47,7 @@ export type SugerenciaProceso = { proveedor?: string | null; plazo?: number | nu
  * sin número todavía); recién "Confirmar e imprimir" lo registra —con su
  * número y los egresos— y abre la impresión.
  */
-export function ArmadoRemito({ paraMandar = [], usuarioNombre, sugerencias = {} }: { paraMandar?: PiezaParaMandar[]; usuarioNombre: string; sugerencias?: Record<string, SugerenciaProceso> }) {
+export function ArmadoRemito({ paraMandar = [], usuarioNombre, sugerencias = {}, proveedores = [] }: { paraMandar?: PiezaParaMandar[]; usuarioNombre: string; sugerencias?: Record<string, SugerenciaProceso>; proveedores?: string[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
@@ -60,6 +60,9 @@ export function ArmadoRemito({ paraMandar = [], usuarioNombre, sugerencias = {} 
   const [error, setError] = useState<string | null>(null);
   const [vistaPrevia, setVistaPrevia] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
+  // Tanda 2 (05/11): primero el servicio; aparecen sus piezas listas y los proveedores que lo hacen.
+  const [servicio, setServicio] = useState("");
+  const [otroDestino, setOtroDestino] = useState(false);
 
   async function buscar(q: string) {
     setQuery(q);
@@ -102,6 +105,18 @@ export function ArmadoRemito({ paraMandar = [], usuarioNombre, sugerencias = {} 
   const porOperacion = [...paraMandar.reduce((m, p) => m.set(p.procesoNombre, [...(m.get(p.procesoNombre) ?? []), p]), new Map<string, PiezaParaMandar[]>())]
     .map(([op, ps]) => [op, [...ps].sort((a, b) => (a.mandarAntes ?? "9999").localeCompare(b.mandarAntes ?? "9999"))] as const)
     .sort(([, a], [, b]) => (a[0]?.mandarAntes ?? "9999").localeCompare(b[0]?.mandarAntes ?? "9999"));
+
+  function elegirServicio(op: string) {
+    setServicio(op);
+    const piezas = porOperacion.find(([o]) => o === op)?.[1] ?? [];
+    // Las piezas de otro servicio salen del remito: un remito es para un proveedor y un servicio.
+    setCarrito((prev) => [...prev.filter((it) => !it.otPiezaId)]);
+    agregarParaMandar(...piezas);
+    const sug = sugerencias[op];
+    const lista = sug?.elegibles?.length ? sug.elegibles : proveedores;
+    setDestino(sug?.proveedor ?? (lista.length === 1 ? lista[0] : ""));
+    setOtroDestino(false);
+  }
 
   function quitar(clave: string) {
     setCarrito((prev) => prev.filter((it) => it.clave !== clave));
@@ -200,67 +215,88 @@ export function ArmadoRemito({ paraMandar = [], usuarioNombre, sugerencias = {} 
   return (
     <div className="tarjeta p-4 space-y-4">
       {paraMandar.length > 0 && (
-        <div>
-          <div className="text-sm font-semibold mb-1">Para mandar ({paraMandar.length})</div>
-          <p className="text-xs text-foreground-muted mb-2">Ya terminaron el paso anterior. &ldquo;Mandar antes del&rdquo; es el último día para que vuelvan a tiempo.</p>
-          <div className="space-y-3">
-            {porOperacion.map(([operacion, piezas]) => {
-              const faltan = piezas.filter((p) => !carrito.some((it) => it.clave === p.otPiezaId));
+        <div className="space-y-3">
+          <label className="block">
+            <span className="text-sm font-semibold">1. ¿Qué servicio?</span>
+            <select value={servicio} onChange={(e) => elegirServicio(e.target.value)} className="input mt-1 max-w-md">
+              <option value="">Elegí el servicio…</option>
+              {porOperacion.map(([op, ps]) => (
+                <option key={op} value={op}>
+                  {op} · {ps.length} pieza{ps.length === 1 ? "" : "s"} lista{ps.length === 1 ? "" : "s"}
+                </option>
+              ))}
+            </select>
+          </label>
+          {servicio &&
+            (() => {
+              const piezas = porOperacion.find(([o]) => o === servicio)?.[1] ?? [];
+              const sug = sugerencias[servicio];
+              const lista = sug?.elegibles?.length ? sug.elegibles : proveedores;
               return (
-                <div key={operacion} className="rounded-lg border border-border p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                    <span className="text-sm">
-                      <strong>{operacion}</strong> · {piezas.length} pieza{piezas.length === 1 ? "" : "s"}
-                      {sugerencias[operacion]?.proveedor && <span className="text-foreground-muted"> · {sugerencias[operacion]!.proveedor}{sugerencias[operacion]!.plazo ? `, ${sugerencias[operacion]!.plazo} días` : ""}</span>}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={faltan.length === 0}
-                      onClick={() => {
-                        agregarParaMandar(...faltan);
-                        // El proveedor se propone solo según el habitual del proceso (se puede cambiar).
-                        if (!destino.trim() && sugerencias[operacion]?.proveedor) setDestino(sugerencias[operacion]!.proveedor!);
-                      }}
-                      className="btn btn-sm disabled:opacity-50"
-                    >
-                      {faltan.length === 0 ? "Todas en el remito" : `Armar remito con estas (${faltan.length})`}
-                    </button>
+                <>
+                  <div>
+                    <div className="text-sm font-semibold mb-1">2. Piezas listas para {servicio.toLowerCase()}</div>
+                    <p className="text-xs text-foreground-muted mb-2">Ya terminaron el paso anterior. &ldquo;Antes del&rdquo; es el último día para mandarlas y que vuelvan a tiempo.</p>
+                    {(sug?.proximas ?? 0) > 0 && (
+                      <div className="flex items-center gap-2 rounded-md border border-accent-borde bg-accent-soft px-2.5 py-1.5 mb-2 text-xs text-accent-hover">
+                        <Icono nombre="idea" className="w-4 h-4 shrink-0" />
+                        En los próximos 3 días se suman {sug!.proximas} pieza{sug!.proximas === 1 ? "" : "s"} más a {servicio}: puede convenir esperar y mandar todo junto.
+                      </div>
+                    )}
+                    <ul className="space-y-1">
+                      {piezas.map((p) => {
+                        const agregada = carrito.some((it) => it.clave === p.otPiezaId);
+                        return (
+                          <li key={p.otPiezaId}>
+                            <label className="flex items-center gap-2 text-sm bg-surface-muted rounded-md px-2.5 py-1.5 cursor-pointer">
+                              <input type="checkbox" checked={agregada} onChange={(e) => (e.target.checked ? agregarParaMandar(p) : quitar(p.otPiezaId))} />
+                              <span className="flex-1 min-w-0 truncate">
+                                {p.piezaNombre.charAt(0).toUpperCase() + p.piezaNombre.slice(1)} <span className="font-mono text-xs text-foreground-muted">{p.otPiezaCodigo}</span>
+                              </span>
+                              <span className="text-xs text-foreground-muted shrink-0">{p.cantidad} u.</span>
+                              {p.mandarAntesTexto && <span className={`text-xs shrink-0 ${p.atrasada ? "text-rojo-fg font-semibold" : "text-foreground-muted"}`}>antes del {p.mandarAntesTexto}</span>}
+                            </label>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
-                  {(sugerencias[operacion]?.proximas ?? 0) > 0 && (
-                    <div className="flex items-center gap-2 rounded-md border border-accent-borde bg-accent-soft px-2.5 py-1.5 mb-2 text-xs text-accent-hover">
-                      <Icono nombre="idea" className="w-4 h-4 shrink-0" />
-                      En los próximos 3 días se suman {sugerencias[operacion]!.proximas} pieza{sugerencias[operacion]!.proximas === 1 ? "" : "s"} más a {operacion}: puede convenir esperar y mandar todo junto.
-                    </div>
-                  )}
-                  <ul className="space-y-1">
-                    {piezas.map((p) => {
-                      const agregada = carrito.some((it) => it.clave === p.otPiezaId);
-                      return (
-                        <li key={p.otPiezaId} className="flex items-center gap-2 text-sm bg-surface-muted rounded-md px-2.5 py-1.5">
-                          <span className="flex-1 min-w-0 truncate">
-                            {p.piezaNombre.charAt(0).toUpperCase() + p.piezaNombre.slice(1)} <span className="font-mono text-xs text-foreground-muted">{p.otPiezaCodigo}</span>
-                          </span>
-                          <span className="text-xs text-foreground-muted shrink-0">{p.cantidad} u.</span>
-                          {p.mandarAntesTexto && <span className={`text-xs shrink-0 ${p.atrasada ? "text-rojo-fg font-semibold" : "text-foreground-muted"}`}>antes del {p.mandarAntesTexto}</span>}
-                          <button
-                            type="button"
-                            disabled={agregada}
-                            onClick={() => agregarParaMandar(p)}
-                            className="text-xs text-accent hover:underline disabled:text-foreground-muted disabled:no-underline shrink-0"
-                          >
-                            {agregada ? "En el remito" : "+ Agregar"}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
+                  <label className="block">
+                    <span className="text-sm font-semibold">3. Proveedor</span>
+                    <select
+                      value={otroDestino ? "__otro" : destino}
+                      onChange={(e) => {
+                        if (e.target.value === "__otro") {
+                          setOtroDestino(true);
+                          setDestino("");
+                        } else {
+                          setOtroDestino(false);
+                          setDestino(e.target.value);
+                        }
+                      }}
+                      className="input mt-1 max-w-md"
+                    >
+                      <option value="">Elegí el proveedor…</option>
+                      {lista.map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                          {n === sug?.proveedor ? " (habitual)" : ""}
+                        </option>
+                      ))}
+                      <option value="__otro">Otro…</option>
+                    </select>
+                    {!sug?.elegibles?.length && (
+                      <span className="block text-xs text-foreground-muted mt-1">Todavía no hay proveedores cargados para {servicio.toLowerCase()}: se muestran todos. Se cargan en Proveedores → servicios que hace.</span>
+                    )}
+                  </label>
+                </>
               );
-            })}
-          </div>
+            })()}
         </div>
       )}
 
+      <details className="text-sm">
+        <summary className="cursor-pointer text-foreground-muted">Agregar otra pieza a mano (que no está en la lista)</summary>
       <div className="relative">
         <input
           type="text"
@@ -289,6 +325,7 @@ export function ArmadoRemito({ paraMandar = [], usuarioNombre, sugerencias = {} 
           </div>
         )}
       </div>
+      </details>
 
       {carrito.length > 0 && (
         <div className="bg-surface-muted rounded-lg overflow-hidden overflow-x-auto">
@@ -340,7 +377,7 @@ export function ArmadoRemito({ paraMandar = [], usuarioNombre, sugerencias = {} 
       )}
 
       <div className="grid sm:grid-cols-3 gap-2">
-        <input value={destino} onChange={(e) => setDestino(e.target.value)} placeholder="Destino (proveedor o cliente)" className="input" />
+        {(otroDestino || !servicio) && <input value={destino} onChange={(e) => setDestino(e.target.value)} placeholder="Destino (proveedor o cliente)" className="input" />}
         <input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Técnico involucrado (opcional)" className="input" />
         <input
           value={observacion}

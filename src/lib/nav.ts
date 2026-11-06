@@ -21,7 +21,7 @@ export const AREAS_DEL_ROL: Record<Usuario["rol"], GrupoNav[]> = {
   taller: ["produccion"],
   ingenieria: ["ingenieria", "admin"],
   direccion: ["produccion"],
-  compras: ["compras", "stock"],
+  compras: ["compras", "produccion", "stock"],
 };
 
 export const ROL_LABEL: Record<Usuario["rol"], string> = {
@@ -81,6 +81,8 @@ const NAV_ITEMS: NavEntry[] = [
   // La asignación pasó a Gestión; la grilla por días queda oculta (la carga se mira en Indicadores).
   { href: "/planificacion", label: "Plan de la semana", roles: STAFF, grupo: "produccion", oculta: true, ayuda: "Qué se hace en cada centro esta semana" },
   { href: "/centros-trabajo", label: "Colas por centro", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/planificacion" },
+  // Tanda 2 (05/11): Tercerizados son pasos de la hoja de ruta que salen y vuelven: va en Producción. Compras sigue entrando.
+  { href: "/tercerizados", label: "Tercerizados", roles: [...STAFF, ...COMPRAS], grupo: "produccion", ayuda: "Mandar a servicios de terceros y registrar la vuelta" },
   { href: "/indicadores", label: "Indicadores", roles: STAFF, grupo: "produccion", ayuda: "Resumen, tiempos, paradas y rechazos. Sólo consulta" },
   { href: "/llegamos", label: "¿Llegamos?", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/indicadores" },
   { href: "/avance", label: "Avance de máquinas", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/indicadores" },
@@ -89,7 +91,6 @@ const NAV_ITEMS: NavEntry[] = [
 
   // Prueba 1 (05/11): mientras dura la prueba, Julián (ingeniería) y Adrián (dirección) también entran a Compras.
   { href: "/compras", label: "Compras", roles: [...COMPRAS, "direccion", "ingenieria"], grupo: "compras", ayuda: "Cotizaciones, gastos y pagos" },
-  { href: "/tercerizados", label: "Tercerizados", roles: [...STAFF, ...COMPRAS], grupo: "compras", ayuda: "Para mandar, afuera, vueltas y remitos" },
   { href: "/proveedores", label: "Proveedores", roles: [...STAFF, ...COMPRAS], grupo: "compras" },
   { href: "/pedir", label: "Pedir esta semana", roles: [...STAFF, ...COMPRAS], grupo: "compras", oculta: true, ayuda: "Qué hay que pedir y a quién" },
 
