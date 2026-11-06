@@ -2,7 +2,7 @@
  * v2 — Vista del operario (mejoras de usabilidad §3): su cola del día y todo lo
  * que necesita saber de cada tarea para no tener que preguntar.
  */
-import { getColaDe } from "./gestion";
+import { getColaDe, getGestion } from "./gestion";
 import { and, asc, desc, eq, gte, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
@@ -96,6 +96,56 @@ export async function getColaOperario(usuarioId: string): Promise<ColaOperario> 
     horasTotales: horasHechas + tareas.reduce((s, t) => s + horasDe(t), 0),
     adelantadas: new Set(ordenAdelanto.keys()),
   };
+}
+
+export type EstadoProxima = "en_curso" | "lista" | "atrasada" | "material" | "espera" | "por_enviar" | "trabada";
+export type TareaProxima = {
+  tarea: Tarea;
+  estado: EstadoProxima;
+  /** Cuándo arranca aprox., con la misma cuenta que la carga de Gestión (null = más de cuatro semanas). */
+  arranca: string | null;
+  /** Desde cuándo se podía empezar (para "Inicio atrasado"). */
+  listaDesde: string | null;
+  motivo: string | null;
+};
+
+/**
+ * Mis próximas tareas (tanda 2, 05/11): toda la cola que le armó el jefe de planta, también lo que todavía no
+ * puede empezar, con el estado y cuándo arrancaría. "Inicio atrasado" es una tarea que ya se podía empezar desde
+ * un día anterior y todavía no se empezó.
+ */
+export async function getProximasDe(usuarioId: string): Promise<TareaProxima[]> {
+  const [gestion, plan, cola] = await Promise.all([getGestion(), getPlan(), getColaDe(usuarioId)]);
+  const porClave = new Map(plan.resultado.tareas.map((t) => [t.clave, t]));
+  const arranque = new Map<string, string>();
+  for (const t of gestion.cargaDia.tramos) if (t.operarioId === usuarioId && !arranque.has(t.clave)) arranque.set(t.clave, t.dia);
+  const tareas = cola.map((c) => porClave.get(`${c.otPiezaId}::${c.operacionId}`)).filter((t): t is Tarea => !!t && t.estado !== "terminada");
+  if (!tareas.length) return [];
+  const otPiezaIds = [...new Set(tareas.map((t) => t.otPiezaId))];
+  const [cerrados, enviadas] = await Promise.all([
+    db.select({ otPiezaId: registroOperacion.otPiezaId, operacionId: registroOperacion.operacionId, fin: registroOperacion.fin }).from(registroOperacion).where(and(inArray(registroOperacion.otPiezaId, otPiezaIds), isNotNull(registroOperacion.fin))),
+    db.select({ id: otPieza.id, enviada: otPieza.enviadaProduccionAt }).from(otPieza).where(inArray(otPieza.id, otPiezaIds)),
+  ]);
+  const hoy = hoyISO();
+  return tareas.map((t) => {
+    const pasos = plan.resultado.tareas.filter((x) => x.otPiezaId === t.otPiezaId);
+    const anterior = pasos.find((x) => x.posicion === t.posicion - 1);
+    let estado: EstadoProxima;
+    let listaDesde: string | null = null;
+    if (t.estado === "en_curso" || t.estado === "pausada") estado = "en_curso";
+    else if (t.estado === "trabada") estado = "trabada";
+    else if (t.estado === "futura") estado = "por_enviar";
+    else if (pasos.some((x) => x.tipo === "compras" && x.estado !== "terminada")) estado = "material";
+    else if (t.estado !== "lista") estado = "espera";
+    else {
+      // Lista desde que terminó el paso anterior o desde que se mandó a producción, lo último.
+      const fines = cerrados.filter((r) => r.otPiezaId === t.otPiezaId && anterior && r.operacionId === anterior.operacionId).map((r) => fechaISO(r.fin!));
+      const envio = enviadas.find((e) => e.id === t.otPiezaId)?.enviada;
+      listaDesde = [...fines, envio ? fechaISO(envio) : null].filter((f): f is string => !!f).sort().at(-1) ?? null;
+      estado = listaDesde && listaDesde < hoy ? "atrasada" : "lista";
+    }
+    return { tarea: t, estado, arranca: arranque.get(t.clave) ?? null, listaDesde, motivo: t.motivoTraba };
+  });
 }
 
 export type DetalleTarea = {

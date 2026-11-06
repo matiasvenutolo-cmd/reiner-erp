@@ -3,12 +3,22 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { tipoParada } from "@/lib/db/schema";
 import { getOperacionesAbiertas, getParadaAbierta, getCantidadesOperacion } from "@/lib/data/ejecucion";
-import { getColaOperario, getDetalleTarea, getTareaDePieza, getNombreDeRegistro, getSetupPendienteDe, HORAS_OPERARIO_DIA } from "@/lib/data/operario";
+import { getColaOperario, getDetalleTarea, getTareaDePieza, getNombreDeRegistro, getSetupPendienteDe, getProximasDe, HORAS_OPERARIO_DIA, type EstadoProxima } from "@/lib/data/operario";
 import { Icono } from "@/components/ui/Icono";
-import { capitalizar, horas, numero, plural } from "@/lib/formato";
+import { capitalizar, fechaCorta, horas, numero, plural } from "@/lib/formato";
 import { TarjetaPlanta, BotonesPorEmpezar, BotonesEnCurso } from "./Flujo";
 import { ConexionPlanta, FormPlanta, Listo, Motivos } from "./Planta";
 import type { Tarea } from "@/lib/planning/motor";
+
+const ESTADO_PROXIMA: Record<EstadoProxima, { label: string; chip: string; borde: string }> = {
+  en_curso: { label: "En curso", chip: "bg-accent text-accent-foreground", borde: "border-l-accent" },
+  lista: { label: "Lista para iniciar", chip: "bg-verde-bg text-verde-fg", borde: "border-l-verde" },
+  atrasada: { label: "Inicio atrasado", chip: "bg-rojo-bg text-rojo-fg", borde: "border-l-rojo" },
+  material: { label: "Esperando material", chip: "bg-naranja-bg text-naranja-fg", borde: "border-l-naranja" },
+  espera: { label: "Espera el paso anterior", chip: "bg-gris-bg text-gris-fg", borde: "border-l-border" },
+  por_enviar: { label: "Todavía no se mandó a producción", chip: "bg-gris-bg text-gris-fg", borde: "border-l-border" },
+  trabada: { label: "Trabada", chip: "bg-rojo-bg text-rojo-fg", borde: "border-l-rojo" },
+};
 
 const MOTIVOS_ADELANTAR = [
   { valor: "La máquina ya está preparada para esta", label: "La máquina ya está preparada" },
@@ -74,8 +84,9 @@ export async function PantallaOperario({
     } else actual = null;
   }
 
-  const despues = cola.tareas.filter((t) => t.clave !== actual?.clave).slice(0, 6);
-  const detallesDespues = await Promise.all(despues.map((t) => getDetalleTarea(t)));
+  // Tanda 2 (05/11): toda la cola que le armó el jefe, también lo que todavía no puede empezar, con estado y fecha.
+  const proximas = (await getProximasDe(usuarioId)).filter((p) => p.tarea.clave !== actual?.clave).slice(0, 10);
+  const detallesDespues = await Promise.all(proximas.map((p) => getDetalleTarea(p.tarea)));
   const total = cola.hechas + cola.tareas.length;
   const pausadasOtras = abiertas.filter((a) => a.pausada && a.id !== abierta?.id);
 
@@ -127,25 +138,36 @@ export async function PantallaOperario({
         </div>
       )}
 
-      {despues.length > 0 && (
+      {proximas.length > 0 && (
         <div>
-          <h2 className="font-semibold mb-2">Después</h2>
+          <h2 className="text-lg font-semibold mb-2">Mis próximas tareas</h2>
           <ul className="space-y-3">
-            {despues.map((t, i) => {
+            {proximas.map((p, i) => {
+              const t = p.tarea;
               const d = detallesDespues[i];
-              const urgente = t.nivel === "atrasada" ? "bg-rojo" : t.nivel === "urgente" || t.nivel === "arranca_tarde" ? "bg-naranja" : null;
+              const e = ESTADO_PROXIMA[p.estado];
               return (
                 <li key={t.clave}>
-                  <details className="tarjeta group">
+                  <details className={`tarjeta group border-l-4 ${e.borde}`}>
                     <summary className="flex items-center gap-3 px-4 py-3 min-h-14 cursor-pointer list-none">
-                      {urgente ? <span className={`w-3 h-3 rounded-full shrink-0 ${urgente}`} aria-label="Urgente" /> : <span className="w-3 shrink-0" />}
                       <span className="flex-1 min-w-0">
                         <span className="font-semibold block">
                           {capitalizar(t.piezaNombre)} × {numero(t.cantidad)}
                         </span>
                         <span className="text-[15px] text-foreground-muted">
-                          {t.paso} · {horas(d.estimadoHoras)}
-                          {t.estado !== "lista" && t.estado !== "en_curso" ? ` · ${t.estado === "trabada" ? `trabada: ${t.motivoTraba?.toLowerCase()}` : "espera el paso anterior"}` : ""}
+                          {t.paso} · paso {t.posicion} de {t.totalPasos} · {horas(d.estimadoHoras)}
+                        </span>
+                        <span className="flex flex-wrap items-center gap-2 mt-1">
+                          <span className={`rounded-full px-2.5 py-0.5 text-[13px] font-semibold ${e.chip}`}>
+                            {p.estado === "trabada" && p.motivo ? `Trabada: ${p.motivo.toLowerCase()}` : e.label}
+                          </span>
+                          <span className="text-[14px]">
+                            {p.estado === "atrasada" && p.listaDesde
+                              ? `Se podía empezar desde el ${fechaCorta(p.listaDesde, hoy)}`
+                              : p.arranca
+                                ? `Arranca aprox. el ${fechaCorta(p.arranca, hoy)}`
+                                : "Arranca más adelante"}
+                          </span>
                         </span>
                       </span>
                       <Icono nombre="abajo" className="w-5 h-5 text-foreground-muted group-open:rotate-180 transition-transform" />
@@ -155,7 +177,7 @@ export async function PantallaOperario({
                       {(d.dispositivo || d.material) && <div>{[d.dispositivo && `Dispositivo: ${d.dispositivo}`, d.material && `Material: ${d.material}`].filter(Boolean).join(" · ")}</div>}
                       {d.vieneDe && <div>Viene de: {d.vieneDe.paso}</div>}
                       {d.despues && <div>Después: {d.despues}</div>}
-                      {t.estado === "lista" && (
+                      {(p.estado === "lista" || p.estado === "atrasada") && (
                         <Motivos
                           accion="adelantar"
                           campos={{ ...campos, otPiezaId: t.otPiezaId, operacionId: t.operacionId }}
