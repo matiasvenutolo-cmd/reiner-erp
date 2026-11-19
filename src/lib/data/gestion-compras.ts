@@ -36,6 +36,7 @@ import {
   asignacionTrabajo,
   necesidadCompraOrden,
   conjunto,
+  articuloStock,
 } from "@/lib/db/schema";
 import type { SolicitudCompra, CotizacionCompra, PagoCompra } from "@/lib/db/schema";
 import { getPiezasCompraPendientes, type ItemCompraPendiente } from "./produccion";
@@ -205,7 +206,7 @@ export async function listarSolicitudes(soloId?: string): Promise<SolicitudDetal
 
     let entregas: Entrega[];
     let fechaRecepcion: string | null;
-    if (s.origen === "orden_trabajo") {
+    if (s.origen === "orden_trabajo" && s.otPiezaId) {
       // Sólo las llegadas posteriores a la confirmación de esta compra.
       entregas = s.confirmadaAt
         ? llegadas
@@ -427,7 +428,9 @@ export async function actualizarSolicitud(
 /** Sólo antes de confirmarla al proveedor: después ya hay un pedido de por medio. */
 export async function anularSolicitud(id: string): Promise<void> {
   const s = await exigirSolicitud(id);
-  if (s.confirmadaAt) throw new Error("La compra ya se confirmó al proveedor: no se puede anular desde acá.");
+  // Una compra cuya orden se eliminó sí se puede anular aunque esté confirmada (prueba 19/11).
+  if (s.confirmadaAt && !compraSinOrden(s)) throw new Error("La compra ya se confirmó al proveedor: no se puede anular desde acá.");
+  if (s.fechaRecepcion) throw new Error("Esta compra ya se recibió: no se puede anular.");
   await db.update(solicitudCompra).set({ anuladaAt: new Date() }).where(eq(solicitudCompra.id, id));
 }
 
@@ -572,7 +575,7 @@ export async function registrarRecepcion(
   const s = await exigirSolicitud(solicitudId);
   if (!s.confirmadaAt) throw new Error("Primero confirmá la compra al proveedor.");
   if (s.fechaRecepcion) throw new Error("Esta compra ya se recibió.");
-  if (s.origen === "orden_trabajo") {
+  if (s.origen === "orden_trabajo" && !compraSinOrden(s)) {
     if (!s.pedidoCompraId) throw new Error("No se encontró el pedido de esta compra.");
     let operacionCompraId: string | undefined;
     if (s.otPiezaId) {
@@ -590,6 +593,21 @@ export async function registrarRecepcion(
     observacion: datos.observacion?.trim() || null,
     usuarioId,
   });
+  // Material de una orden que se eliminó: llegó igual, así que entra a Materia prima, libre (prueba 19/11).
+  if (compraSinOrden(s) && datos.resultado === "ok" && s.descripcion.startsWith("Material para"))
+    await db.insert(articuloStock).values({
+      tipo: "materia_prima",
+      nombre: s.descripcion.split(" — ")[0].replace(/^Material para fabricar /, "Material para "),
+      unidad: s.unidad || "u.",
+      cantidad: s.elegida?.cantidad ?? s.cantidad,
+      asignada: 0,
+      proveedorId: s.elegida?.proveedorId ?? null,
+    });
+}
+
+/** Compra que nació de una orden que después se eliminó: quedó sin pieza ni pedido (prueba 19/11). */
+export function compraSinOrden(s: { origen: string; otPiezaId: string | null }): boolean {
+  return s.origen === "orden_trabajo" && !s.otPiezaId;
 }
 
 /** Pago (total o parcial) en la moneda de la cotización elegida. Recién acá el gasto es efectuado. */

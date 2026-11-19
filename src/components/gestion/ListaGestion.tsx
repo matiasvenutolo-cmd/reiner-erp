@@ -129,6 +129,7 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
                   <td className="px-2 py-2">
                     <div className="whitespace-nowrap">
                       {f.paso} <span className="text-foreground-muted">· {f.posicion} de {f.totalPasos}</span>
+                      {f.reproceso && <span className="ml-1.5 badge-estado bg-naranja-bg text-naranja-fg">Reproceso</span>}
                     </div>
                     {interno && f.centros.length > 1 ? (
                       <select

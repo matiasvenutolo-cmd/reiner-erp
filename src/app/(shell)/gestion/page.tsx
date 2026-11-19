@@ -2,7 +2,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EsqueletoBloques } from "@/components/ui/EsqueletoBloques";
-import { Vacio } from "@/components/ui/Aviso";
+import { Aviso, Vacio } from "@/components/ui/Aviso";
+import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
+import { getDesviosAbiertos } from "@/lib/data/desvios";
+import { decidirDesvioAction } from "@/app/actions/gestion";
 import { ListaGestion } from "@/components/gestion/ListaGestion";
 import { ParaEnviar } from "@/components/gestion/ParaEnviar";
 import { FiltrosGestion } from "@/components/gestion/FiltrosGestion";
@@ -16,7 +19,7 @@ import { resolverAvisoAction } from "@/app/actions/operario";
 
 export const dynamic = "force-dynamic";
 
-type Params = { centro?: string; operario?: string; orden?: string; sin?: string };
+type Params = { centro?: string; operario?: string; orden?: string; sin?: string; ok?: string; error?: string };
 
 /**
  * Gestión (reorganización 30/10 §3): quién hace qué y en qué orden. Reemplaza la asignación del Plan de la
@@ -28,6 +31,8 @@ export default async function GestionPage({ searchParams }: { searchParams: Prom
   return (
     <div className="space-y-4">
       <PageHeader titulo="Gestión" descripcion="Mandá piezas a producción y asigná cada tarea eligiendo el operario en su fila. El orden de la cola de cada uno es el que ve en su tablet." />
+      {sp.ok && <Aviso tipo="ok">{sp.ok}</Aviso>}
+      {sp.error && <Aviso tipo="error">{sp.error}</Aviso>}
       <Suspense fallback={<EsqueletoBloques bloques={5} />}>
         <Contenido sp={sp} />
       </Suspense>
@@ -47,12 +52,36 @@ async function AvisosPlanta() {
     .leftJoin(pieza, eq(pieza.id, otPieza.piezaId))
     .where(and(isNull(avisoPlanta.resueltoAt)))
     .orderBy(desc(avisoPlanta.createdAt));
-  if (!avisos.length) return null;
+  const desvios = await getDesviosAbiertos();
+  if (!avisos.length && !desvios.length) return null;
   const hora = (d: Date) => d.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
   return (
     <section className="rounded-lg border border-naranja-borde bg-naranja-tenue px-4 py-3 space-y-2">
-      <h2 className="font-semibold text-naranja-fg">Avisos · {avisos.length}</h2>
+      <h2 className="font-semibold text-naranja-fg">Avisos · {avisos.length + desvios.length}</h2>
       <ul className="space-y-1.5">
+        {/* Prueba 19/11: una pieza que salió mal espera la decisión: reprocesarla o mandarla a scrap y rehacerla. */}
+        {desvios.map((d) => (
+          <li key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="font-semibold">{d.quien}</span>
+            <span className="badge-estado bg-rojo-bg text-rojo-fg">Salió mal</span>
+            <span className="flex-1 min-w-48">
+              {d.pieza.charAt(0).toUpperCase() + d.pieza.slice(1)} ({d.codigo}): {d.texto.replace(/^Salió mal /, "salió mal ")}.
+            </span>
+            <span className="text-xs text-foreground-muted">{hora(d.cuando)}</span>
+            <form action={decidirDesvioAction}>
+              <input type="hidden" name="id" value={d.id} />
+              <input type="hidden" name="decision" value="reprocesar" />
+              <button className="btn btn-sm">Reprocesar</button>
+            </form>
+            <form action={decidirDesvioAction}>
+              <input type="hidden" name="id" value={d.id} />
+              <input type="hidden" name="decision" value="scrap" />
+              <ConfirmarBoton mensaje={`¿Mandar ${d.codigo} a scrap y rehacerla desde el paso 1? Se crea una pieza nueva en la misma orden y, si hace falta, pide material a Compras.`} className="btn-secundario btn-sm">
+                Scrap y rehacer
+              </ConfirmarBoton>
+            </form>
+          </li>
+        ))}
         {avisos.map((a) => (
           <li key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span className="font-semibold">{a.quien}</span>

@@ -282,7 +282,8 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
         margenDias: margen ?? 3,
         conjuntos,
         piezas,
-        piezasCubiertasConStock: piezasOt.filter((r) => r.op.cantidadAFabricar === 0).length,
+        // Una pieza mandada a scrap también queda con 0 a fabricar, pero no se cubrió con stock (prueba 19/11).
+        piezasCubiertasConStock: piezasOt.filter((r) => r.op.cantidadAFabricar === 0 && r.op.stockAlGenerar > 0).length,
         inicio: m.fechaInicioProyecto ?? (m.fechaEmision ? fechaISO(m.fechaEmision) : fechaISO(m.createdAt)),
       };
     });
@@ -300,7 +301,8 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
     entradaAutomatica: params.entradaAutomatica,
     asignadasAntes: new Set(asignadasAntes.map((a) => `${a.otPiezaId}::${a.operacionId}`)),
     horasOperarioDia: 8 * 0.85,
-    bloqueos: new Map(bloqueos.map((b) => [`${b.otPiezaId}::${b.operacionId}`, MOTIVO_BLOQUEO[b.motivo] ?? b.texto ?? "No se puede hacer"])),
+    // "Salió mal" (prueba 19/11) muestra el detalle: en qué paso, cuántas rechazadas y por qué.
+    bloqueos: new Map(bloqueos.map((b) => [`${b.otPiezaId}::${b.operacionId}`, (b.motivo === "salio_mal" ? b.texto : null) ?? MOTIVO_BLOQUEO[b.motivo] ?? b.texto ?? "No se puede hacer"])),
   };
   const resultado = planificar(entrada);
   return { entrada, resultado, centros, operarios, proyectosInfo, ms: Date.now() - t0 };

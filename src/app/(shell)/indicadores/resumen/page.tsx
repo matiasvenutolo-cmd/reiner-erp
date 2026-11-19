@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PestanasIndicadores } from "@/components/ui/PestanasSecciones";
 import { formatearDuracion, horas } from "@/lib/formato";
+import { getResumenDesvios } from "@/lib/data/desvios";
 import { getResumenIndicadores, getParadasPorTipo, getTiempoPorOperario, getTiempoPorProceso, getEsperasSetup } from "@/lib/data/indicadores";
 
 /** Coma decimal y, debajo de 1 h, en minutos (§4.5). */
@@ -16,6 +17,7 @@ export default async function IndicadoresPage() {
     getTiempoPorProceso(),
     getEsperasSetup(),
   ]);
+  const desvios = await getResumenDesvios();
   const cerradas = esperas.filter((e) => e.inicioFabricacion);
   const promedio = cerradas.length ? Math.round(cerradas.reduce((n, e) => n + e.esperaSeg, 0) / cerradas.length) : null;
   const fecha = (d: Date) => d.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
@@ -38,6 +40,8 @@ export default async function IndicadoresPage() {
         <Metric label="Piezas defectuosas" value={String(resumen.piezasDefectuosas)} alerta={resumen.piezasDefectuosas > 0} />
         <Metric label="Piezas retrabajadas" value={String(resumen.piezasRetrabajadas)} alerta={resumen.piezasRetrabajadas > 0} />
         <Metric label="Paradas" value={`${resumen.paradasCantidad} · ${fmtHoras(resumen.paradasHoras)}`} />
+        <Metric label="Reprocesos" value={desvios.reprocesos ? `${desvios.reprocesos} · ${fmtHoras(desvios.horasReproceso)}` : "0"} alerta={desvios.reprocesos > 0} />
+        <Metric label="Piezas a scrap (rehechas)" value={String(desvios.scrap)} alerta={desvios.scrap > 0} />
         <Metric label="Espera setup → fabricación (promedio)" value={promedio === null ? "—" : `${formatearDuracion(promedio)} · ${cerradas.length} ${cerradas.length === 1 ? "vez" : "veces"}`} />
       </div>
 

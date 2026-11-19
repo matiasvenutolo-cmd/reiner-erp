@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSolicitud, MONEDAS, type SolicitudDetalle } from "@/lib/data/gestion-compras";
+import { getSolicitud, MONEDAS, compraSinOrden, type SolicitudDetalle } from "@/lib/data/gestion-compras";
 import { getProveedores } from "@/lib/data/logistica";
 import {
   actualizarSolicitudAction,
@@ -78,6 +78,12 @@ export default async function CompraPage({
         }
         descripcion={s.descripcion}
       />
+      {/* Prueba 19/11: la orden de esta compra se eliminó. Se puede anular o, si llegó igual, recibir a Materia prima. */}
+      {compraSinOrden(s) && !s.fechaRecepcion && !s.anuladaAt && (
+        <Aviso tipo="info">
+          La orden de esta compra se eliminó. Si ya no hace falta, anulala (abajo). Si llegó igual, registrá la entrega y el material entra a Materia prima, libre.
+        </Aviso>
+      )}
 
       {ok && <Aviso tipo="ok">{ok}</Aviso>}
       {error && <Aviso tipo="error">{error}</Aviso>}
@@ -517,7 +523,7 @@ export default async function CompraPage({
         </section>
       </div>
 
-      {editableQue && (
+      {(editableQue || (compraSinOrden(s) && !s.fechaRecepcion && !s.anuladaAt)) && (
         <form action={anularSolicitudAction} className="text-right">
           <input type="hidden" name="id" value={s.id} />
           <ConfirmarBoton mensaje={`¿Anular la compra Nº ${s.numero}? Deja de aparecer en la bandeja y en los gastos.`} className="btn-peligro btn-sm">

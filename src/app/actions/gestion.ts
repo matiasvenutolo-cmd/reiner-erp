@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { getUsuarioDePlanta } from "@/lib/session";
 import { asignarTareas, cambiarCentro, moverEnCola, ordenarPorUrgencia, getGestion, moverTareaADia } from "@/lib/data/gestion";
 import { evaluarEntrada } from "@/lib/data/entrada-plan";
+import { reprocesar, scrapYRehacer } from "@/lib/data/desvios";
+import { redirect } from "next/navigation";
 import { enviarAProduccion } from "@/lib/data/ot";
 import { revalidatePath as revalidarConPlan } from "@/lib/revalidar";
 
@@ -75,4 +77,20 @@ export async function moverTareaADiaAction(clave: string, fecha: string | null):
     const msg = e instanceof Error ? e.message : "";
     return { ok: false, error: !msg || msg.startsWith("Failed query") ? "No se pudo guardar. Probá de nuevo." : msg };
   }
+}
+
+/** Desvío (prueba 19/11): reprocesar la pieza o mandarla a scrap y rehacerla. Desde el aviso de Gestión. */
+export async function decidirDesvioAction(fd: FormData) {
+  const u = await getUsuarioDePlanta();
+  if (u.rol === "operario") throw new Error("No autorizado.");
+  const id = String(fd.get("id") ?? "");
+  const decision = String(fd.get("decision") ?? "");
+  let msg: string;
+  try {
+    msg = decision === "scrap" ? await scrapYRehacer(id, u.id) : await reprocesar(id, u.id);
+  } catch (e) {
+    redirect(`/gestion?error=${encodeURIComponent(e instanceof Error ? e.message : "No se pudo guardar.")}`);
+  }
+  for (const r of ["/gestion", "/proyectos", "/ot", "/taller", "/compras", "/indicadores"]) revalidarConPlan(r, "layout");
+  redirect(`/gestion?ok=${encodeURIComponent(msg)}`);
 }

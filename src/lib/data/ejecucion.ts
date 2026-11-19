@@ -18,9 +18,9 @@ import { ingresarPiezaTerminada } from "./stock";
 import { getColaDe } from "./gestion";
 import { eq, and, isNull, isNotNull, sql, desc, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { registroOperacion, parada, tipoParada, otPieza, tareaRevision, usuario, pieza, articuloStock, movimientoStock } from "@/lib/db/schema";
+import { registroOperacion, parada, tipoParada, otPieza, tareaRevision, usuario, pieza, articuloStock, movimientoStock, tareaBloqueo, operacion, proceso } from "@/lib/db/schema";
 import { getRoutingPieza, nombreOperacion } from "./maestros";
-import { cantidadQueEntraAlPaso, pasoHabilitadoParaOperario, getCentrosDeUsuario } from "./produccion";
+import { cantidadQueEntraAlPaso, pasoHabilitadoParaOperario, getCentrosDeUsuario, salioMal } from "./produccion";
 import { getAsignacionesDeHoy } from "./planificacion";
 import { getEstadoYOperacionActual } from "./ot";
 import type { RegistroOperacion, Parada, TipoParada } from "@/lib/db/schema";
@@ -95,10 +95,9 @@ export async function getCantidadesOperacion(otPiezaId: string, operacionId: str
   const idx = routing.findIndex((r) => r.id === operacionId);
   if (idx === -1) return { entra: 0, disponibles: 0 };
   const entra = cantidadQueEntraAlPaso(routing.map((r) => r.id), idx, op.cantidadAFabricar, cierres);
-  const yaDeclaradas = cierres
-    .filter((c) => c.operacionId === operacionId && c.id !== excluirRegistroId)
-    .reduce((s, c) => s + (c.piezasOk ?? 0) + (c.piezasRechazadas ?? 0), 0);
-  return { entra, disponibles: Math.max(0, entra - yaDeclaradas) };
+  // Lo que queda por hacer bien: las rechazadas no descuentan, porque se reprocesan o se rehacen (prueba 19/11).
+  const yaOk = cierres.filter((c) => c.operacionId === operacionId && c.id !== excluirRegistroId).reduce((s, c) => s + (c.piezasOk ?? 0), 0);
+  return { entra, disponibles: Math.max(0, entra - yaOk) };
 }
 
 export async function getParadaAbierta(registroOperacionId: string): Promise<Parada | null> {
@@ -194,6 +193,12 @@ export async function iniciarOperacion(
   }
   if (!pasoHabilitadoParaOperario(paso, op.id, centroIds, asignadasHoy)) {
     return { ok: false, error: `${nombreOperacion(operacionActual)} es de otro centro de trabajo y no la tenés asignada.` };
+  }
+  // Prueba 19/11: no se empieza un paso al que no llegaron piezas, ni uno que salió mal y espera la decisión del jefe.
+  const [trabado] = await db.select({ id: tareaBloqueo.id }).from(tareaBloqueo).where(and(eq(tareaBloqueo.otPiezaId, op.id), eq(tareaBloqueo.operacionId, operacionActual.id), isNull(tareaBloqueo.resueltoAt)));
+  if (trabado) return { ok: false, error: "Esta tarea está trabada: el jefe de planta tiene que destrabarla en Gestión." };
+  if ((await getCantidadesOperacion(op.id, operacionActual.id)).entra <= 0) {
+    return { ok: false, error: "No llegaron piezas del paso anterior. Avisale al jefe de planta." };
   }
   const [registro] = await db
     .insert(registroOperacion)
@@ -302,6 +307,7 @@ export async function finalizarOperacion(input: FinalizarOperacionInput): Promis
     .update(registroOperacion)
     .set({ fin, duracionSeg, piezasOk: input.piezasOk, piezasRechazadas: input.piezasRechazadas, observacion: input.observacion, motivoRechazo: input.piezasRechazadas > 0 ? (input.motivoRechazo ?? null) : null })
     .where(eq(registroOperacion.id, registro.id));
+  if (registro.tipo === "ejecucion") await trabarSiSalioMal(registro.otPiezaId, registro.operacionId, input.usuarioId);
 
   if (input.cierrePieza) {
     await db
@@ -334,6 +340,32 @@ export async function finalizarOperacion(input: FinalizarOperacionInput): Promis
   }
 }
 
+export const MOTIVO_SALIO_MAL = "salio_mal";
+
+/**
+ * Prueba 19/11: si el paso quedó sin ninguna pieza OK (sólo rechazadas), la pieza se traba ahí con el motivo y el
+ * jefe de planta decide en Gestión: reprocesar esa misma pieza o mandarla a scrap y rehacerla desde el paso 1.
+ */
+async function trabarSiSalioMal(otPiezaId: string, operacionId: string, usuarioId: string): Promise<void> {
+  const cierres = await db
+    .select({ operacionId: registroOperacion.operacionId, piezasOk: registroOperacion.piezasOk, piezasRechazadas: registroOperacion.piezasRechazadas, motivo: registroOperacion.motivoRechazo })
+    .from(registroOperacion)
+    .where(and(eq(registroOperacion.otPiezaId, otPiezaId), eq(registroOperacion.operacionId, operacionId), eq(registroOperacion.tipo, "ejecucion"), isNotNull(registroOperacion.fin)));
+  if (!salioMal(cierres, operacionId)) return;
+  const [abierto] = await db.select({ id: tareaBloqueo.id }).from(tareaBloqueo).where(and(eq(tareaBloqueo.otPiezaId, otPiezaId), eq(tareaBloqueo.operacionId, operacionId), isNull(tareaBloqueo.resueltoAt)));
+  if (abierto) return;
+  const [paso] = await db.select({ proceso: proceso.nombre, secuencia: operacion.secuencia }).from(operacion).innerJoin(proceso, eq(proceso.id, operacion.procesoId)).where(eq(operacion.id, operacionId));
+  const rech = cierres.reduce((n, c) => n + (c.piezasRechazadas ?? 0), 0);
+  const motivos = [...new Set(cierres.map((c) => c.motivo).filter(Boolean))].join(", ");
+  await db.insert(tareaBloqueo).values({
+    otPiezaId,
+    operacionId,
+    motivo: MOTIVO_SALIO_MAL,
+    texto: `Salió mal en ${paso?.proceso ?? "el paso"} (paso ${paso?.secuencia ?? "?"}): 0 OK, ${rech} rechazada${rech === 1 ? "" : "s"}${motivos ? ` (${motivos})` : ""}`,
+    usuarioId,
+  });
+}
+
 /** No se declaran más piezas OK de las que llegaron al paso. Las rechazadas van aparte (tanda 2, 05/11): si
  * había que hacer 1 y la primera salió mal, se termina con 1 OK y 1 rechazada. Los conteos del
  * cierre de la pieza (no OK, defectuosas, retrabajadas) todavía no tienen
@@ -342,6 +374,7 @@ export async function finalizarOperacion(input: FinalizarOperacionInput): Promis
 function validarCantidades(input: FinalizarOperacionInput, { disponibles }: CantidadesOperacion) {
   const valores = [input.piezasOk, input.piezasRechazadas, ...Object.values(input.cierrePieza ?? {})];
   if (valores.some((v) => !Number.isInteger(v) || v < 0)) throw new Error("Las cantidades tienen que ser números enteros, 0 o más.");
+  if (input.piezasOk + input.piezasRechazadas === 0) throw new Error("Cargá cuántas piezas salieron OK o rechazadas.");
   if (input.piezasOk > disponibles) {
     throw new Error(`Llegaron ${disponibles} pieza${disponibles === 1 ? "" : "s"} a esta operación: las OK no pueden pasar de ${disponibles}.`);
   }

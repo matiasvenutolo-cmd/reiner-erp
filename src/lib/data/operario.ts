@@ -3,6 +3,7 @@
  * que necesita saber de cada tarea para no tener que preguntar.
  */
 import { getColaDe, getGestion } from "./gestion";
+import { getClavesEnReproceso } from "./desvios";
 import { and, asc, desc, eq, gte, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
@@ -161,6 +162,8 @@ export type DetalleTarea = {
   notas: string[];
   /** Prueba 1 (05/11): el setup ya se terminó y la fabricación todavía no empezó (cuándo terminó el setup). */
   setupTerminado: Date | null;
+  /** Prueba 19/11: el paso salió mal y el jefe decidió reprocesar esta misma pieza. */
+  reproceso: boolean;
 };
 
 /**
@@ -221,7 +224,7 @@ export async function getDetalleTarea(t: Pick<Tarea, "otPiezaId" | "operacionId"
       .limit(1);
     finAnterior = r?.fin ? fechaISO(r.fin) : null;
   }
-  const setupTerminado = await setupSinFabricar(t.otPiezaId, t.operacionId);
+  const [setupTerminado, reprocesos] = await Promise.all([setupSinFabricar(t.otPiezaId, t.operacionId), getClavesEnReproceso()]);
   const setup = actual?.o.setupMin ?? actual?.ds ?? 30;
   const porUnidad = actual?.o.minPorUnidad ?? actual?.dm ?? 15;
   const nombre = (x: (typeof ruta)[number] | null | undefined) => (x ? (x.o.descripcion ? `${x.nombre} · ${x.o.descripcion}` : x.nombre) : null);
@@ -237,6 +240,7 @@ export async function getDetalleTarea(t: Pick<Tarea, "otPiezaId" | "operacionId"
     planos: adj.map((a) => ({ nombre: a.nombreArchivo, url: urlDeAdjunto(a.pathname) })),
     notas: notas.map((n) => n.texto),
     setupTerminado,
+    reproceso: reprocesos.has(`${t.otPiezaId}::${t.operacionId}`),
   };
 }
 

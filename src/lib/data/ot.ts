@@ -158,10 +158,8 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
       resultado.set(p.id, { estado: "pendiente", sinRouting: true, pasos: [] });
       continue;
     }
-    const conLote = lotes.get(p.id);
-    const completadasSet = conLote
-      ? avancePasos(ruta.map((r) => r.id), p.cantidadAFabricar, registros.filter((r) => r.otPiezaId === p.id && r.fin), conLote).completados
-      : (completadasPorOtPieza.get(p.id) ?? new Set<string>());
+    // Misma regla que el plan (`avancePasos`): un paso que salió mal (0 OK con rechazos) no cuenta como hecho.
+    const completadasSet = avancePasos(ruta.map((r) => r.id), p.cantidadAFabricar, registros.filter((r) => r.otPiezaId === p.id && r.fin), lotes.get(p.id) ?? new Set<string>()).completados;
     const pasos = ruta.map((r) => ({ id: r.id, nombre: r.nombre, completado: completadasSet.has(r.id), tipo: r.tipo }));
     // Sin control de materia prima (§2.2) el paso de Compras no cuenta para terminar ni para empezar.
     const flujo = pasosQueBloquean(ruta, (r) => r.tipo, mp);

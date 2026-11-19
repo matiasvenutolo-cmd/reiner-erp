@@ -15,6 +15,7 @@ import { colaTarea, usuario, usuarioCentroTrabajo, operacion, proceso, centroTra
 import { hoyISO } from "@/lib/fecha";
 import { getPlan } from "@/lib/planning/datos";
 import { evaluarEntrada } from "./entrada-plan";
+import { getClavesEnReproceso } from "./desvios";
 import { esHabil } from "@/lib/planning/calendario";
 import type { Tarea, Nivel } from "@/lib/planning/motor";
 
@@ -42,6 +43,8 @@ export type FilaGestion = {
   lugar: number | null;
   estado: EstadoGestion;
   motivo: string | null;
+  /** Prueba 19/11: el paso salió mal y se decidió reprocesar la pieza. */
+  reproceso: boolean;
   /** Tercerizado (§5.1): a qué proveedor se manda o dónde está, con la vuelta prevista. */
   proveedor: string | null;
   vuelta: string | null;
@@ -163,6 +166,7 @@ export async function getGestion() {
   for (const p of procs) compatibles.set(p.id, new Set(p.centroId ? [p.centroId] : []));
   for (const u of usos) if (u.centroId) compatibles.get(u.procesoId)?.add(u.centroId);
 
+  const enReproceso = await getClavesEnReproceso();
   const porClave = new Map(cola.map((c) => [clave(c.otPiezaId, c.operacionId), c]));
   const prioridad = new Map(entrada.proyectos.map((p) => [p.id, p.prioridad]));
   const filas: FilaGestion[] = tareas.map((t) => {
@@ -199,6 +203,7 @@ export async function getGestion() {
       lugar: c?.operarioId ? (c.posicion ?? null) : null,
       estado,
       motivo: t.motivoTraba,
+      reproceso: enReproceso.has(t.clave),
       proveedor:
         t.tipo !== "tercerizado"
           ? null

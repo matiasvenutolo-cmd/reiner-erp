@@ -10,7 +10,7 @@
  * máquina, así que no entra en el tiempo estándar. Una pieza comprada
  * entera, en cambio, suma al almacén y queda reservada para su OT.
  */
-import { and, desc, eq, gte, inArray, isNotNull, isNull, like, max, sum } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, like, max, min, sum } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   pedidoCompra,
@@ -74,25 +74,29 @@ export async function getMovimientoTercerizado(otPiezaId: string): Promise<Movim
     .where(and(eq(registroOperacion.otPiezaId, otPiezaId), isNotNull(registroOperacion.fin)));
   const desde = ultimoCierre?.fin ?? new Date(0);
 
-  const [[env], [rec], { entra }] = await Promise.all([
+  const [[env], { entra }] = await Promise.all([
     db
-      .select({ total: sum(remitoItem.cantidad).mapWith(Number) })
+      .select({ total: sum(remitoItem.cantidad).mapWith(Number), primero: min(remito.fecha) })
       .from(remitoItem)
       .innerJoin(remito, eq(remito.id, remitoItem.remitoId))
       .where(and(eq(remitoItem.otPiezaId, otPiezaId), gte(remito.fecha, desde))),
-    db
-      .select({ total: sum(movimientoStock.cantidad).mapWith(Number) })
-      .from(movimientoStock)
-      .where(
-        and(
-          eq(movimientoStock.otPiezaId, otPiezaId),
-          eq(movimientoStock.tipo, "ingreso"),
-          like(movimientoStock.observacion, `${OBS_VUELTA_TERCERIZADO}%`),
-          gte(movimientoStock.fecha, desde),
-        ),
-      ),
     getCantidadesOperacion(otPiezaId, operacionActual.id),
   ]);
+  // Prueba 19/11: sólo cuentan las vueltas posteriores al primer remito de este paso. Con dos tercerizados seguidos
+  // (Chavetero → Cromado) la vuelta del Chavetero se contaba también como vuelta del Cromado.
+  const [rec] = env?.primero
+    ? await db
+        .select({ total: sum(movimientoStock.cantidad).mapWith(Number) })
+        .from(movimientoStock)
+        .where(
+          and(
+            eq(movimientoStock.otPiezaId, otPiezaId),
+            eq(movimientoStock.tipo, "ingreso"),
+            like(movimientoStock.observacion, `${OBS_VUELTA_TERCERIZADO}%`),
+            gte(movimientoStock.fecha, env.primero),
+          ),
+        )
+    : [{ total: 0 }];
   const enviadas = env?.total ?? 0;
   const recibidas = rec?.total ?? 0;
   const afuera = Math.max(0, enviadas - recibidas);

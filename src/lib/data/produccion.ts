@@ -252,12 +252,10 @@ async function getFilasConPosicionActual(): Promise<{ fila: FilaOtPieza; routing
 
   const completadasPorOtPieza = new Map<string, Set<string>>();
   const cierresPorOtPieza = new Map<string, CierrePaso[]>();
-  for (const c of completadasRows) {
-    const set = completadasPorOtPieza.get(c.otPiezaId) ?? new Set<string>();
-    set.add(c.operacionId);
-    completadasPorOtPieza.set(c.otPiezaId, set);
-    cierresPorOtPieza.set(c.otPiezaId, [...(cierresPorOtPieza.get(c.otPiezaId) ?? []), c]);
-  }
+  for (const c of completadasRows) cierresPorOtPieza.set(c.otPiezaId, [...(cierresPorOtPieza.get(c.otPiezaId) ?? []), c]);
+  // Un paso que salió mal (0 OK con rechazos) no cuenta como hecho (prueba 19/11).
+  for (const [otPiezaId, cierres] of cierresPorOtPieza)
+    completadasPorOtPieza.set(otPiezaId, new Set(cierres.map((c) => c.operacionId).filter((id) => !salioMal(cierres, id))));
 
   const resultado: { fila: FilaOtPieza; routing: PasoRuta[]; posActual: number; cantidadActual: number }[] = [];
   for (const fila of filas) {
@@ -478,6 +476,9 @@ export async function getPiezasAfueraTercerizado(): Promise<ItemAfueraTercerizad
   return filas.map(({ fila, routing, posActual, cantidadActual }) => {
     const desde = llegoAlPaso.get(fila.otPieza.id) ?? 0;
     const remitosDelPaso = remitos.filter((r) => r.otPiezaId === fila.otPieza.id && r.fecha.getTime() >= desde);
+    // Prueba 19/11: las vueltas de este paso son las posteriores a su primer remito. Con dos tercerizados seguidos
+    // (Chavetero → Cromado) la vuelta del anterior quedaba dentro del rango y se contaba como de éste.
+    const desdeRemito = remitosDelPaso.length ? Math.min(...remitosDelPaso.map((r) => r.fecha.getTime())) : Infinity;
     return {
       otPiezaId: fila.otPieza.id,
       otPiezaCodigo: fila.otPieza.codigo,
@@ -491,7 +492,7 @@ export async function getPiezasAfueraTercerizado(): Promise<ItemAfueraTercerizad
       cantidad: cantidadActual,
       cantidadEnviada: remitosDelPaso.reduce((s, r) => s + r.cantidad, 0),
       cantidadRecibida: vueltas
-        .filter((v) => v.otPiezaId === fila.otPieza.id && v.fecha.getTime() >= desde)
+        .filter((v) => v.otPiezaId === fila.otPieza.id && v.fecha.getTime() >= desdeRemito)
         .reduce((s, v) => s + v.cantidad, 0),
       remito:
         remitosDelPaso
@@ -601,6 +602,16 @@ export async function contarPiezasSinCentro(): Promise<number> {
  * paso se completa recién cuando se declaró todo lo que le entró, y el paso
  * siguiente ya puede arrancar con las piezas OK del lote terminado.
  */
+/**
+ * Prueba 19/11: un paso que se cerró con piezas rechazadas y ninguna OK "salió mal": no cuenta como hecho, así el
+ * siguiente no se habilita con 0 piezas. La pieza queda trabada hasta que el jefe de planta decide reprocesar o
+ * mandarla a scrap y rehacerla. Un cierre sin declarar nada (0 y 0, cierres viejos) sigue contando como hecho.
+ */
+export function salioMal(cierres: CierrePaso[], operacionId: string): boolean {
+  const delPaso = cierres.filter((c) => c.operacionId === operacionId);
+  return delPaso.length > 0 && delPaso.reduce((s, c) => s + (c.piezasOk ?? 0), 0) === 0 && delPaso.reduce((s, c) => s + (c.piezasRechazadas ?? 0), 0) > 0;
+}
+
 export function avancePasos(
   rutaIds: string[],
   cantidadAFabricar: number,
@@ -618,10 +629,10 @@ export function avancePasos(
     enFlujo[j] = flujo;
     const cerrado = cierres.some((c) => c.operacionId === id);
     let hecho: boolean;
-    if (!flujo) hecho = cerrado;
+    if (!flujo) hecho = cerrado && !salioMal(cierres, id);
     else {
       const entra = cantidadQueEntraAlPaso(rutaIds, j, cantidadAFabricar, cierres);
-      hecho = anteriorHecho && (entra > 0 ? declaradas(id) >= entra : cerrado);
+      hecho = anteriorHecho && !salioMal(cierres, id) && (entra > 0 ? declaradas(id) >= entra : cerrado);
     }
     if (hecho) completados.add(id);
     anteriorHecho = hecho;
