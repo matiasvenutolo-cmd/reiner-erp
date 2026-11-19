@@ -133,3 +133,36 @@ export async function entrarAlPlanSolas(
     usuarioId,
   );
 }
+
+/**
+ * "Ya tengo el material" (prueba 19/11): el material apareció sin pasar por Compras (estaba en el depósito, sobró de
+ * otra pieza…). Se cierra el paso de Compras de la pieza y su pedido de material sale de Compras, sin precio ni
+ * proveedor. La pieza queda lista para mandar a producción.
+ */
+export async function marcarMaterialDisponible(otPiezaId: string, usuarioId: string): Promise<string> {
+  const [op] = await db
+    .select({ id: otPieza.id, codigo: otPieza.codigo, piezaId: otPieza.piezaId, cantidad: otPieza.cantidadAFabricar })
+    .from(otPieza)
+    .where(eq(otPieza.id, otPiezaId));
+  if (!op) throw new Error("Esa pieza no existe.");
+  const [compras] = await db
+    .select({ id: operacion.id })
+    .from(operacion)
+    .innerJoin(proceso, eq(proceso.id, operacion.procesoId))
+    .where(and(eq(operacion.piezaId, op.piezaId), eq(proceso.tipo, "compras")))
+    .orderBy(operacion.secuencia)
+    .limit(1);
+  const ahora = new Date();
+  await db.transaction(async (tx) => {
+    if (compras) {
+      const [cerrado] = await tx
+        .select({ id: registroOperacion.id })
+        .from(registroOperacion)
+        .where(and(eq(registroOperacion.otPiezaId, op.id), eq(registroOperacion.operacionId, compras.id), isNotNull(registroOperacion.fin)));
+      if (!cerrado)
+        await tx.insert(registroOperacion).values({ otPiezaId: op.id, operacionId: compras.id, usuarioId, tipo: "ejecucion", inicio: ahora, fin: ahora, duracionSeg: null, piezasOk: op.cantidad, observacion: "Ya tenía el material (sin compra)" });
+    }
+    await tx.update(necesidadCompraOrden).set({ omitida: true }).where(and(eq(necesidadCompraOrden.otPiezaId, op.id), eq(necesidadCompraOrden.tipo, "material")));
+  });
+  return `${op.codigo}: material disponible. Ya se puede mandar a producción.`;
+}

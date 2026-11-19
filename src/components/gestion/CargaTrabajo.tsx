@@ -16,6 +16,8 @@ const RANGOS = [
 
 // Un color por operario, legible en claro y en oscuro (fondo suave, texto fuerte del mismo tono).
 const TONOS = [205, 25, 140, 280, 345, 50, 175, 230];
+// Sin operario asignado (prueba 19/11): gris.
+const SIN_ASIGNAR = { background: "var(--surface-muted)", color: "var(--foreground-muted)", borderColor: "var(--border)", borderStyle: "dashed" } as const;
 const colorDe = (i: number) => {
   const h = TONOS[i % TONOS.length];
   return { background: `hsl(${h} 75% 86%)`, color: `hsl(${h} 70% 22%)`, borderColor: `hsl(${h} 55% 60%)` };
@@ -181,6 +183,10 @@ export function CargaTrabajo({ carga, resumen, operarios, centros, hoy }: { carg
               {o.nombre}
             </span>
           ))}
+          <span className="inline-flex items-center gap-1.5 text-foreground-muted">
+            <span className="w-3 h-3 rounded-sm border" style={SIN_ASIGNAR} />
+            Sin asignar
+          </span>
         </div>
       )}
 
@@ -235,8 +241,8 @@ export function CargaTrabajo({ carga, resumen, operarios, centros, hoy }: { carg
                         key={`${b.operarioId}|${b.clave}`}
                         b={b}
                         dias={dias}
-                        estilo={colorDe(indice.get(b.operarioId) ?? 0)}
-                        operario={nombre.get(b.operarioId) ?? ""}
+                        estilo={b.operarioId ? colorDe(indice.get(b.operarioId) ?? 0) : SIN_ASIGNAR}
+                        operario={b.operarioId ? (nombre.get(b.operarioId) ?? "") : "Sin asignar"}
                         conOperario={vista === "centro"}
                       />
                     ))}

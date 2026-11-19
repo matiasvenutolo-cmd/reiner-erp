@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { FilaParaEnviar } from "@/lib/data/gestion";
 import { horas, numero, plural } from "@/lib/formato";
-import { enviarAProduccionAction } from "@/app/actions/gestion";
+import { enviarAProduccionAction, materialDisponibleAction } from "@/app/actions/gestion";
 
 /**
  * Para enviar a producción (prueba 1, 05/11): al confirmar una orden sus piezas quedan esperando acá, y el jefe
@@ -98,7 +98,28 @@ export function ParaEnviar({ filas }: { filas: FilaParaEnviar[] }) {
                         {plural(f.pasos, "paso")} · {horas(f.horas)} de taller
                       </span>
                       {f.motivo ? (
-                        <span className="badge-estado bg-naranja-bg text-naranja-fg">{f.motivo}</span>
+                        <span className="flex items-center gap-2">
+                          <span className="badge-estado bg-naranja-bg text-naranja-fg">{f.motivo}</span>
+                          {/* Prueba 19/11: el material apareció sin pasar por Compras. */}
+                          {f.motivo === "Falta material" && (
+                            <button
+                              type="button"
+                              disabled={pendiente}
+                              className="btn-texto btn-sm"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (!window.confirm(`¿Ya tenés el material de ${f.pieza}? Se saca el pedido de Compras y la pieza queda lista para mandar a producción.`)) return;
+                                startTransition(async () => {
+                                  const r = await materialDisponibleAction(f.otPiezaId);
+                                  setMensaje(r.ok ? { ok: true, texto: `${f.pieza}: material disponible. Ya se puede mandar.` } : { ok: false, texto: r.error });
+                                  router.refresh();
+                                });
+                              }}
+                            >
+                              Ya tengo el material
+                            </button>
+                          )}
+                        </span>
                       ) : (
                         <span className="badge-estado bg-accent-soft text-accent-hover">Se puede mandar</span>
                       )}

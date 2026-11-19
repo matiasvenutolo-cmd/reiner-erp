@@ -9,9 +9,9 @@
  * - Las tareas que esperan el paso anterior se ven en gris y también se pueden asignar por adelantado.
  * - La carga por persona es sólo informativa: llena la cola en orden con las horas del operario según el calendario.
  */
-import { and, asc, desc, eq, inArray, isNotNull, max } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, max } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { colaTarea, usuario, usuarioCentroTrabajo, operacion, proceso, centroTrabajo, proveedor, proveedorServicio, remito, remitoItem, parametro, planAjuste } from "@/lib/db/schema";
+import { colaTarea, usuario, usuarioCentroTrabajo, operacion, proceso, centroTrabajo, proveedor, proveedorServicio, remito, remitoItem, parametro, planAjuste, avisoPlanta } from "@/lib/db/schema";
 import { hoyISO } from "@/lib/fecha";
 import { getPlan } from "@/lib/planning/datos";
 import { evaluarEntrada } from "./entrada-plan";
@@ -348,6 +348,20 @@ function cargaPorDia(
       }
     }
   }
+  // Prueba 19/11: lo que todavía no tiene operario también se ve en su centro, en gris, en los días que le da el plan.
+  const diaCompleto = entrada.horasOperarioDia ?? 6.8;
+  for (const f of filas) {
+    if (f.tipo !== "interno" || f.operarioId) continue;
+    const porDia = tareaDe.get(f.clave)?.horasPorDia ?? {};
+    for (const d of dias) {
+      const h = porDia[d] ?? 0;
+      if (h > 0.01)
+        tramos.push({
+          clave: f.clave, otPiezaId: f.otPiezaId, operarioId: "", centroId: f.centroId, pieza: f.pieza, paso: f.paso, posicion: f.posicion, totalPasos: f.totalPasos,
+          orden: f.orden, dia: d, horas: h, totalHoras: f.horas, desde: 0, hasta: Math.min(1, h / diaCompleto), movidaAl: entrada.ajustes.get(f.clave)?.fecha ?? null,
+        });
+    }
+  }
   const sinAsignar: CargaPorDia["sinAsignar"] = {};
   for (const f of filas)
     if (f.tipo === "interno" && !f.operarioId && f.centroId) {
@@ -447,6 +461,7 @@ function partir(c: string) {
 /** Asigna una o varias tareas a un operario (al final de su cola), o las deja sin asignar (operarioId null). */
 export async function asignarTareas(claves: string[], operarioId: string | null, por: string): Promise<void> {
   if (!claves.length) return;
+  if (operarioId) await resolverAvisosAlAsignar(claves, operarioId);
   let siguiente = 0;
   if (operarioId) {
     const [m] = await db.select({ n: max(colaTarea.posicion) }).from(colaTarea).where(eq(colaTarea.operarioId, operarioId));
@@ -475,6 +490,20 @@ export async function moverTareaADia(c: string, fecha: string | null, por: strin
     .insert(planAjuste)
     .values({ otPiezaId, operacionId, fecha: f, usuarioId: por, fijada: false })
     .onConflictDoUpdate({ target: [planAjuste.otPiezaId, planAjuste.operacionId], set: { fecha: f, usuarioId: por, updatedAt: new Date() } });
+}
+
+/**
+ * Prueba 19/11: los avisos que pedían asignar algo se resuelven solos al asignarlo. "Volvió del tercerizado" de esa
+ * pieza, y "Se quedó sin tareas" del operario que recibe la tarea. "Listo, resuelto" queda para el resto.
+ */
+async function resolverAvisosAlAsignar(claves: string[], operarioId: string): Promise<void> {
+  const piezas = [...new Set(claves.map((c) => partir(c).otPiezaId))];
+  const ahora = new Date();
+  await db
+    .update(avisoPlanta)
+    .set({ resueltoAt: ahora })
+    .where(and(isNull(avisoPlanta.resueltoAt), eq(avisoPlanta.tipo, "volvio_tercerizado"), inArray(avisoPlanta.otPiezaId, piezas)));
+  await db.update(avisoPlanta).set({ resueltoAt: ahora }).where(and(isNull(avisoPlanta.resueltoAt), eq(avisoPlanta.tipo, "sin_tareas"), eq(avisoPlanta.usuarioId, operarioId)));
 }
 
 /** Cambia el centro de una tarea. Si el operario asignado no está habilitado para el centro nuevo, queda sin asignar. */

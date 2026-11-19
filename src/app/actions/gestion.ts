@@ -4,7 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { getUsuarioDePlanta } from "@/lib/session";
 import { asignarTareas, cambiarCentro, moverEnCola, ordenarPorUrgencia, getGestion, moverTareaADia } from "@/lib/data/gestion";
-import { evaluarEntrada } from "@/lib/data/entrada-plan";
+import { evaluarEntrada, marcarMaterialDisponible } from "@/lib/data/entrada-plan";
 import { reprocesar, scrapYRehacer } from "@/lib/data/desvios";
 import { redirect } from "next/navigation";
 import { enviarAProduccion } from "@/lib/data/ot";
@@ -93,4 +93,18 @@ export async function decidirDesvioAction(fd: FormData) {
   }
   for (const r of ["/gestion", "/proyectos", "/ot", "/taller", "/compras", "/indicadores"]) revalidarConPlan(r, "layout");
   redirect(`/gestion?ok=${encodeURIComponent(msg)}`);
+}
+
+/** "Ya tengo el material" desde Para enviar a producción (prueba 19/11). */
+export async function materialDisponibleAction(otPiezaId: string): Promise<Res> {
+  try {
+    const u = await getUsuarioDePlanta();
+    if (u.rol === "operario") throw new Error("No autorizado.");
+    await marcarMaterialDisponible(otPiezaId, u.id);
+    for (const r of ["/gestion", "/proyectos", "/ot", "/compras"]) revalidarConPlan(r, "layout");
+    return { ok: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    return { ok: false, error: !msg || msg.startsWith("Failed query") ? "No se pudo guardar. Probá de nuevo." : msg };
+  }
 }
