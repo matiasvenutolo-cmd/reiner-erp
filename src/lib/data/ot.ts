@@ -9,10 +9,10 @@
  */
 import { ordenNoArchivada } from "./archivo";
 import { controlaMateriaPrima, pasosQueBloquean } from "./materia-prima";
-import { eq, inArray, and, desc, asc, isNull } from "drizzle-orm";
+import { eq, inArray, and, desc, asc, isNull, isNotNull, ne, or } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { avancePasos, getPasosConLote } from "./produccion";
-import { otMaquina, otConjunto, otPieza, registroOperacion, cliente, operacion, proceso, configuracion, pieza, necesidadCompraOrden } from "@/lib/db/schema";
+import { otMaquina, otConjunto, otPieza, registroOperacion, cliente, operacion, proceso, configuracion, pieza, necesidadCompraOrden, pedidoCompra } from "@/lib/db/schema";
 import type { OtMaquina, OtPieza } from "@/lib/db/schema";
 import {
   getConjuntos,
@@ -111,7 +111,7 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
   const piezaIds = [...new Set(piezas.map((p) => p.piezaId))];
   const otPiezaIds = piezas.map((p) => p.id);
 
-  const [operaciones, registros, lotes, mp, sinCompra] = await Promise.all([
+  const [operaciones, registros, lotes, mp, sinCompra, compradas, recibidas] = await Promise.all([
     db
       .select({
         piezaId: operacion.piezaId,
@@ -137,6 +137,17 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
       .from(necesidadCompraOrden)
       .where(and(inArray(necesidadCompraOrden.otPiezaId, otPiezaIds), eq(necesidadCompraOrden.omitida, true)))
       .then((r) => new Set(r.map((x) => x.otPiezaId))),
+    // Reunión 20/11 — igual que el plan: una pieza que se compra hecha está lista cuando Compras la recibe.
+    db
+      .select({ id: pieza.id })
+      .from(pieza)
+      .where(and(inArray(pieza.id, piezaIds), or(ne(pieza.clase, "fabricada"), eq(pieza.tipo, "comprada"))))
+      .then((r) => new Set(r.map((x) => x.id))),
+    db
+      .select({ otPiezaId: pedidoCompra.otPiezaId })
+      .from(pedidoCompra)
+      .where(and(inArray(pedidoCompra.otPiezaId, otPiezaIds), isNotNull(pedidoCompra.recibidoAt)))
+      .then((r) => new Set(r.map((x) => x.otPiezaId))),
   ]);
 
   const rutaPorPieza = new Map<string, { id: string; nombre: string; tipo: string }[]>();
@@ -160,6 +171,10 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
 
   for (const p of piezas) {
     const ruta = rutaPorPieza.get(p.piezaId) ?? [];
+    if (compradas.has(p.piezaId) && (recibidas.has(p.id) || sinCompra.has(p.id))) {
+      resultado.set(p.id, { estado: "terminada", sinRouting: ruta.length === 0, pasos: ruta.map((r) => ({ id: r.id, nombre: r.nombre, completado: true, tipo: r.tipo })) });
+      continue;
+    }
     if (ruta.length === 0) {
       resultado.set(p.id, { estado: "pendiente", sinRouting: true, pasos: [] });
       continue;
