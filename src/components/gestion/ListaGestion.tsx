@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, type DragEvent } from "react";
 import type { FilaGestion, EstadoGestion } from "@/lib/data/gestion";
 import { fechaCorta } from "@/lib/formato";
-import { asignarTareasAction, cambiarCentroAction, moverEnColaAction, ordenarPorUrgenciaAction } from "@/app/actions/gestion";
+import { asignarTareasAction, cambiarCentroAction, ordenarCentroAction, ordenarCentroPorUrgenciaAction } from "@/app/actions/gestion";
 
 type Operario = { id: string; nombre: string; centros: string[] };
 type Centro = { id: string; nombre: string };
@@ -31,9 +31,11 @@ const habilitados = (operarios: Operario[], centroId: string | null) => operario
 
 /**
  * La lista de Gestión (reorganización 30/10 §3.1): asignar es elegir el operario en la fila y se guarda al
- * instante. Con un operario filtrado se ve su cola, en orden, con flechas para cambiarlo (§3.2).
+ * instante. Reunión 20/11: cada centro es una cola que se ordena arrastrando la tarea de la manija (⠿), tenga o
+ * no operario; el orden queda guardado y es el que siguen el calendario y la tablet. `ordenable` es la cola
+ * completa de un centro (sin filtros que dejen afuera tareas).
  */
-export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }: { filas: FilaGestion[]; operarios: Operario[]; centros: Centro[]; operarioFiltro: string | null; hoy: string }) {
+export function ListaGestion({ titulo, filas, operarios, centros, ordenable, hoy }: { titulo: React.ReactNode; filas: FilaGestion[]; operarios: Operario[]; centros: Centro[]; ordenable: boolean; hoy: string }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +43,13 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
   const [operarioDe, setOperarioDe] = useState<Record<string, string | null>>({});
   const [centroDe, setCentroDe] = useState<Record<string, string>>({});
   const nombreCentro = new Map(centros.map((c) => [c.id, c.nombre]));
+  // El orden se ve al instante al soltar, mientras se guarda; cuando llega la lista nueva, manda la del servidor.
+  const firma = filas.map((f) => f.clave).join("|");
+  const [local, setLocal] = useState<{ firma: string; claves: string[] } | null>(null);
+  const porClave = new Map(filas.map((f) => [f.clave, f]));
+  const visibles = local?.firma === firma ? local.claves.map((c) => porClave.get(c)).filter((f): f is FilaGestion => !!f) : filas;
+  const [arrastrada, setArrastrada] = useState<string | null>(null);
+  const [sobre, setSobre] = useState<{ clave: string; abajo: boolean } | null>(null);
 
   const ejecutar = (fn: () => Promise<{ ok: boolean; error?: string }>) =>
     startTransition(async () => {
@@ -55,9 +64,22 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
     ejecutar(() => asignarTareasAction(claves, operarioId));
   };
 
+  const soltar = (e: DragEvent, destino: string) => {
+    e.preventDefault();
+    const origen = arrastrada;
+    const abajo = sobre?.abajo ?? false;
+    setArrastrada(null);
+    setSobre(null);
+    if (!origen || origen === destino) return;
+    const claves = visibles.map((f) => f.clave).filter((c) => c !== origen);
+    claves.splice(claves.indexOf(destino) + (abajo ? 1 : 0), 0, origen);
+    setLocal({ firma, claves });
+    ejecutar(() => ordenarCentroAction(claves));
+  };
+  const ordenadaAMano = filas.some((f) => f.lugar != null);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {error && <div className="rounded-lg border border-rojo/40 bg-rojo-bg text-rojo-fg px-3 py-2 text-sm">{error}</div>}
       {pendiente && (
         <div className="fixed bottom-4 right-4 z-30 rounded-lg bg-foreground text-background px-3 py-2 text-sm shadow-lg" role="status">
@@ -65,20 +87,20 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
         </div>
       )}
 
-      {operarioFiltro && (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-foreground-muted">Cola de {operarios.find((o) => o.id === operarioFiltro)?.nombre}, en el orden en que la ve en su tablet.</span>
-          <button className="btn-secundario btn-sm" disabled={pendiente} onClick={() => ejecutar(() => ordenarPorUrgenciaAction(operarioFiltro))}>
-            Ordenar por urgencia
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+        <h2 className="font-semibold">{titulo}</h2>
+        {ordenable && ordenadaAMano && (
+          <button className="btn-texto btn-sm" disabled={pendiente} onClick={() => ejecutar(() => ordenarCentroPorUrgenciaAction(filas.map((f) => f.clave)))}>
+            Volver a ordenar por urgencia
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="tarjeta overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-xs text-foreground-muted">
             <tr className="border-b border-border">
-              {operarioFiltro && <th className="px-1 py-2 font-medium">Orden</th>}
+              {ordenable && <th className="w-6" aria-label="Orden" />}
               <th className="text-left px-3 py-2 font-medium">Pieza y orden</th>
               <th className="text-left px-2 py-2 font-medium">Paso y centro</th>
               <th className="text-right px-2 py-2 font-medium">Horas</th>
@@ -87,7 +109,7 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
             </tr>
           </thead>
           <tbody>
-            {filas.map((f, i) => {
+            {visibles.map((f) => {
               const operarioId = f.clave in operarioDe ? operarioDe[f.clave] : f.operarioId;
               const centroId = centroDe[f.clave] ?? f.centroId;
               const estado: EstadoGestion = f.estado === "sin_asignar" && operarioId ? "asignada" : f.estado === "asignada" && !operarioId ? "sin_asignar" : f.estado;
@@ -95,20 +117,40 @@ export function ListaGestion({ filas, operarios, centros, operarioFiltro, hoy }:
               const opciones = habilitados(operarios, centroId);
               const fueraDeLista = operarioId && !opciones.some((o) => o.id === operarioId) ? operarios.find((o) => o.id === operarioId) : null;
               return (
-                <tr key={f.clave} className={`border-t border-border first:border-t-0 align-middle ${f.estado === "espera" ? "text-foreground-muted" : ""}`}>
-                  {operarioFiltro && (
-                    <td className="px-1 py-2 whitespace-nowrap">
-                      <button className="px-1.5 rounded hover:bg-surface-muted disabled:opacity-30" disabled={i === 0 || pendiente} aria-label="Subir" onClick={() => ejecutar(() => moverEnColaAction(f.clave, "arriba"))}>
-                        ↑
-                      </button>
-                      <button
-                        className="px-1.5 rounded hover:bg-surface-muted disabled:opacity-30"
-                        disabled={i === filas.length - 1 || pendiente}
-                        aria-label="Bajar"
-                        onClick={() => ejecutar(() => moverEnColaAction(f.clave, "abajo"))}
+                <tr
+                  key={f.clave}
+                  onDragOver={(e) => {
+                    if (!arrastrada) return;
+                    e.preventDefault();
+                    const r = e.currentTarget.getBoundingClientRect();
+                    const abajo = e.clientY > r.top + r.height / 2;
+                    if (sobre?.clave !== f.clave || sobre.abajo !== abajo) setSobre({ clave: f.clave, abajo });
+                  }}
+                  onDrop={(e) => soltar(e, f.clave)}
+                  className={`border-t border-border first:border-t-0 align-middle ${f.estado === "espera" ? "text-foreground-muted" : ""} ${arrastrada === f.clave ? "opacity-40" : ""} ${
+                    sobre?.clave === f.clave && arrastrada !== f.clave ? (sobre.abajo ? "shadow-[inset_0_-2px_0_var(--accent)]" : "shadow-[inset_0_2px_0_var(--accent)]") : ""
+                  }`}
+                >
+                  {ordenable && (
+                    <td className="pl-2 py-2 w-6">
+                      <span
+                        draggable={!pendiente}
+                        onDragStart={(e) => {
+                          e.dataTransfer.effectAllowed = "move";
+                          e.dataTransfer.setData("text/plain", f.clave);
+                          const fila = e.currentTarget.closest("tr");
+                          if (fila) e.dataTransfer.setDragImage(fila, 16, 16);
+                          setArrastrada(f.clave);
+                        }}
+                        onDragEnd={() => {
+                          setArrastrada(null);
+                          setSobre(null);
+                        }}
+                        title="Arrastrá para cambiar el orden"
+                        className="cursor-grab active:cursor-grabbing text-foreground-muted select-none px-0.5"
                       >
-                        ↓
-                      </button>
+                        ⠿
+                      </span>
                     </td>
                   )}
                   <td className="px-3 py-2">

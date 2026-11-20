@@ -3,7 +3,7 @@
 // Gestión no cambia el plan (no reparte fechas): sólo se refrescan Gestión y la tablet del operario.
 import { revalidatePath } from "next/cache";
 import { getUsuarioDePlanta } from "@/lib/session";
-import { asignarTareas, cambiarCentro, moverEnCola, ordenarPorUrgencia, getGestion, moverTareaADia } from "@/lib/data/gestion";
+import { asignarTareas, cambiarCentro, ordenarCentro, ordenarCentroPorUrgencia } from "@/lib/data/gestion";
 import { evaluarEntrada, marcarMaterialDisponible } from "@/lib/data/entrada-plan";
 import { reprocesar, scrapYRehacer } from "@/lib/data/desvios";
 import { redirect } from "next/navigation";
@@ -36,12 +36,13 @@ export async function cambiarCentroAction(clave: string, centroId: string): Prom
   return correr((u) => cambiarCentro(clave, centroId, u));
 }
 
-export async function moverEnColaAction(clave: string, direccion: "arriba" | "abajo"): Promise<Res> {
-  return correr(() => moverEnCola(clave, direccion));
+/** Reunión 20/11: el orden de la cola de un centro, después de arrastrar una tarea. */
+export async function ordenarCentroAction(claves: string[]): Promise<Res> {
+  return correr((u) => ordenarCentro(claves, u));
 }
 
-export async function ordenarPorUrgenciaAction(operarioId: string): Promise<Res> {
-  return correr(async () => ordenarPorUrgencia(operarioId, (await getGestion()).filas));
+export async function ordenarCentroPorUrgenciaAction(claves: string[]): Promise<Res> {
+  return correr(() => ordenarCentroPorUrgencia(claves));
 }
 
 /**
@@ -66,19 +67,6 @@ export async function enviarAProduccionAction(otPiezaIds: string[]): Promise<{ o
 }
 
 /** Mover una tarea a otro día en la carga (tanda 2, 05/11). Cambia el plan: se invalida entero. */
-export async function moverTareaADiaAction(clave: string, fecha: string | null): Promise<Res> {
-  try {
-    const u = await getUsuarioDePlanta();
-    if (u.rol === "operario") throw new Error("No autorizado.");
-    await moverTareaADia(clave, fecha, u.id);
-    for (const r of ["/gestion", "/proyectos", "/taller"]) revalidarConPlan(r, "layout");
-    return { ok: true };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "";
-    return { ok: false, error: !msg || msg.startsWith("Failed query") ? "No se pudo guardar. Probá de nuevo." : msg };
-  }
-}
-
 /** Desvío (prueba 19/11): reprocesar la pieza o mandarla a scrap y rehacerla. Desde el aviso de Gestión. */
 export async function decidirDesvioAction(fd: FormData) {
   const u = await getUsuarioDePlanta();

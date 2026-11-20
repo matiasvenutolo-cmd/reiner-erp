@@ -127,7 +127,7 @@ async function DetalleOrden({ id }: { id: string }) {
         <Metric label="Conjuntos a fabricar" value={String(conjuntosConPiezas.length)} />
       </div>
 
-      <ConjuntosView otMaquinaId={otMaquina.id} conjuntos={conjuntosConPiezas} />
+      <ConjuntosView otMaquinaId={otMaquina.id} conjuntos={conjuntosConPiezas} lanzada={otMaquina.estadoProyecto !== "borrador"} />
 
       {conjuntosSinFabricar.length > 0 && (
         <div className="text-sm">

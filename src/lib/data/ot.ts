@@ -12,7 +12,7 @@ import { controlaMateriaPrima, pasosQueBloquean } from "./materia-prima";
 import { eq, inArray, and, desc, asc, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { avancePasos, getPasosConLote } from "./produccion";
-import { otMaquina, otConjunto, otPieza, registroOperacion, cliente, operacion, proceso, configuracion, pieza } from "@/lib/db/schema";
+import { otMaquina, otConjunto, otPieza, registroOperacion, cliente, operacion, proceso, configuracion, pieza, necesidadCompraOrden } from "@/lib/db/schema";
 import type { OtMaquina, OtPieza } from "@/lib/db/schema";
 import {
   getConjuntos,
@@ -111,7 +111,7 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
   const piezaIds = [...new Set(piezas.map((p) => p.piezaId))];
   const otPiezaIds = piezas.map((p) => p.id);
 
-  const [operaciones, registros, lotes, mp] = await Promise.all([
+  const [operaciones, registros, lotes, mp, sinCompra] = await Promise.all([
     db
       .select({
         piezaId: operacion.piezaId,
@@ -131,6 +131,12 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
       .where(and(inArray(registroOperacion.otPiezaId, otPiezaIds), eq(registroOperacion.tipo, "ejecucion"))),
     getPasosConLote(piezas),
     controlaMateriaPrima(),
+    // "No comprar" al generar la orden: igual que en el plan, su paso de Compras queda dado por hecho.
+    db
+      .select({ otPiezaId: necesidadCompraOrden.otPiezaId })
+      .from(necesidadCompraOrden)
+      .where(and(inArray(necesidadCompraOrden.otPiezaId, otPiezaIds), eq(necesidadCompraOrden.omitida, true)))
+      .then((r) => new Set(r.map((x) => x.otPiezaId))),
   ]);
 
   const rutaPorPieza = new Map<string, { id: string; nombre: string; tipo: string }[]>();
@@ -160,12 +166,15 @@ async function getEstadosBatch(piezas: OtPieza[]): Promise<Map<string, EstadoBat
     }
     // Misma regla que el plan (`avancePasos`): un paso que salió mal (0 OK con rechazos) no cuenta como hecho.
     const completadasSet = avancePasos(ruta.map((r) => r.id), p.cantidadAFabricar, registros.filter((r) => r.otPiezaId === p.id && r.fin), lotes.get(p.id) ?? new Set<string>()).completados;
+    if (sinCompra.has(p.id)) for (const r of ruta) if (r.tipo === "compras") completadasSet.add(r.id);
     const pasos = ruta.map((r) => ({ id: r.id, nombre: r.nombre, completado: completadasSet.has(r.id), tipo: r.tipo }));
     // Sin control de materia prima (§2.2) el paso de Compras no cuenta para terminar ni para empezar.
     const flujo = pasosQueBloquean(ruta, (r) => r.tipo, mp);
     const completadas = flujo.filter((x) => completadasSet.has(x.id)).length;
     const abierta = abiertaPorOtPieza.has(p.id);
-    const estado: EstadoCalculado = completadas >= flujo.length ? "terminada" : completadas > 0 || abierta ? "en_curso" : "pendiente";
+    // Reunión 20/11: una pieza sin nada para fabricar (la vieja de un "Scrap y rehacer", o destildada) no frena el
+    // cierre del conjunto.
+    const estado: EstadoCalculado = completadas >= flujo.length || p.cantidadAFabricar === 0 ? "terminada" : completadas > 0 || abierta ? "en_curso" : "pendiente";
     resultado.set(p.id, { estado, sinRouting: false, pasos });
   }
   return resultado;
@@ -662,6 +671,14 @@ export async function getOtPiezaIdsSinEnviar(filtro: { otConjuntoId?: string; ot
 }
 
 export async function actualizarCantidadAFabricar(otPiezaId: string, cantidad: number): Promise<void> {
+  // Reunión 20/11: la cantidad se decide al lanzar la orden. Ya lanzada, para sumar se agrega una pieza suelta.
+  const [o] = await db
+    .select({ estado: otMaquina.estadoProyecto })
+    .from(otPieza)
+    .innerJoin(otConjunto, eq(otConjunto.id, otPieza.otConjuntoId))
+    .innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId))
+    .where(eq(otPieza.id, otPiezaId));
+  if (o && o.estado !== "borrador") throw new Error("La orden ya está lanzada: para sumar piezas, agregá una pieza suelta al pie del conjunto.");
   await db
     .update(otPieza)
     .set({ cantidadAFabricar: Math.max(0, Math.floor(cantidad)), updatedAt: new Date() })

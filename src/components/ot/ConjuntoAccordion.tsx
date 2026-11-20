@@ -46,14 +46,17 @@ export function ConjuntoAccordion({
   otMaquinaId,
   conjunto,
   ocultarTerminadas,
+  lanzada,
 }: {
   otMaquinaId: string;
   conjunto: ConjuntoData;
   ocultarTerminadas: boolean;
+  lanzada: boolean;
 }) {
   const { otConjuntoId, otConjuntoCodigo, conjuntoNombre, estadoConjunto, filas, piezasParaAgregar, controlesArmado, procedimientos } =
     conjunto;
-  const [abierto, setAbierto] = useState(estadoConjunto === "en_curso");
+  // Reunión 20/11: terminado y sin armado OK, se abre solo para que se vea "Control de armado".
+  const [abierto, setAbierto] = useState(estadoConjunto === "en_curso" || (estadoConjunto === "terminada" && !controlesArmado.some((c) => c.resultado === "ok")));
 
   useEffect(() => {
     if (window.location.hash === `#seccion-${otConjuntoId}`) setAbierto(true);
@@ -119,7 +122,11 @@ export function ConjuntoAccordion({
                   <td className="px-4 py-2.5 text-right tabular-nums">{otPieza.cantidadNecesaria}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">{otPieza.stockAlGenerar}</td>
                   <td className="px-4 py-2.5 text-right">
-                    <CantidadAFabricarForm otPiezaId={otPieza.id} otMaquinaId={otMaquinaId} cantidadInicial={otPieza.cantidadAFabricar} />
+                    {lanzada ? (
+                      <span className="tabular-nums" title="La orden ya está lanzada: para sumar piezas, usá + Pieza suelta al pie.">{otPieza.cantidadAFabricar}</span>
+                    ) : (
+                      <CantidadAFabricarForm otPiezaId={otPieza.id} otMaquinaId={otMaquinaId} cantidadInicial={otPieza.cantidadAFabricar} />
+                    )}
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-1.5">

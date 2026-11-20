@@ -4,14 +4,15 @@
  *
  * - Una fila por tarea pendiente (un paso de una pieza de una orden), ordenada por urgencia (margen, después
  *   prioridad de la orden). Las tareas salen del plan; lo que decide el jefe se guarda en `cola_tarea`.
- * - Asignar es elegir el operario en la fila. La cola de cada operario es el orden en que la va a hacer, y es
- *   exactamente lo que ve en su tablet: "Ahora te toca" es la primera de la cola que esté habilitada.
- * - Las tareas que esperan el paso anterior se ven en gris y también se pueden asignar por adelantado.
- * - La carga por persona es sólo informativa: llena la cola en orden con las horas del operario según el calendario.
+ * - Reunión 20/11: el orden se administra por centro, tenga o no operario. Cada centro tiene su cola, que el jefe
+ *   ordena arrastrando (también las que esperan el paso anterior). Lo que no se ordenó a mano va por urgencia.
+ * - Asignar es elegir el operario en la fila, y no cambia el orden. El operario ve sus tareas en el orden de la
+ *   cola de su centro: "Ahora te toca" es la primera que esté habilitada.
+ * - La carga de trabajo es sólo para ver: llena cada cola en orden con las horas de cada día según el calendario.
  */
-import { and, asc, desc, eq, inArray, isNotNull, isNull, max } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { colaTarea, usuario, usuarioCentroTrabajo, operacion, proceso, centroTrabajo, proveedor, proveedorServicio, remito, remitoItem, parametro, planAjuste, avisoPlanta } from "@/lib/db/schema";
+import { colaTarea, usuario, usuarioCentroTrabajo, operacion, proceso, centroTrabajo, proveedor, proveedorServicio, remito, remitoItem, parametro, avisoPlanta } from "@/lib/db/schema";
 import { hoyISO } from "@/lib/fecha";
 import { getPlan } from "@/lib/planning/datos";
 import { evaluarEntrada } from "./entrada-plan";
@@ -39,7 +40,7 @@ export type FilaGestion = {
   centros: string[];
   horas: number;
   operarioId: string | null;
-  /** Lugar en la cola del operario. */
+  /** Lugar en la cola de su centro, puesto a mano (null = va por urgencia, después de las ordenadas). */
   lugar: number | null;
   estado: EstadoGestion;
   motivo: string | null;
@@ -106,16 +107,14 @@ export type TramoCarga = {
   /** Qué parte del día ocupa (0 a 1): dos tareas seguidas comparten el día sin superponerse. */
   desde: number;
   hasta: number;
-  /** Movida a mano desde la carga: no empieza antes de este día. */
-  movidaAl: string | null;
 };
 export type CargaPorDia = {
-  /** Días hábiles desde hoy (cuatro semanas). */
+  /** Días hábiles desde hoy (unos tres meses, para recorrerlos semana a semana o por mes). */
   dias: string[];
   tramos: TramoCarga[];
   /** Horas que puede trabajar cada operario cada día (0 = no viene o no es hábil). */
   capacidad: Record<string, Record<string, number>>;
-  /** Tareas internas sin operario, por centro: no entran en la carga hasta que se asignan. */
+  /** Tareas internas sin operario, por centro (en la carga se ven en gris, en el orden de la cola del centro). */
   sinAsignar: Record<string, { tareas: number; horas: number }>;
 };
 
@@ -200,7 +199,7 @@ export async function getGestion() {
       centros: t.tipo === "interno" ? [...set] : [],
       horas: t.horas,
       operarioId: c?.operarioId ?? null,
-      lugar: c?.operarioId ? (c.posicion ?? null) : null,
+      lugar: c?.posicion ?? null,
       estado,
       motivo: t.motivoTraba,
       reproceso: enReproceso.has(t.clave),
@@ -216,8 +215,9 @@ export async function getGestion() {
       prioridadAlta: prioridad.get(t.proyectoId) === "alta",
     };
   });
-  // Urgencia: margen, después prioridad de la orden.
+  // Urgencia: margen, después prioridad de la orden. Encima, el orden puesto a mano en la cola de cada centro.
   filas.sort((a, b) => a.holgura - b.holgura || Number(b.prioridadAlta) - Number(a.prioridadAlta) || a.orden.localeCompare(b.orden));
+  filas.sort((a, b) => (a.lugar ?? 1e9) - (b.lugar ?? 1e9));
 
   const centrosDe = new Map<string, string[]>();
   for (const h of habilitaciones) centrosDe.set(h.usuarioId, [...(centrosDe.get(h.usuarioId) ?? []), h.centroTrabajoId]);
@@ -274,10 +274,11 @@ export async function getGestion() {
 }
 
 /**
- * La cola de cada operario repartida en los días (prueba 1, 05/11). Es la misma cuenta que la carga por persona,
- * pero día por día: las tareas se hacen en el orden de su cola, cada día con las horas que el operario tiene según
- * el calendario y sus ausencias. Una tarea larga (20 h o más) ocupa varios días seguidos. Una tarea que espera el
- * paso anterior no se toma hasta que ese paso termina; mientras, el operario sigue con lo siguiente de su cola.
+ * Las colas repartidas en los días (prueba 1, 05/11; reunión 20/11). Cada operario hace sus tareas en el orden de la
+ * cola de su centro, cada día con las horas que tiene según el calendario y sus ausencias. Lo que todavía no tiene
+ * operario se reparte igual, en gris, en una fila por centro (como si lo hiciera una persona). Una tarea larga ocupa
+ * varios días seguidos. Una tarea que espera el paso anterior no se toma hasta que ese paso termina; mientras, se
+ * sigue con lo siguiente de la cola. Es sólo para ver: no se mueve nada desde acá.
  */
 function cargaPorDia(
   operarios: { id: string; nombre: string; centros: string[] }[],
@@ -288,31 +289,37 @@ function cargaPorDia(
 ): CargaPorDia {
   const cal = entrada.calendario;
   const dias: string[] = [];
-  for (let d = entrada.hoy; dias.length < 20; d = siguienteDia(d)) if (esHabil(d, cal)) dias.push(d);
+  for (let d = entrada.hoy; dias.length < 65; d = siguienteDia(d)) if (esHabil(d, cal)) dias.push(d);
   // Se simula un poco más allá de lo que se muestra, para que una tarea larga no quede cortada en el borde.
   const horizonte: string[] = [...dias];
-  for (let d = siguienteDia(dias.at(-1)!); horizonte.length < 60; d = siguienteDia(d)) if (esHabil(d, cal)) horizonte.push(d);
+  for (let d = siguienteDia(dias.at(-1)!); horizonte.length < 130; d = siguienteDia(d)) if (esHabil(d, cal)) horizonte.push(d);
 
   const capacidad: CargaPorDia["capacidad"] = {};
   for (const o of operarios) capacidad[o.id] = Object.fromEntries(dias.map((d, i) => [d, horasDelDia(o.id, d, entrada) * (i === 0 ? queda : 1)]));
 
-  // Como en la tablet: cada día el operario sigue con la que tiene empezada y, si no, toma la primera de su cola
-  // que ya se pueda hacer. Un paso se puede hacer cuando terminó el anterior de la misma pieza: si ese anterior
-  // también está en alguna cola se usa el día en que termina acá; si no, la fecha que le da el plan.
+  // Una fila por operario (su cola) y una por centro con lo que no tiene operario. Las filas ya vienen en el orden
+  // de la cola de cada centro.
+  const internas = filas.filter((f) => f.tipo === "interno");
+  const colas: { id: string; operarioId: string; tareas: FilaGestion[]; horas: (i: number) => number }[] = [
+    ...operarios.map((o) => ({ id: o.id, operarioId: o.id, tareas: internas.filter((f) => f.operarioId === o.id), horas: (i: number) => horasDelDia(o.id, horizonte[i], entrada) * (i === 0 ? queda : 1) })),
+    ...[...new Set(internas.filter((f) => !f.operarioId && f.centroId).map((f) => f.centroId!))].map((c) => ({
+      id: `sin:${c}`,
+      operarioId: "",
+      tareas: internas.filter((f) => !f.operarioId && f.centroId === c),
+      horas: (i: number) => (esHabil(horizonte[i], cal) ? (entrada.horasOperarioDia ?? 6.8) : 0) * (i === 0 ? queda : 1),
+    })),
+  ];
+
+  // Como en la tablet: cada día se sigue con la que está empezada y, si no, se toma la primera de la cola que ya se
+  // pueda hacer. Un paso se puede hacer cuando terminó el anterior de la misma pieza: si ese anterior también está en
+  // alguna cola se usa el día en que termina acá; si no, la fecha que le da el plan.
   const tramos: TramoCarga[] = [];
-  const internas = filas.filter((f) => f.tipo === "interno" && f.operarioId);
   const claveDePaso = new Map(filas.map((f) => [`${f.otPiezaId}#${f.posicion}`, f.clave]));
-  const simuladas = new Set(internas.map((f) => f.clave));
+  const simuladas = new Set(colas.flatMap((c) => c.tareas.map((f) => f.clave)));
   const terminaEn = new Map<string, number>(); // clave → índice del día en que termina
-  const resto = new Map(internas.map((f) => [f.clave, f.horas]));
-  const colas = new Map(
-    operarios.map((o) => [o.id, internas.filter((f) => f.operarioId === o.id).sort((a, b) => (a.lugar ?? 1e9) - (b.lugar ?? 1e9))]),
-  );
+  const resto = new Map(colas.flatMap((c) => c.tareas.map((f) => [f.clave, f.horas] as const)));
   const empezada = new Map<string, string | null>();
   const puedeEl = (f: FilaGestion, i: number): boolean => {
-    // Movida a otro día desde la carga: no arranca antes.
-    const movida = entrada.ajustes.get(f.clave)?.fecha;
-    if (movida && horizonte[i] < movida) return false;
     if (f.estado !== "espera") return true;
     const anterior = claveDePaso.get(`${f.otPiezaId}#${f.posicion - 1}`);
     if (anterior && simuladas.has(anterior)) {
@@ -323,43 +330,27 @@ function cargaPorDia(
     return !desde || horizonte[i] >= desde;
   };
   for (let i = 0; i < horizonte.length; i++) {
-    for (const o of operarios) {
+    for (const c of colas) {
       // Hoy cuenta sólo lo que queda de la jornada (tanda 2: asignar a las 19 h no ocupa la mañana que ya pasó).
-      const delDia = horasDelDia(o.id, horizonte[i], entrada) * (i === 0 ? queda : 1);
+      const delDia = c.horas(i);
       let libre = delDia;
-      const cola = colas.get(o.id) ?? [];
       while (libre > 0.01) {
-        const actual = empezada.get(o.id);
-        const f = actual ? cola.find((x) => x.clave === actual) : cola.find((x) => (resto.get(x.clave) ?? 0) > 0.01 && puedeEl(x, i));
+        const actual = empezada.get(c.id);
+        const f = actual ? c.tareas.find((x) => x.clave === actual) : c.tareas.find((x) => (resto.get(x.clave) ?? 0) > 0.01 && puedeEl(x, i));
         if (!f) break;
         const toma = Math.min(libre, resto.get(f.clave)!);
         if (i < dias.length && delDia > 0)
           tramos.push({
-            clave: f.clave, otPiezaId: f.otPiezaId, operarioId: o.id, centroId: f.centroId, pieza: f.pieza, paso: f.paso, posicion: f.posicion, totalPasos: f.totalPasos,
+            clave: f.clave, otPiezaId: f.otPiezaId, operarioId: c.operarioId, centroId: f.centroId, pieza: f.pieza, paso: f.paso, posicion: f.posicion, totalPasos: f.totalPasos,
             orden: f.orden, dia: horizonte[i], horas: toma, totalHoras: f.horas, desde: (delDia - libre) / delDia, hasta: (delDia - libre + toma) / delDia,
-            movidaAl: entrada.ajustes.get(f.clave)?.fecha ?? null,
           });
         libre -= toma;
         resto.set(f.clave, resto.get(f.clave)! - toma);
         if (resto.get(f.clave)! <= 0.01) {
           terminaEn.set(f.clave, i);
-          empezada.set(o.id, null);
-        } else empezada.set(o.id, f.clave);
+          empezada.set(c.id, null);
+        } else empezada.set(c.id, f.clave);
       }
-    }
-  }
-  // Prueba 19/11: lo que todavía no tiene operario también se ve en su centro, en gris, en los días que le da el plan.
-  const diaCompleto = entrada.horasOperarioDia ?? 6.8;
-  for (const f of filas) {
-    if (f.tipo !== "interno" || f.operarioId) continue;
-    const porDia = tareaDe.get(f.clave)?.horasPorDia ?? {};
-    for (const d of dias) {
-      const h = porDia[d] ?? 0;
-      if (h > 0.01)
-        tramos.push({
-          clave: f.clave, otPiezaId: f.otPiezaId, operarioId: "", centroId: f.centroId, pieza: f.pieza, paso: f.paso, posicion: f.posicion, totalPasos: f.totalPasos,
-          orden: f.orden, dia: d, horas: h, totalHoras: f.horas, desde: 0, hasta: Math.min(1, h / diaCompleto), movidaAl: entrada.ajustes.get(f.clave)?.fecha ?? null,
-        });
     }
   }
   const sinAsignar: CargaPorDia["sinAsignar"] = {};
@@ -458,38 +449,20 @@ function partir(c: string) {
   return { otPiezaId, operacionId: resto.join("::") };
 }
 
-/** Asigna una o varias tareas a un operario (al final de su cola), o las deja sin asignar (operarioId null). */
+/**
+ * Asigna una o varias tareas a un operario, o las deja sin asignar (operarioId null). Reunión 20/11: no cambia el
+ * lugar de la tarea en la cola de su centro.
+ */
 export async function asignarTareas(claves: string[], operarioId: string | null, por: string): Promise<void> {
   if (!claves.length) return;
   if (operarioId) await resolverAvisosAlAsignar(claves, operarioId);
-  let siguiente = 0;
-  if (operarioId) {
-    const [m] = await db.select({ n: max(colaTarea.posicion) }).from(colaTarea).where(eq(colaTarea.operarioId, operarioId));
-    siguiente = m?.n ?? 0;
-  }
   for (const c of claves) {
     const { otPiezaId, operacionId } = partir(c);
-    const [actual] = await db.select().from(colaTarea).where(and(eq(colaTarea.otPiezaId, otPiezaId), eq(colaTarea.operacionId, operacionId)));
-    if (actual?.operarioId === operarioId && operarioId) continue; // ya estaba en su cola: no cambia de lugar
-    const posicion = operarioId ? ++siguiente : null;
     await db
       .insert(colaTarea)
-      .values({ otPiezaId, operacionId, operarioId, posicion, asignadoPorId: por })
-      .onConflictDoUpdate({ target: [colaTarea.otPiezaId, colaTarea.operacionId], set: { operarioId, posicion, asignadoPorId: por, updatedAt: new Date() } });
+      .values({ otPiezaId, operacionId, operarioId, asignadoPorId: por })
+      .onConflictDoUpdate({ target: [colaTarea.otPiezaId, colaTarea.operacionId], set: { operarioId, asignadoPorId: por, updatedAt: new Date() } });
   }
-}
-
-/**
- * Mover una tarea a otro día desde la carga (tanda 2, 05/11): "no empieza antes de ese día". Es el mismo ajuste
- * que usa el plan, así que corre también el fin estimado. Sin fecha (o con una que ya pasó) vuelve a su lugar.
- */
-export async function moverTareaADia(c: string, fecha: string | null, por: string): Promise<void> {
-  const { otPiezaId, operacionId } = partir(c);
-  const f = fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha) && fecha > hoyISO() ? fecha : null;
-  await db
-    .insert(planAjuste)
-    .values({ otPiezaId, operacionId, fecha: f, usuarioId: por, fijada: false })
-    .onConflictDoUpdate({ target: [planAjuste.otPiezaId, planAjuste.operacionId], set: { fecha: f, usuarioId: por, updatedAt: new Date() } });
 }
 
 /**
@@ -506,7 +479,10 @@ async function resolverAvisosAlAsignar(claves: string[], operarioId: string): Pr
   await db.update(avisoPlanta).set({ resueltoAt: ahora }).where(and(isNull(avisoPlanta.resueltoAt), eq(avisoPlanta.tipo, "sin_tareas"), eq(avisoPlanta.usuarioId, operarioId)));
 }
 
-/** Cambia el centro de una tarea. Si el operario asignado no está habilitado para el centro nuevo, queda sin asignar. */
+/**
+ * Cambia el centro de una tarea. Si el operario asignado no está habilitado para el centro nuevo, queda sin asignar.
+ * En la cola del centro nuevo entra por urgencia (sin lugar puesto a mano).
+ */
 export async function cambiarCentro(c: string, centroId: string, por: string): Promise<void> {
   const { otPiezaId, operacionId } = partir(c);
   const [actual] = await db.select().from(colaTarea).where(and(eq(colaTarea.otPiezaId, otPiezaId), eq(colaTarea.operacionId, operacionId)));
@@ -517,39 +493,50 @@ export async function cambiarCentro(c: string, centroId: string, por: string): P
   }
   await db
     .insert(colaTarea)
-    .values({ otPiezaId, operacionId, centroId, operarioId, posicion: operarioId ? actual?.posicion : null, asignadoPorId: por })
-    .onConflictDoUpdate({ target: [colaTarea.otPiezaId, colaTarea.operacionId], set: { centroId, operarioId, posicion: operarioId ? (actual?.posicion ?? null) : null, asignadoPorId: por, updatedAt: new Date() } });
+    .values({ otPiezaId, operacionId, centroId, operarioId, posicion: null, asignadoPorId: por })
+    .onConflictDoUpdate({ target: [colaTarea.otPiezaId, colaTarea.operacionId], set: { centroId, operarioId, posicion: null, asignadoPorId: por, updatedAt: new Date() } });
 }
 
-/** Mueve una tarea un lugar arriba o abajo en la cola de su operario. */
-export async function moverEnCola(c: string, direccion: "arriba" | "abajo"): Promise<void> {
-  const { otPiezaId, operacionId } = partir(c);
-  const [t] = await db.select().from(colaTarea).where(and(eq(colaTarea.otPiezaId, otPiezaId), eq(colaTarea.operacionId, operacionId)));
-  if (!t?.operarioId) return;
-  const cola = await db.select().from(colaTarea).where(eq(colaTarea.operarioId, t.operarioId)).orderBy(asc(colaTarea.posicion));
-  const i = cola.findIndex((x) => x.id === t.id);
-  const j = direccion === "arriba" ? i - 1 : i + 1;
-  if (i < 0 || j < 0 || j >= cola.length) return;
-  [cola[i], cola[j]] = [cola[j], cola[i]];
-  await renumerar(cola.map((x) => x.id));
-}
-
-/** Vuelve a ordenar la cola de un operario por urgencia (el orden sugerido). */
-export async function ordenarPorUrgencia(operarioId: string, filas: FilaGestion[]): Promise<void> {
-  const cola = await db.select().from(colaTarea).where(eq(colaTarea.operarioId, operarioId));
-  const orden = new Map(filas.map((f, i) => [f.clave, i]));
-  cola.sort((a, b) => (orden.get(clave(a.otPiezaId, a.operacionId)) ?? 1e9) - (orden.get(clave(b.otPiezaId, b.operacionId)) ?? 1e9));
-  await renumerar(cola.map((x) => x.id));
-}
-
-async function renumerar(ids: string[]) {
-  if (!ids.length) return;
+/**
+ * Reunión 20/11: el nuevo orden de la cola de un centro, como queda después de arrastrar. Las claves vienen en
+ * orden (todas las del centro); cada una queda con su lugar, tenga o no operario.
+ */
+export async function ordenarCentro(claves: string[], por: string): Promise<void> {
+  if (!claves.length) return;
   await db.transaction(async (tx) => {
-    for (let i = 0; i < ids.length; i++) await tx.update(colaTarea).set({ posicion: i + 1 }).where(eq(colaTarea.id, ids[i]));
+    for (let i = 0; i < claves.length; i++) {
+      const { otPiezaId, operacionId } = partir(claves[i]);
+      await tx
+        .insert(colaTarea)
+        .values({ otPiezaId, operacionId, posicion: i + 1, asignadoPorId: por })
+        .onConflictDoUpdate({ target: [colaTarea.otPiezaId, colaTarea.operacionId], set: { posicion: i + 1, updatedAt: new Date() } });
+    }
   });
 }
 
-/** La cola de un operario, en orden (para su tablet). */
+/** Vuelve la cola de un centro al orden sugerido (por urgencia): se sacan los lugares puestos a mano. */
+export async function ordenarCentroPorUrgencia(claves: string[]): Promise<void> {
+  for (const c of claves) {
+    const { otPiezaId, operacionId } = partir(c);
+    await db.update(colaTarea).set({ posicion: null, updatedAt: new Date() }).where(and(eq(colaTarea.otPiezaId, otPiezaId), eq(colaTarea.operacionId, operacionId)));
+  }
+}
+
+/**
+ * Las tareas de un operario, en el orden en que las hace (para su tablet): el de la cola de su centro, y lo que no
+ * se ordenó a mano, por urgencia (igual que en Gestión).
+ */
 export async function getColaDe(operarioId: string) {
-  return db.select().from(colaTarea).where(eq(colaTarea.operarioId, operarioId)).orderBy(asc(colaTarea.posicion));
+  const [cola, { resultado: r, entrada }] = await Promise.all([db.select().from(colaTarea).where(eq(colaTarea.operarioId, operarioId)), getPlan()]);
+  const tarea = new Map(r.tareas.map((t) => [t.clave, t]));
+  const alta = new Set(entrada.proyectos.filter((p) => p.prioridad === "alta").map((p) => p.id));
+  const urgencia = (c: (typeof cola)[number]) => {
+    const t = tarea.get(clave(c.otPiezaId, c.operacionId));
+    return { holgura: t?.holgura ?? 1e9, alta: t ? alta.has(t.proyectoId) : false };
+  };
+  return cola.sort((a, b) => {
+    const ua = urgencia(a);
+    const ub = urgencia(b);
+    return (a.posicion ?? 1e9) - (b.posicion ?? 1e9) || ua.holgura - ub.holgura || Number(ub.alta) - Number(ua.alta);
+  });
 }

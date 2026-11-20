@@ -9,7 +9,7 @@ import { decidirDesvioAction } from "@/app/actions/gestion";
 import { ListaGestion } from "@/components/gestion/ListaGestion";
 import { ParaEnviar } from "@/components/gestion/ParaEnviar";
 import { FiltrosGestion } from "@/components/gestion/FiltrosGestion";
-import { getGestion, type OrdenEnCurso } from "@/lib/data/gestion";
+import { getGestion, type OrdenEnCurso, type FilaGestion } from "@/lib/data/gestion";
 import { CargaTrabajo } from "@/components/gestion/CargaTrabajo";
 import { fechaCorta } from "@/lib/formato";
 import { and, desc, eq, isNull } from "drizzle-orm";
@@ -30,7 +30,7 @@ export default async function GestionPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   return (
     <div className="space-y-4">
-      <PageHeader titulo="Gestión" descripcion="Mandá piezas a producción y asigná cada tarea eligiendo el operario en su fila. El orden de la cola de cada uno es el que ve en su tablet." />
+      <PageHeader titulo="Gestión" descripcion="Mandá piezas a producción, ordená la cola de cada centro arrastrando las tareas y elegí quién hace cada una. Ese orden es el que siguen el calendario y la tablet." />
       {sp.ok && <Aviso tipo="ok">{sp.ok}</Aviso>}
       {sp.error && <Aviso tipo="error">{sp.error}</Aviso>}
       <Suspense fallback={<EsqueletoBloques bloques={5} />}>
@@ -143,11 +143,16 @@ async function Contenido({ sp }: { sp: Params }) {
   if (sp.centro) lista = lista.filter((f) => f.centroId === sp.centro);
   if (sp.orden) lista = lista.filter((f) => f.ordenId === sp.orden);
   if (sp.sin === "1") lista = lista.filter((f) => f.tipo === "interno" && !f.operarioId);
-  // Con un operario elegido se ve su cola, en el orden en que la va a hacer (con las que esperan, para ordenarlas).
-  if (sp.operario) lista = lista.filter((f) => f.operarioId === sp.operario).sort((a, b) => (a.lugar ?? 1e9) - (b.lugar ?? 1e9));
-  // Prueba 1 (05/11): primero lo que se puede hacer ya; lo que espera el paso anterior va aparte, plegado.
-  const ahora = sp.operario ? lista : lista.filter((f) => f.estado !== "espera");
-  const despues = sp.operario ? [] : lista.filter((f) => f.estado === "espera");
+  if (sp.operario) lista = lista.filter((f) => f.operarioId === sp.operario);
+  // Reunión 20/11: una cola por centro, en su orden (también lo que espera el paso anterior, en gris). Se ordena
+  // arrastrando cuando se ve la cola entera del centro; con otros filtros es sólo para ver.
+  const ordenable = !sp.orden && !sp.sin && !sp.operario;
+  const internas = lista.filter((f) => f.tipo === "interno");
+  const grupos: { id: string; titulo: string; filas: FilaGestion[]; ordenable: boolean }[] = [
+    ...centros.map((c) => ({ id: c.id, titulo: c.nombre, filas: internas.filter((f) => f.centroId === c.id), ordenable })),
+    { id: "sin-centro", titulo: "Sin centro", filas: internas.filter((f) => !f.centroId || !centros.some((c) => c.id === f.centroId)), ordenable: false },
+    { id: "tercerizados", titulo: "Tercerizados", filas: lista.filter((f) => f.tipo !== "interno"), ordenable: false },
+  ].filter((g) => g.filas.length);
   return (
     <div className="space-y-4">
       <AvisosPlanta />
@@ -158,27 +163,28 @@ async function Contenido({ sp }: { sp: Params }) {
         <Vacio>{filas.length === 0 ? paraEnviar.length ? "Todavía no hay tareas para asignar: mandá piezas a producción desde arriba." : "No hay tareas pendientes: cuando se confirme una orden, sus piezas aparecen acá para enviar a producción." : "No hay tareas con estos filtros."}</Vacio>
       ) : (
         <>
-          <section className="space-y-2">
-            <h2 className="font-semibold">
-              {sp.operario ? "Su cola" : "Para asignar ahora"} <span className="text-foreground-muted font-normal">· {ahora.length}</span>
-            </h2>
-            {ahora.length ? (
-              <ListaGestion filas={ahora} operarios={operarios} centros={centros} operarioFiltro={sp.operario ?? null} hoy={hoy} />
-            ) : (
-              <Vacio neutro>Nada se puede empezar ya: todas las tareas esperan el paso anterior.</Vacio>
-            )}
-          </section>
-          {despues.length > 0 && (
-            <details className="space-y-2">
-              <summary className="cursor-pointer font-semibold">
-                Después: esperan el paso anterior <span className="text-foreground-muted font-normal">· {despues.length}</span>
-                <span className="block text-xs font-normal text-foreground-muted">Se pueden asignar por adelantado; en la tablet aparecen cuando termina el paso anterior.</span>
-              </summary>
-              <div className="mt-2">
-                <ListaGestion filas={despues} operarios={operarios} centros={centros} operarioFiltro={null} hoy={hoy} />
-              </div>
-            </details>
-          )}
+          {!ordenable && <p className="text-xs text-foreground-muted">Para ordenar una cola, sacá los filtros de orden, operario y sin asignar.</p>}
+          {grupos.map((g) => {
+            const espera = g.filas.filter((f) => f.estado === "espera").length;
+            return (
+              <ListaGestion
+                key={g.id}
+                titulo={
+                  <>
+                    {g.titulo}{" "}
+                    <span className="text-foreground-muted font-normal">
+                      · {g.id === "tercerizados" ? g.filas.length : `${g.filas.length - espera} para hacer ya${espera ? ` · ${espera} ${espera === 1 ? "espera" : "esperan"} el paso anterior` : ""}`}
+                    </span>
+                  </>
+                }
+                filas={g.filas}
+                operarios={operarios}
+                centros={centros}
+                ordenable={g.ordenable && g.filas.length > 1}
+                hoy={hoy}
+              />
+            );
+          })}
         </>
       )}
       <CargaTrabajo carga={cargaDia} resumen={carga} operarios={operarios} centros={centros} hoy={hoy} />
