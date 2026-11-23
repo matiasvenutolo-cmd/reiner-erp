@@ -4,19 +4,6 @@ import { Pestanas } from "./Pestanas";
 
 /** Vistas de cada sección del menú (Fase 3.2): una sola entrada por área y las vistas relacionadas como pestañas. */
 
-export function PestanasOt({ actual }: { actual: string }) {
-  return (
-    <Pestanas
-      actual={actual}
-      items={[
-        { href: "/proyectos", label: "Por fecha de entrega" },
-        { href: "/ot", label: "Órdenes por tipo" },
-        { href: "/ot/piezas", label: "Todas las piezas" },
-      ]}
-    />
-  );
-}
-
 export function PestanasPlanificacion({ actual }: { actual: string }) {
   return (
     <Pestanas

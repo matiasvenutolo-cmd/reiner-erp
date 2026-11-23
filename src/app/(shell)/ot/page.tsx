@@ -1,5 +1,4 @@
 import { PageHeader } from "@/components/ui/PageHeader";
-import { PestanasOt } from "@/components/ui/PestanasSecciones";
 import Link from "next/link";
 import { listarOtMaquinas } from "@/lib/data/ot";
 import { EstadoBadge } from "@/components/EstadoBadge";
@@ -32,7 +31,6 @@ export default async function OtPage() {
           </Link>
         }
       >
-        <PestanasOt actual="/ot" />
       </PageHeader>
 
       <Seccion

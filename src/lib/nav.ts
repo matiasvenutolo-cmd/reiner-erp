@@ -21,7 +21,7 @@ export const AREAS_DEL_ROL: Record<Usuario["rol"], GrupoNav[]> = {
   taller: ["produccion"],
   ingenieria: ["ingenieria", "admin"],
   direccion: ["produccion"],
-  compras: ["compras", "produccion", "stock"],
+  compras: ["stock", "produccion"],
 };
 
 export const ROL_LABEL: Record<Usuario["rol"], string> = {
@@ -34,11 +34,12 @@ export const ROL_LABEL: Record<Usuario["rol"], string> = {
 
 export type GrupoNav = "produccion" | "taller" | "compras" | "stock" | "ingenieria" | "admin";
 
+// Mejoras 22/11: tres grandes áreas (Gestión de producción, Gestión de stocks e Ingeniería) y después Admin.
 export const GRUPO_LABEL: Record<GrupoNav, string> = {
-  produccion: "Producción",
+  produccion: "Gestión de producción",
   taller: "Taller",
   compras: "Compras",
-  stock: "Stock",
+  stock: "Gestión de stocks",
   ingenieria: "Ingeniería",
   admin: "Admin",
 };
@@ -89,19 +90,21 @@ const NAV_ITEMS: NavEntry[] = [
   { href: "/inicio", label: "Hoy", roles: STAFF, grupo: "produccion", oculta: true, ayuda: "Qué hay que hacer hoy y qué está trabado" },
   { href: "/taller/centro", label: "Pantalla de un centro", roles: [...STAFF, "operario"], grupo: "produccion", oculta: true, ayuda: "Para la tablet fija en una máquina" },
 
+  // Mejoras 22/11 — Gestión de stocks: Stock (una entrada; materia prima, insumos, productos terminados y
+  // movimientos son pestañas adentro), Compras y Proveedores.
+  { href: "/stock", url: "/stock/finalizado?tipo=fabricada", label: "Stock", roles: STAFF, grupo: "stock", ayuda: "Materia prima, insumos, productos terminados y movimientos" },
+  { href: "/stock/finalizado", label: "Productos terminados", roles: STAFF, grupo: "stock", enMenu: false, dentroDe: "/stock" },
+  { href: "/stock/materia-prima", label: "Materia prima", roles: STAFF, grupo: "stock", enMenu: false, dentroDe: "/stock" },
+  { href: "/stock/insumos", label: "Insumos", roles: STAFF, grupo: "stock", enMenu: false, dentroDe: "/stock" },
   // Prueba 1 (05/11): mientras dura la prueba, Julián (ingeniería) y Adrián (dirección) también entran a Compras.
-  { href: "/compras", label: "Compras", roles: [...COMPRAS, "direccion", "ingenieria"], grupo: "compras", ayuda: "Cotizaciones, gastos y pagos" },
-  { href: "/proveedores", label: "Proveedores", roles: [...STAFF, ...COMPRAS], grupo: "compras" },
-  { href: "/pedir", label: "Pedir esta semana", roles: [...STAFF, ...COMPRAS], grupo: "compras", oculta: true, ayuda: "Qué hay que pedir y a quién" },
+  { href: "/compras", label: "Compras", roles: [...COMPRAS, "direccion", "ingenieria"], grupo: "stock", ayuda: "Cotizaciones, gastos y pagos" },
+  { href: "/proveedores", label: "Proveedores", roles: [...STAFF, ...COMPRAS], grupo: "stock" },
+  { href: "/pedir", label: "Pedir esta semana", roles: [...STAFF, ...COMPRAS], grupo: "stock", oculta: true, ayuda: "Qué hay que pedir y a quién" },
 
-  // Tanda 2 (05/11): Stock en tres listas: materia prima, insumos y productos terminados.
-  { href: "/stock/finalizado", url: "/stock/finalizado?tipo=fabricada", label: "Productos terminados", roles: STAFF, grupo: "stock", ayuda: "Piezas, conjuntos y máquinas terminados, libres o reservados para una orden" },
-  { href: "/stock/materia-prima", label: "Materia prima", roles: STAFF, grupo: "stock", ayuda: "El material comprado para fabricar, reservado para su pieza" },
-  { href: "/stock/insumos", label: "Insumos", roles: STAFF, grupo: "stock", ayuda: "Piezas comerciales y consumibles de taller" },
-  { href: "/stock", label: "Stock (todas las pestañas)", roles: STAFF, grupo: "stock", oculta: true, ayuda: "Materia prima, insumos y productos terminados" },
-
-  { href: "/maestros", label: "Piezas y hojas de ruta", roles: STAFF, grupo: "ingenieria", ayuda: "Máquinas, conjuntos, piezas, rutas y tiempos" },
-  { href: "/maestros/importar", label: "Importar desde Excel", roles: STAFF, grupo: "ingenieria", ayuda: "Cargar o actualizar piezas y hojas de ruta desde una planilla" },
+  // Mejoras 22/11 — Ingeniería: una entrada; adentro, piezas y hojas de ruta y la grilla de tiempos (con el
+  // importar desde Excel como botón de la grilla).
+  { href: "/maestros", label: "Ingeniería", roles: STAFF, grupo: "ingenieria", ayuda: "Piezas y hojas de ruta, y la grilla de tiempos" },
+  { href: "/maestros/importar", label: "Importar desde Excel", roles: STAFF, grupo: "ingenieria", enMenu: false, dentroDe: "/maestros" },
   { href: "/liberacion", label: "Entrada al plan", roles: STAFF, grupo: "ingenieria", oculta: true, ayuda: "Piezas que esperan plano o revisión de ingeniería" },
 
   { href: "/operaciones", label: "Operaciones y centros", roles: STAFF, grupo: "admin", ayuda: "Tiempos por proceso y capacidad" },

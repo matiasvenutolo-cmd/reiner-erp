@@ -81,7 +81,15 @@ export default async function GrillaTiemposPage({ searchParams }: { searchParams
 
   return (
     <div className="space-y-4">
-      <PageHeader titulo="Grilla de tiempos" descripcion="Tiempo de setup y minutos por unidad de cada paso, pieza por pieza. Vacío = usa el tiempo por defecto del proceso (en gris). Pasá de una celda a la otra con Tab y guardá al final.">
+      <PageHeader
+        titulo="Grilla de tiempos"
+        descripcion="Tiempo de setup y minutos por unidad de cada paso, pieza por pieza. Vacío = usa el tiempo por defecto del proceso (en gris). Pasá de una celda a la otra con Tab y guardá al final."
+        acciones={
+          <Link href="/maestros/importar" className="btn-secundario">
+            Importar desde Excel
+          </Link>
+        }
+      >
         <PestanasMaestros actual="/maestros/tiempos" />
       </PageHeader>
       {sp.ok && <Aviso tipo="ok">{sp.ok}</Aviso>}

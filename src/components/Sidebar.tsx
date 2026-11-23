@@ -58,11 +58,13 @@ export function Sidebar({
       </div>
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
         {secciones.map((s) => {
-          const abiertaSec = estaAbierta(s);
+          // Mejoras 22/11: un área con un solo ítem del mismo nombre (Ingeniería) va sin encabezado repetido.
+          const suelta = !!s.grupo && s.items.length === 1 && s.items[0].label === GRUPO_LABEL[s.grupo];
+          const abiertaSec = suelta || estaAbierta(s);
           const pendientes = s.items.reduce((n, i) => n + (i.contador ?? 0), 0);
           return (
             <div key={s.grupo ?? "inicio"} className="space-y-0.5">
-              {s.grupo && (
+              {s.grupo && !suelta && (
                 <button
                   type="button"
                   onClick={() => setDesplegadas((d) => ({ ...d, [s.grupo!]: !abiertaSec }))}

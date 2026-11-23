@@ -34,8 +34,8 @@ export default async function AvancePage() {
       </PageHeader>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <MetricCard label="Órdenes en curso" value={enCurso} href="/ot" />
-        <MetricCard label="Piezas terminadas / total" value={`${piezasTerminadas}/${piezasTotal}`} href="/ot" />
+        <MetricCard label="Órdenes en curso" value={enCurso} href="/proyectos" />
+        <MetricCard label="Piezas terminadas / total" value={`${piezasTerminadas}/${piezasTotal}`} href="/proyectos" />
         <MetricCard label="Frenado ahora mismo" value={paradas.length} href="/centros-trabajo" />
         <MetricCard label="Piezas en proceso tercerizado" value={piezasFueraDeFabrica} href="/tercerizados" />
       </div>

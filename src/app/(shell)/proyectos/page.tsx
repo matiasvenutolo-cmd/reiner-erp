@@ -10,7 +10,6 @@ import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
 import { desc, eq } from "drizzle-orm";
 import { getPlan } from "@/lib/planning/datos";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { PestanasOt } from "@/components/ui/PestanasSecciones";
 import { Etiqueta } from "@/components/ui/Etiqueta";
 import { Aviso, Vacio } from "@/components/ui/Aviso";
 import { fechaCorta, textoCausa } from "@/components/v2/Plan";
@@ -21,10 +20,11 @@ export const dynamic = "force-dynamic";
 
 type Fila = { m: typeof otMaquina.$inferSelect; config: string | null; cliente: string | null };
 
+// Mejoras 22/11: una sola pantalla, agrupada por tipo de orden y, dentro de cada tipo, por fecha de entrega.
 const GRUPOS = [
-  { tipo: "maquina", titulo: "Máquinas" },
-  { tipo: "repuesto", titulo: "Repuestos para clientes" },
-  { tipo: "stock", titulo: "Órdenes para stock" },
+  { tipo: "maquina", titulo: "Máquinas completas" },
+  { tipo: "conjunto", titulo: "Conjuntos" },
+  { tipo: "pieza", titulo: "Piezas" },
 ] as const;
 
 
@@ -100,7 +100,6 @@ export default async function ProyectosPage({ searchParams }: { searchParams: Pr
           </Link>
         }
       >
-        <PestanasOt actual="/proyectos" />
       </PageHeader>
 
       {ok && <Aviso tipo="ok">{ok}</Aviso>}
@@ -175,7 +174,8 @@ async function OrdenesDelPlan({ todos }: { todos: { m: typeof otMaquina.$inferSe
 
       {activos.length === 0 && <Vacio neutro>No hay órdenes activas.</Vacio>}
       {GRUPOS.map((g) => {
-        const lista = activos.filter((x) => (x.m.destino ?? "maquina") === g.tipo);
+        const tipoDe = (m: typeof otMaquina.$inferSelect) => (m.tipo === "maquina" ? "maquina" : m.alcance === "pieza" ? "pieza" : "conjunto");
+        const lista = activos.filter((x) => tipoDe(x.m) === g.tipo);
         if (!lista.length) return null;
         return (
           <section key={g.tipo} className="space-y-2">
@@ -184,7 +184,7 @@ async function OrdenesDelPlan({ todos }: { todos: { m: typeof otMaquina.$inferSe
             </h2>
             <div className="grid md:grid-cols-2 gap-3">
               {lista
-                .sort((a, b) => planDe.get(b.m.id)!.diferenciaDias - planDe.get(a.m.id)!.diferenciaDias)
+                .sort((a, b) => (a.m.fechaEntrega ?? "9999").localeCompare(b.m.fechaEntrega ?? "9999"))
                 .map((x) => (
                   <TarjetaProyecto key={x.m.id} x={x} p={planDe.get(x.m.id)!} hoy={hoy} />
                 ))}
