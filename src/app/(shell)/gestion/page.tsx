@@ -181,6 +181,7 @@ async function Contenido({ sp }: { sp: Params }) {
                 operarios={operarios}
                 centros={centros}
                 ordenable={g.ordenable && g.filas.length > 1}
+                tercerizados={g.id === "tercerizados"}
                 hoy={hoy}
               />
             );

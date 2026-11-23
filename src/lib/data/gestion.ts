@@ -16,7 +16,7 @@ import { colaTarea, usuario, usuarioCentroTrabajo, operacion, proceso, centroTra
 import { hoyISO } from "@/lib/fecha";
 import { getPlan } from "@/lib/planning/datos";
 import { evaluarEntrada } from "./entrada-plan";
-import { getClavesEnReproceso } from "./desvios";
+import { getClavesEnReproceso, getDesviosAbiertos } from "./desvios";
 import { esHabil } from "@/lib/planning/calendario";
 import type { Tarea, Nivel } from "@/lib/planning/motor";
 
@@ -46,6 +46,8 @@ export type FilaGestion = {
   motivo: string | null;
   /** Prueba 19/11: el paso salió mal y se decidió reprocesar la pieza. */
   reproceso: boolean;
+  /** Mejoras 22/11: salió mal y espera la decisión (reprocesar o scrap); se decide también desde la fila. */
+  desvioId: string | null;
   /** Tercerizado (§5.1): a qué proveedor se manda o dónde está, con la vuelta prevista. */
   proveedor: string | null;
   vuelta: string | null;
@@ -165,7 +167,8 @@ export async function getGestion() {
   for (const p of procs) compatibles.set(p.id, new Set(p.centroId ? [p.centroId] : []));
   for (const u of usos) if (u.centroId) compatibles.get(u.procesoId)?.add(u.centroId);
 
-  const enReproceso = await getClavesEnReproceso();
+  const [enReproceso, desvios] = await Promise.all([getClavesEnReproceso(), getDesviosAbiertos()]);
+  const desvioDe = new Map(desvios.map((d) => [clave(d.otPiezaId, d.operacionId), d.id]));
   const porClave = new Map(cola.map((c) => [clave(c.otPiezaId, c.operacionId), c]));
   const prioridad = new Map(entrada.proyectos.map((p) => [p.id, p.prioridad]));
   const filas: FilaGestion[] = tareas.map((t) => {
@@ -203,6 +206,7 @@ export async function getGestion() {
       estado,
       motivo: t.motivoTraba,
       reproceso: enReproceso.has(t.clave),
+      desvioId: desvioDe.get(t.clave) ?? null,
       proveedor:
         t.tipo !== "tercerizado"
           ? null
@@ -297,15 +301,27 @@ function cargaPorDia(
   const capacidad: CargaPorDia["capacidad"] = {};
   for (const o of operarios) capacidad[o.id] = Object.fromEntries(dias.map((d, i) => [d, horasDelDia(o.id, d, entrada) * (i === 0 ? queda : 1)]));
 
-  // Una fila por operario (su cola) y una por centro con lo que no tiene operario. Las filas ya vienen en el orden
-  // de la cola de cada centro.
+  // Mejoras 22/11: lo que no tiene operario se ubica en su turno dentro de la cola del centro, como si lo hiciera
+  // quien se libere primero ahí (el operario del centro con menos horas en cola), y se dibuja en gris. Sólo si el
+  // centro no tiene a nadie habilitado va en una fila gris propia. Es una simulación: no asigna nada.
   const internas = filas.filter((f) => f.tipo === "interno");
+  const horasDe = new Map(operarios.map((o) => [o.id, internas.filter((f) => f.operarioId === o.id).reduce((n, f) => n + f.horas, 0)]));
+  const simuladoPor = new Map<string, string>(); // clave → operario que la "hace" en la simulación
+  for (const f of internas) {
+    if (f.operarioId || !f.centroId) continue;
+    const delCentro = operarios.filter((o) => o.centros.includes(f.centroId!));
+    if (!delCentro.length) continue;
+    const quien = delCentro.reduce((a, b) => ((horasDe.get(b.id) ?? 0) < (horasDe.get(a.id) ?? 0) ? b : a));
+    simuladoPor.set(f.clave, quien.id);
+    horasDe.set(quien.id, (horasDe.get(quien.id) ?? 0) + f.horas);
+  }
+  // Las filas ya vienen en el orden de la cola de cada centro.
   const colas: { id: string; operarioId: string; tareas: FilaGestion[]; horas: (i: number) => number }[] = [
-    ...operarios.map((o) => ({ id: o.id, operarioId: o.id, tareas: internas.filter((f) => f.operarioId === o.id), horas: (i: number) => horasDelDia(o.id, horizonte[i], entrada) * (i === 0 ? queda : 1) })),
-    ...[...new Set(internas.filter((f) => !f.operarioId && f.centroId).map((f) => f.centroId!))].map((c) => ({
+    ...operarios.map((o) => ({ id: o.id, operarioId: o.id, tareas: internas.filter((f) => (f.operarioId ?? simuladoPor.get(f.clave)) === o.id), horas: (i: number) => horasDelDia(o.id, horizonte[i], entrada) * (i === 0 ? queda : 1) })),
+    ...[...new Set(internas.filter((f) => !f.operarioId && f.centroId && !simuladoPor.has(f.clave)).map((f) => f.centroId!))].map((c) => ({
       id: `sin:${c}`,
       operarioId: "",
-      tareas: internas.filter((f) => !f.operarioId && f.centroId === c),
+      tareas: internas.filter((f) => !f.operarioId && f.centroId === c && !simuladoPor.has(f.clave)),
       horas: (i: number) => (esHabil(horizonte[i], cal) ? (entrada.horasOperarioDia ?? 6.8) : 0) * (i === 0 ? queda : 1),
     })),
   ];
@@ -341,7 +357,7 @@ function cargaPorDia(
         const toma = Math.min(libre, resto.get(f.clave)!);
         if (i < dias.length && delDia > 0)
           tramos.push({
-            clave: f.clave, otPiezaId: f.otPiezaId, operarioId: c.operarioId, centroId: f.centroId, pieza: f.pieza, paso: f.paso, posicion: f.posicion, totalPasos: f.totalPasos,
+            clave: f.clave, otPiezaId: f.otPiezaId, operarioId: f.operarioId ?? "", centroId: f.centroId, pieza: f.pieza, paso: f.paso, posicion: f.posicion, totalPasos: f.totalPasos,
             orden: f.orden, dia: horizonte[i], horas: toma, totalHoras: f.horas, desde: (delDia - libre) / delDia, hasta: (delDia - libre + toma) / delDia,
           });
         libre -= toma;

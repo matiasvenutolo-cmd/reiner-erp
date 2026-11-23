@@ -35,7 +35,7 @@ type Barra = { clave: string; otPiezaId: string; operarioId: string; pieza: stri
  * termina a la mañana y la siguiente que empieza a la tarde quedan una al lado de la otra). Las que se superponen
  * (dos operarios en el mismo centro) van en carriles distintos.
  */
-function barras(tramos: TramoCarga[], dias: string[]): { lista: Barra[]; carriles: number } {
+function barras(tramos: TramoCarga[], dias: string[], minDias: number): { lista: Barra[]; carriles: number } {
   const pos = new Map(dias.map((d, i) => [d, i]));
   const porTarea = new Map<string, Barra>();
   for (const t of tramos) {
@@ -50,6 +50,8 @@ function barras(tramos: TramoCarga[], dias: string[]): { lista: Barra[]; carrile
     } else
       porTarea.set(k, { clave: t.clave, otPiezaId: t.otPiezaId, operarioId: t.operarioId, pieza: t.pieza, paso: t.paso, posicion: t.posicion, totalPasos: t.totalPasos, orden: t.orden, inicio: i + t.desde, fin: i + t.hasta, horas: t.horas, totalHoras: t.totalHoras, carril: 0 });
   }
+  // Mejoras 22/11: una tarea corta se dibuja con un ancho mínimo para que se lea; los carriles lo tienen en cuenta.
+  for (const b of porTarea.values()) b.fin = Math.min(dias.length, Math.max(b.fin, b.inicio + minDias));
   const lista = [...porTarea.values()].sort((a, b) => a.inicio - b.inicio || b.fin - a.fin);
   const finDe: number[] = [];
   for (const b of lista) {
@@ -65,16 +67,29 @@ function barras(tramos: TramoCarga[], dias: string[]): { lista: Barra[]; carrile
 }
 
 /** Una tarea en la carga. Reunión 20/11: el calendario es sólo para ver; tocarla abre la ficha de la pieza. */
-function BarraTarea({ b, dias, estilo, operario, conOperario }: { b: Barra; dias: string[]; estilo: React.CSSProperties; operario: string; conOperario: boolean }) {
+function BarraTarea({ b, dias, estilo, operario, conOperario, alto }: { b: Barra; dias: string[]; estilo: React.CSSProperties; operario: string; conOperario: boolean; alto: number }) {
+  const dosRenglones = alto > 2;
   return (
     <Link
       href={`/gestion/pieza/${b.otPiezaId}`}
       title={`${b.pieza} · ${b.paso} (paso ${b.posicion} de ${b.totalPasos}) · ${b.orden}\n${operario} · ${horas(b.totalHoras)} en total${b.horas < b.totalHoras - 0.05 ? ` (${horas(b.horas)} en estos días)` : ""}`}
-      className="absolute h-7 rounded border px-1.5 text-[11px] leading-7 truncate hover:brightness-95"
-      style={{ ...estilo, left: `calc(${(b.inicio / dias.length) * 100}% + 1px)`, width: `calc(${((b.fin - b.inicio) / dias.length) * 100}% - 2px)`, top: `${b.carril * 2}rem` }}
+      className={`absolute rounded border px-1.5 overflow-hidden hover:brightness-95 ${dosRenglones ? "py-1 text-[11px] leading-tight" : "text-[11px] leading-7 truncate"}`}
+      style={{ ...estilo, height: `${alto}rem`, left: `calc(${(b.inicio / dias.length) * 100}% + 1px)`, width: `calc(${((b.fin - b.inicio) / dias.length) * 100}% - 2px)`, top: `${b.carril * (alto + 0.25)}rem` }}
     >
-      {conOperario ? `${operario} · ` : ""}
-      {b.pieza} · {b.paso} {b.posicion}/{b.totalPasos}
+      {dosRenglones ? (
+        <>
+          <span className="block font-semibold truncate">{b.pieza}</span>
+          <span className="block truncate opacity-80">
+            {conOperario ? `${operario} · ` : ""}
+            {b.paso} {b.posicion}/{b.totalPasos} · {horas(b.horas)}
+          </span>
+        </>
+      ) : (
+        <>
+          {conOperario ? `${operario} · ` : ""}
+          {b.pieza} · {b.paso} {b.posicion}/{b.totalPasos}
+        </>
+      )}
     </Link>
   );
 }
@@ -112,7 +127,8 @@ export function CargaTrabajo({ carga, resumen, operarios, centros, hoy }: { carg
             const sa = carga.sinAsignar[c.id];
             return { id: c.id, titulo: c.nombre, detalle: sa ? `${sa.tareas} sin asignar · ${horas(sa.horas)}` : "", href: `/gestion?centro=${c.id}`, tramos: enRango.filter((t) => t.centroId === c.id), capacidad: undefined };
           })
-          .filter((f) => f.tramos.length || f.detalle);
+          // Mejoras 22/11: siempre todos los centros, aunque en estos días no tengan carga.
+          ;
 
   const columnas = { gridTemplateColumns: `repeat(${dias.length}, minmax(0, 1fr))` };
 
@@ -195,7 +211,9 @@ export function CargaTrabajo({ carga, resumen, operarios, centros, hoy }: { carg
 
           {filas.length === 0 && <p className="text-sm text-foreground-muted py-4">Todavía no hay tareas asignadas para mostrar.</p>}
           {filas.map((f) => {
-            const { lista, carriles } = barras(f.tramos, dias);
+            // Semana: barras más altas, con dos renglones; 2 semanas o mes: un renglón.
+            const alto = dias.length <= 5 ? 2.5 : 1.75;
+            const { lista, carriles } = barras(f.tramos, dias, dias.length <= 5 ? 0.45 : dias.length <= 10 ? 0.5 : 0.8);
             const usadas = new Map<string, number>();
             for (const t of f.tramos) usadas.set(t.dia, (usadas.get(t.dia) ?? 0) + t.horas);
             return (
@@ -220,7 +238,7 @@ export function CargaTrabajo({ carga, resumen, operarios, centros, hoy }: { carg
                       );
                     })}
                   </div>
-                  <div className="relative" style={{ height: `${carriles * 2}rem` }}>
+                  <div className="relative" style={{ height: `${carriles * (alto + 0.25)}rem` }}>
                     {lista.map((b) => (
                       <BarraTarea
                         key={`${b.operarioId}|${b.clave}`}
@@ -229,6 +247,7 @@ export function CargaTrabajo({ carga, resumen, operarios, centros, hoy }: { carg
                         estilo={b.operarioId ? colorDe(indice.get(b.operarioId) ?? 0) : SIN_ASIGNAR}
                         operario={b.operarioId ? (nombre.get(b.operarioId) ?? "") : "Sin asignar"}
                         conOperario={vista === "centro"}
+                        alto={alto}
                       />
                     ))}
                   </div>

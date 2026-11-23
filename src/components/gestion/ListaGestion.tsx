@@ -5,19 +5,21 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition, type DragEvent } from "react";
 import type { FilaGestion, EstadoGestion } from "@/lib/data/gestion";
 import { fechaCorta } from "@/lib/formato";
-import { asignarTareasAction, cambiarCentroAction, ordenarCentroAction, ordenarCentroPorUrgenciaAction } from "@/app/actions/gestion";
+import { asignarTareasAction, cambiarCentroAction, ordenarCentroAction, ordenarCentroPorUrgenciaAction, decidirDesvioAction } from "@/app/actions/gestion";
+import { ConfirmarBoton } from "@/components/ui/ConfirmarBoton";
 
 type Operario = { id: string; nombre: string; centros: string[] };
 type Centro = { id: string; nombre: string };
 
-const ESTADO: Record<EstadoGestion, { label: string; clase: string }> = {
-  sin_asignar: { label: "Sin asignar", clase: "bg-naranja-bg text-naranja-fg" },
-  asignada: { label: "Asignada", clase: "bg-accent-soft text-accent-hover" },
-  en_curso: { label: "En curso", clase: "bg-accent text-accent-foreground" },
-  espera: { label: "Espera paso anterior", clase: "bg-gris-bg text-gris-fg" },
-  afuera: { label: "Afuera", clase: "bg-accent-soft text-accent-hover" },
-  para_mandar: { label: "Para mandar", clase: "bg-naranja-bg text-naranja-fg" },
-  trabada: { label: "Trabada", clase: "bg-rojo-bg text-rojo-fg" },
+// Mejoras 22/11: la fila entera se pinta según el estado, para ver de un vistazo cómo está cada centro.
+const ESTADO: Record<EstadoGestion, { label: string; clase: string; fila: string }> = {
+  sin_asignar: { label: "Sin asignar", clase: "bg-naranja-bg text-naranja-fg", fila: "" },
+  asignada: { label: "Lista para producir", clase: "bg-accent text-accent-foreground", fila: "bg-accent-soft" },
+  en_curso: { label: "Produciendo", clase: "bg-verde text-white", fila: "bg-verde-bg" },
+  espera: { label: "Espera paso anterior", clase: "bg-white/70 text-gris-fg", fila: "bg-gris-bg" },
+  afuera: { label: "Enviado", clase: "bg-accent-soft text-accent-hover", fila: "" },
+  para_mandar: { label: "Para mandar", clase: "bg-naranja-bg text-naranja-fg", fila: "" },
+  trabada: { label: "Trabada", clase: "bg-rojo text-white", fila: "bg-rojo-bg" },
 };
 
 /** La lista ya viene ordenada por urgencia; el punto sólo marca lo que conviene hacer primero (prueba 1: sin "días tarde"). */
@@ -35,7 +37,7 @@ const habilitados = (operarios: Operario[], centroId: string | null) => operario
  * no operario; el orden queda guardado y es el que siguen el calendario y la tablet. `ordenable` es la cola
  * completa de un centro (sin filtros que dejen afuera tareas).
  */
-export function ListaGestion({ titulo, filas, operarios, centros, ordenable, hoy }: { titulo: React.ReactNode; filas: FilaGestion[]; operarios: Operario[]; centros: Centro[]; ordenable: boolean; hoy: string }) {
+export function ListaGestion({ titulo, filas, operarios, centros, ordenable, tercerizados = false, hoy }: { titulo: React.ReactNode; filas: FilaGestion[]; operarios: Operario[]; centros: Centro[]; ordenable: boolean; tercerizados?: boolean; hoy: string }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -97,14 +99,23 @@ export function ListaGestion({ titulo, filas, operarios, centros, ordenable, hoy
       </div>
 
       <div className="tarjeta overflow-x-auto">
-        <table className="w-full text-sm">
+        {/* Mejoras 22/11: mismas columnas y mismos anchos en todas las tablas, para que queden alineadas. */}
+        <table className="w-full text-sm table-fixed min-w-[60rem]">
+          <colgroup>
+            <col style={{ width: "1.75rem" }} />
+            <col />
+            <col style={{ width: "12.5rem" }} />
+            <col style={{ width: "4rem" }} />
+            <col style={{ width: "10.5rem" }} />
+            <col style={{ width: "19rem" }} />
+          </colgroup>
           <thead className="text-xs text-foreground-muted">
             <tr className="border-b border-border">
-              {ordenable && <th className="w-6" aria-label="Orden" />}
+              <th aria-label="Orden" />
               <th className="text-left px-3 py-2 font-medium">Pieza y orden</th>
               <th className="text-left px-2 py-2 font-medium">Paso y centro</th>
               <th className="text-right px-2 py-2 font-medium">Horas</th>
-              <th className="text-left px-2 py-2 font-medium">Operario</th>
+              <th className="text-left px-2 py-2 font-medium">{tercerizados ? "Proveedor" : "Operario"}</th>
               <th className="text-left px-2 py-2 font-medium">Estado</th>
             </tr>
           </thead>
@@ -127,12 +138,14 @@ export function ListaGestion({ titulo, filas, operarios, centros, ordenable, hoy
                     if (sobre?.clave !== f.clave || sobre.abajo !== abajo) setSobre({ clave: f.clave, abajo });
                   }}
                   onDrop={(e) => soltar(e, f.clave)}
-                  className={`border-t border-border first:border-t-0 align-middle ${f.estado === "espera" ? "text-foreground-muted" : ""} ${arrastrada === f.clave ? "opacity-40" : ""} ${
+                  className={`border-t border-border first:border-t-0 align-middle ${ESTADO[estado].fila} ${f.estado === "espera" ? "text-foreground-muted" : ""} ${arrastrada === f.clave ? "opacity-40" : ""} ${
                     sobre?.clave === f.clave && arrastrada !== f.clave ? (sobre.abajo ? "shadow-[inset_0_-2px_0_var(--accent)]" : "shadow-[inset_0_2px_0_var(--accent)]") : ""
                   }`}
                 >
-                  {ordenable && (
-                    <td className="pl-2 py-2 w-6">
+                  {!ordenable ? (
+                    <td />
+                  ) : (
+                    <td className="pl-2 py-2">
                       <span
                         draggable={!pendiente}
                         onDragStart={(e) => {
@@ -154,14 +167,14 @@ export function ListaGestion({ titulo, filas, operarios, centros, ordenable, hoy
                     </td>
                   )}
                   <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <Urgencia f={f} />
                       {/* Prueba 1 (05/11): la ficha de la pieza muestra todos sus pasos, asignaciones y tiempos, y se imprime. */}
-                      <Link href={`/gestion/pieza/${f.otPiezaId}`} className="font-medium hover:text-accent hover:underline">
+                      <Link href={`/gestion/pieza/${f.otPiezaId}`} className="font-medium hover:text-accent hover:underline truncate">
                         {f.pieza} × {f.cantidad}
                       </Link>
                     </div>
-                    <div className="text-[12px] text-foreground-muted pl-4">
+                    <div className="text-[12px] text-foreground-muted pl-4 truncate">
                       <span className="font-mono">{f.codigo}</span> ·{" "}
                       <Link href={`/proyectos/${f.ordenId}`} className="hover:text-accent hover:underline">
                         {f.orden}
@@ -206,17 +219,35 @@ export function ListaGestion({ titulo, filas, operarios, centros, ordenable, hoy
                         ))}
                       </select>
                     ) : (
-                      "—"
+                      <div className="leading-tight">
+                        <div className={f.proveedor ? "" : "text-foreground-muted"}>{f.proveedor ?? "Sin asignar"}</div>
+                        {estado === "afuera" && <div className="text-xs text-accent-hover">Enviado</div>}
+                      </div>
                     )}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap">
+                  <td className="px-2 py-2">
                     <span className={`badge-estado ${ESTADO[estado].clase}`}>
                       {estado === "para_mandar" && f.proveedor ? `Para mandar a ${f.proveedor}` : ESTADO[estado].label}
                     </span>
-                    {estado === "afuera" && (f.proveedor || f.vuelta) && (
-                      <div className="text-xs text-foreground-muted mt-0.5">{[f.proveedor, f.vuelta && `vuelve el ${fechaCorta(f.vuelta, hoy)}`].filter(Boolean).join(" · ")}</div>
-                    )}
+                    {estado === "afuera" && f.vuelta && <div className="text-xs text-foreground-muted mt-0.5">vuelve el {fechaCorta(f.vuelta, hoy)}</div>}
                     {f.motivo && estado === "trabada" && <div className="text-xs text-rojo-fg mt-0.5">{f.motivo}</div>}
+                    {/* Mejoras 22/11: lo que salió mal se decide también acá, en el centro donde quedó trabado. */}
+                    {f.desvioId && (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        <form action={decidirDesvioAction}>
+                          <input type="hidden" name="id" value={f.desvioId} />
+                          <input type="hidden" name="decision" value="reprocesar" />
+                          <button className="btn btn-sm">Reprocesar</button>
+                        </form>
+                        <form action={decidirDesvioAction}>
+                          <input type="hidden" name="id" value={f.desvioId} />
+                          <input type="hidden" name="decision" value="scrap" />
+                          <ConfirmarBoton mensaje={`¿Mandar ${f.pieza} a scrap y rehacerla desde el paso 1? Se crea una pieza nueva en la misma orden y, si hace falta, pide material a Compras.`} className="btn-secundario btn-sm">
+                            Scrap y rehacer
+                          </ConfirmarBoton>
+                        </form>
+                      </div>
+                    )}
                   </td>
                 </tr>
               );
