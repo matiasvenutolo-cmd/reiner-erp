@@ -300,7 +300,9 @@ export async function construirPlan(simular?: Simulacion): Promise<ContextoPlan>
     exigirPlano: params.exigirPlano,
     entradaAutomatica: params.entradaAutomatica,
     asignadasAntes: new Set(asignadasAntes.map((a) => `${a.otPiezaId}::${a.operacionId}`)),
-    horasOperarioDia: 8 * 0.85,
+    // Mejoras 22/11: las horas productivas de una persona salen de la capacidad de los centros (Ingeniería →
+    // Centros y procesos): horas por día × eficiencia (8 h × 85 % = 6,8 h). Ya no es un número fijo en el código.
+    horasOperarioDia: centros.length ? Math.max(...centros.map((c) => c.horasDia * c.eficiencia)) : 8 * 0.85,
     // "Salió mal" (prueba 19/11) muestra el detalle: en qué paso, cuántas rechazadas y por qué.
     bloqueos: new Map(bloqueos.map((b) => [`${b.otPiezaId}::${b.operacionId}`, (b.motivo === "salio_mal" ? b.texto : null) ?? MOTIVO_BLOQUEO[b.motivo] ?? b.texto ?? "No se puede hacer"])),
   };

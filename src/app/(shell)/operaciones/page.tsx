@@ -6,12 +6,13 @@ import { DestinoOperacionSelect } from "@/components/DestinoOperacionSelect";
 import { getUsuarioActual } from "@/lib/session";
 import { puedeEditarMaestros } from "@/lib/permisos";
 import { Pestanas } from "@/components/ui/Pestanas";
+import { PestanasMaestros } from "@/components/ui/PestanasSecciones";
 import { TiemposPorProceso, Capacidad } from "./Vistas";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Administración → Operaciones y centros. Separa lo que una pieza tiene que
+ * Ingeniería → Centros y procesos (mejoras 22/11: antes en Admin → Operaciones y centros). Separa lo que una pieza tiene que
  * hacer (tipos de operación) de dónde se hace (centros de trabajo), con el
  * destino por defecto editable — sin tocar código si cambian una operación
  * de máquina o compran una nueva. Cada pieza puede además usar otro centro
@@ -27,15 +28,16 @@ export default async function OperacionesPage({ searchParams }: { searchParams: 
   return (
     <div className="max-w-5xl space-y-8">
       <PageHeader
-        titulo="Operaciones y centros"
-        descripcion="Las operaciones son lo que cada pieza tiene que hacer; los centros, dónde se hace. Acá se define dónde se hace cada operación, cuánto tarda por defecto y cuántas horas produce cada centro."
+        titulo="Centros y procesos"
+        descripcion="Dónde se hace cada proceso, cuántas horas produce cada centro y los valores por defecto que usa un paso que no tiene los suyos en la grilla."
       >
+        <PestanasMaestros actual="/operaciones" />
         <Pestanas
           actual={vista === "tiempos" ? "/operaciones?vista=tiempos" : vista === "capacidad" ? "/operaciones?vista=capacidad" : "/operaciones"}
           items={[
-            { href: "/operaciones", label: "Centros y operaciones" },
-            { href: "/operaciones?vista=tiempos", label: "Tiempos por proceso" },
+            { href: "/operaciones", label: "Centros y dónde se hace cada proceso" },
             { href: "/operaciones?vista=capacidad", label: "Capacidad" },
+            { href: "/operaciones?vista=tiempos", label: "Valores por defecto" },
           ]}
         />
       </PageHeader>

@@ -411,9 +411,6 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
               ))}
             </ul>
           )}
-          <Link href="/pedir" className="text-sm text-accent hover:underline inline-block mt-2">
-            Pedir esta semana →
-          </Link>
         </section>
 
         <div className="flex flex-wrap gap-2 items-start">
@@ -608,8 +605,8 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
         <section className="tarjeta p-4">
           <div className="flex items-baseline justify-between">
             <h2 className="font-semibold">Compras sin pedir ({comprasP.length})</h2>
-            <Link href="/pedir" className="text-sm text-accent hover:underline">
-              {comprasP.length > 3 ? `Ver las ${comprasP.length} en Pedir esta semana →` : "Pedir esta semana →"}
+            <Link href="/compras" className="text-sm text-accent hover:underline">
+              Ir a Compras →
             </Link>
           </div>
           <ul className="text-sm mt-2 divide-y divide-border max-h-72 overflow-y-auto">

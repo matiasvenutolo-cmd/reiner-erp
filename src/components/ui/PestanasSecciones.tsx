@@ -4,19 +4,6 @@ import { Pestanas } from "./Pestanas";
 
 /** Vistas de cada sección del menú (Fase 3.2): una sola entrada por área y las vistas relacionadas como pestañas. */
 
-export function PestanasPlanificacion({ actual }: { actual: string }) {
-  return (
-    <Pestanas
-      actual={actual}
-      items={[
-        { href: "/planificacion", label: "Plan de la semana" },
-        { href: "/centros-trabajo", label: "Colas por centro" },
-        { href: "/planificacion/manual", label: "Asignar a mano" },
-      ]}
-    />
-  );
-}
-
 /** Pestañas de Stock con el número de ítems de cada una (§2.6). */
 /**
  * Stock (tanda 2, 05/11): materia prima (lo comprado para fabricar), insumos (piezas comerciales y consumibles,
@@ -82,6 +69,7 @@ export function PestanasMaestros({ actual }: { actual: string }) {
       items={[
         { href: "/maestros", label: "Piezas y hojas de ruta" },
         { href: "/maestros/tiempos", label: "Grilla de tiempos" },
+        { href: "/operaciones", label: "Centros y procesos" },
       ]}
     />
   );

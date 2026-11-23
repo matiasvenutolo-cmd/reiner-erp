@@ -322,7 +322,7 @@ function cargaPorDia(
       id: `sin:${c}`,
       operarioId: "",
       tareas: internas.filter((f) => !f.operarioId && f.centroId === c && !simuladoPor.has(f.clave)),
-      horas: (i: number) => (esHabil(horizonte[i], cal) ? (entrada.horasOperarioDia ?? 6.8) : 0) * (i === 0 ? queda : 1),
+      horas: (i: number) => (esHabil(horizonte[i], cal) ? horasProductivas(entrada, [c]) : 0) * (i === 0 ? queda : 1),
     })),
   ];
 
@@ -404,7 +404,16 @@ function siguienteDia(f: string): string {
 function horasDelDia(operarioId: string, fecha: string, entrada: Awaited<ReturnType<typeof getPlan>>["entrada"]): number {
   if (!esHabil(fecha, entrada.calendario)) return 0;
   if (entrada.ausencias.get(operarioId)?.has(fecha)) return 0;
-  return entrada.horasOperarioDia ?? 6.8;
+  return horasProductivas(entrada, entrada.centros.filter((c) => c.operarios.some((o) => o.id === operarioId)).map((c) => c.id));
+}
+
+/**
+ * Mejoras 22/11: horas productivas por día según la capacidad cargada en Ingeniería → Centros y procesos
+ * (horas por día × eficiencia de los centros donde trabaja). Sin centros, el valor general del plan.
+ */
+function horasProductivas(entrada: Awaited<ReturnType<typeof getPlan>>["entrada"], centroIds: string[]): number {
+  const caps = entrada.centros.filter((c) => centroIds.includes(c.id)).map((c) => c.horasDia * c.eficiencia);
+  return caps.length ? Math.max(...caps) : (entrada.horasOperarioDia ?? 6.8);
 }
 
 function cargaPorPersona(operarios: { id: string; nombre: string; centros: string[] }[], filas: FilaGestion[], entrada: Awaited<ReturnType<typeof getPlan>>["entrada"]): CargaOperario[] {

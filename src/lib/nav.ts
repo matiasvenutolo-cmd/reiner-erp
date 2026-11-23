@@ -19,7 +19,7 @@ export const HOME_POR_ROL: Record<Usuario["rol"], string> = {
 export const AREAS_DEL_ROL: Record<Usuario["rol"], GrupoNav[]> = {
   operario: [],
   taller: ["produccion"],
-  ingenieria: ["ingenieria", "admin"],
+  ingenieria: ["produccion", "admin"],
   direccion: ["produccion"],
   compras: ["stock", "produccion"],
 };
@@ -79,16 +79,14 @@ const NAV_ITEMS: NavEntry[] = [
   { href: "/proyectos", label: "Órdenes de trabajo", roles: STAFF, grupo: "produccion", ayuda: "Crear órdenes, ver qué hace falta y seguir cada orden" },
   { href: "/ot", label: "Órdenes de trabajo", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/proyectos" },
   { href: "/gestion", label: "Gestión", roles: STAFF, grupo: "produccion", ayuda: "Asignar tareas a operarios y ordenar prioridades" },
-  // La asignación pasó a Gestión; la grilla por días queda oculta (la carga se mira en Indicadores).
-  { href: "/planificacion", label: "Plan de la semana", roles: STAFF, grupo: "produccion", oculta: true, ayuda: "Qué se hace en cada centro esta semana" },
-  { href: "/centros-trabajo", label: "Colas por centro", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/planificacion" },
   // Tanda 2 (05/11): Tercerizados son pasos de la hoja de ruta que salen y vuelven: va en Producción. Compras sigue entrando.
   { href: "/tercerizados", label: "Tercerizados", roles: [...STAFF, ...COMPRAS], grupo: "produccion", ayuda: "Mandar a servicios de terceros y registrar la vuelta" },
+  // Mejoras 22/11: Ingeniería va dentro de Producción. Adentro: piezas y hojas de ruta, grilla de tiempos (con el
+  // importar desde Excel) y centros y procesos (capacidad, dónde se hace cada proceso y sus valores por defecto).
+  { href: "/maestros", label: "Ingeniería", roles: STAFF, grupo: "produccion", ayuda: "Piezas y hojas de ruta, grilla de tiempos, centros y procesos" },
+  { href: "/maestros/importar", label: "Importar desde Excel", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/maestros" },
+  { href: "/operaciones", label: "Centros y procesos", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/maestros" },
   { href: "/indicadores", label: "Indicadores", roles: STAFF, grupo: "produccion", ayuda: "Resumen, tiempos, paradas y rechazos. Sólo consulta" },
-  { href: "/llegamos", label: "¿Llegamos?", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/indicadores" },
-  { href: "/avance", label: "Avance de máquinas", roles: STAFF, grupo: "produccion", enMenu: false, dentroDe: "/indicadores" },
-  { href: "/inicio", label: "Hoy", roles: STAFF, grupo: "produccion", oculta: true, ayuda: "Qué hay que hacer hoy y qué está trabado" },
-  { href: "/taller/centro", label: "Pantalla de un centro", roles: [...STAFF, "operario"], grupo: "produccion", oculta: true, ayuda: "Para la tablet fija en una máquina" },
 
   // Mejoras 22/11 — Gestión de stocks: Stock (una entrada; materia prima, insumos, productos terminados y
   // movimientos son pestañas adentro), Compras y Proveedores.
@@ -99,23 +97,14 @@ const NAV_ITEMS: NavEntry[] = [
   // Prueba 1 (05/11): mientras dura la prueba, Julián (ingeniería) y Adrián (dirección) también entran a Compras.
   { href: "/compras", label: "Compras", roles: [...COMPRAS, "direccion", "ingenieria"], grupo: "stock", ayuda: "Cotizaciones, gastos y pagos" },
   { href: "/proveedores", label: "Proveedores", roles: [...STAFF, ...COMPRAS], grupo: "stock" },
-  { href: "/pedir", label: "Pedir esta semana", roles: [...STAFF, ...COMPRAS], grupo: "stock", oculta: true, ayuda: "Qué hay que pedir y a quién" },
 
   // Mejoras 22/11 — Ingeniería: una entrada; adentro, piezas y hojas de ruta y la grilla de tiempos (con el
   // importar desde Excel como botón de la grilla).
-  { href: "/maestros", label: "Ingeniería", roles: STAFF, grupo: "ingenieria", ayuda: "Piezas y hojas de ruta, y la grilla de tiempos" },
-  { href: "/maestros/importar", label: "Importar desde Excel", roles: STAFF, grupo: "ingenieria", enMenu: false, dentroDe: "/maestros" },
-  { href: "/liberacion", label: "Entrada al plan", roles: STAFF, grupo: "ingenieria", oculta: true, ayuda: "Piezas que esperan plano o revisión de ingeniería" },
 
-  { href: "/operaciones", label: "Operaciones y centros", roles: STAFF, grupo: "admin", ayuda: "Tiempos por proceso y capacidad" },
+
   { href: "/admin/calendario", label: "Calendario", roles: STAFF, grupo: "admin", ayuda: "Feriados, cierres y ausencias" },
   { href: "/usuarios", label: "Usuarios", roles: STAFF, grupo: "admin" },
-  { href: "/admin/secciones", label: "Mostrar u ocultar secciones", roles: STAFF, grupo: "admin", ayuda: "Qué secciones se ven en el menú, y las opciones del sistema" },
-  { href: "/admin/archivados", label: "Datos archivados", roles: STAFF, grupo: "admin", ayuda: "Máquinas y órdenes archivadas: no se ven ni se calculan, pero no se borran" },
-  { href: "/admin/configuracion", label: "Datos por completar", roles: STAFF, grupo: "admin", oculta: true, ayuda: "Datos que faltan cargar para que el plan sea confiable" },
-  { href: "/admin/montaje", label: "Secuencias de montaje", roles: STAFF, grupo: "admin", oculta: true },
-  { href: "/admin/completitud", label: "Completitud de datos", roles: STAFF, grupo: "admin", oculta: true },
-  { href: "/admin/demo", label: "Datos de demo", roles: STAFF, grupo: "admin", oculta: true },
+  { href: "/admin/secciones", label: "Configuración", roles: STAFF, grupo: "admin", ayuda: "Horario del taller y opciones del sistema" },
 
   { href: "/taller", label: "Mi próxima tarea", roles: ["operario"] },
 ];
