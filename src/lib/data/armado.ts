@@ -9,7 +9,8 @@
  */
 import { and, eq, desc } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { controlArmado, procedimiento, usuario, otConjunto, otMaquina, otPieza, stockPieza, reservaStock, movimientoStock, stockConjunto } from "@/lib/db/schema";
+import { controlArmado, procedimiento, usuario, otConjunto, otMaquina, otPieza, stockPieza, reservaStock, movimientoStock, stockConjunto, conjunto, proyectoEvento } from "@/lib/db/schema";
+import { getOtMaquinaDetalle } from "./ot";
 import type { Procedimiento } from "@/lib/db/schema";
 
 export async function getProcedimientos(): Promise<Procedimiento[]> {
@@ -61,7 +62,61 @@ export async function registrarControlArmado(input: RegistrarControlArmadoInput)
     observacion: input.observacion,
     revisadoPorId: input.usuarioId,
   });
-  if (input.resultado === "ok") await entrarConjuntoAlStock(input.otConjuntoId, input.usuarioId);
+  if (input.resultado !== "ok") return;
+  const [oc] = await db.select({ otMaquinaId: otConjunto.otMaquinaId, alcance: otMaquina.alcance }).from(otConjunto).innerJoin(otMaquina, eq(otMaquina.id, otConjunto.otMaquinaId)).where(eq(otConjunto.id, input.otConjuntoId));
+  // Fallas 26/11: en una orden de una pieza el cierre es un control de calidad final; no arma ningún conjunto.
+  if (oc?.alcance !== "pieza") await entrarConjuntoAlStock(input.otConjuntoId, input.usuarioId);
+  // Con todo controlado OK, la orden queda terminada.
+  if (oc) {
+    const cierre = await getCierreOrden(oc.otMaquinaId);
+    if (cierre.completo) {
+      await db.update(otMaquina).set({ estadoProyecto: "terminado", updatedAt: new Date() }).where(eq(otMaquina.id, oc.otMaquinaId));
+      await db.insert(proyectoEvento).values({ otMaquinaId: oc.otMaquinaId, tipo: "terminado", texto: "Orden terminada: cierre registrado (control final OK)", usuarioId: input.usuarioId });
+    }
+  }
+}
+
+export type CierreConjunto = { otConjuntoId: string; codigo: string; nombre: string; terminado: boolean; controles: ControlArmadoConDetalle[]; ok: ControlArmadoConDetalle | null };
+export type CierreOrden = {
+  /** Orden de una pieza: el cierre es un control de calidad final (no hay armado). */
+  esPieza: boolean;
+  /** Todas las piezas de la orden están terminadas: se puede hacer el cierre. */
+  listo: boolean;
+  /** Todos los conjuntos tienen su control final OK. */
+  completo: boolean;
+  conjuntos: CierreConjunto[];
+};
+
+/**
+ * Fallas 26/11 — cierre de la orden (checkout): cuando todas las piezas están terminadas, el jefe de planta registra
+ * el control final de cada conjunto (armado y funcionamiento) o, en una orden de una pieza, el control de calidad
+ * final. Queda quién lo hizo y cuándo.
+ */
+export async function getCierreOrden(otMaquinaId: string): Promise<CierreOrden> {
+  const d = await getOtMaquinaDetalle(otMaquinaId);
+  if (!d) return { esPieza: false, listo: false, completo: false, conjuntos: [] };
+  const nombres = new Map((await db.select({ id: conjunto.id, codigo: conjunto.codigo, nombre: conjunto.nombre }).from(conjunto)).map((c) => [c.id, c]));
+  const conjuntos = await Promise.all(
+    d.conjuntos.map(async (c) => {
+      const controles = await getControlesArmado(c.otConjunto.id);
+      const n = nombres.get(c.otConjunto.conjuntoId);
+      return {
+        otConjuntoId: c.otConjunto.id,
+        codigo: n?.codigo ?? c.otConjunto.codigo,
+        nombre: n?.nombre ?? "",
+        terminado: c.estadoConjunto === "terminada",
+        controles,
+        ok: controles[0]?.resultado === "ok" ? controles[0] : null,
+      };
+    }),
+  );
+  const conPiezas = conjuntos.filter((c) => d.conjuntos.find((x) => x.otConjunto.id === c.otConjuntoId)!.piezas.length > 0);
+  return {
+    esPieza: d.otMaquina.alcance === "pieza",
+    listo: conPiezas.length > 0 && conPiezas.every((c) => c.terminado),
+    completo: conPiezas.length > 0 && conPiezas.every((c) => c.ok),
+    conjuntos: conPiezas,
+  };
 }
 
 /**

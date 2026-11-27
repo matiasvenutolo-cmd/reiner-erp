@@ -10,6 +10,7 @@
  *   cola de su centro: "Ahora te toca" es la primera que esté habilitada.
  * - La carga de trabajo es sólo para ver: llena cada cola en orden con las horas de cada día según el calendario.
  */
+import { cache } from "react";
 import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { colaTarea, usuario, usuarioCentroTrabajo, operacion, proceso, centroTrabajo, proveedor, proveedorServicio, remito, remitoItem, parametro, avisoPlanta } from "@/lib/db/schema";
@@ -122,7 +123,10 @@ export type CargaPorDia = {
 
 export type OrdenEnCurso = { id: string; codigo: string; nombre: string; finEstimado: string; avancePct: number; tareas: number; porEnviar: number };
 
-export async function getGestion() {
+/** Una sola vez por pedido (la tablet la usa para la tarea actual y para las próximas). */
+export const getGestion = cache(getGestionSinCache);
+
+async function getGestionSinCache() {
   const plan = await getPlan();
   const { resultado: r, entrada, proyectosInfo } = plan;
   // Lo que todavía no entró al plan (paso "futura") no se asigna: espera el envío a producción, arriba.
@@ -564,4 +568,48 @@ export async function getColaDe(operarioId: string) {
     const ub = urgencia(b);
     return (a.posicion ?? 1e9) - (b.posicion ?? 1e9) || ua.holgura - ub.holgura || Number(ub.alta) - Number(ua.alta);
   });
+}
+
+/**
+ * Fallas 26/11 — lo que ve el operario en la tablet: la cola de Gestión de sus centros. Las tareas que tiene
+ * asignadas y las que todavía no tienen a nadie (si el centro tiene varios operarios, la toma el primero que la
+ * empieza); las asignadas a otro no. Dentro de cada centro, el orden de la cola; entre centros distintos, el orden
+ * en que el calendario de Gestión las ubica (lo que se puede empezar antes, primero).
+ */
+export async function getTareasDelOperario(usuarioId: string): Promise<FilaGestion[]> {
+  const { filas, operarios, cargaDia } = await getGestion();
+  const yo = operarios.find((o) => o.id === usuarioId);
+  const misCentros = new Set(yo?.centros ?? []);
+  const mias = filas.filter(
+    (f) => f.tipo === "interno" && (f.operarioId === usuarioId || (!f.operarioId && f.centroId != null && (misCentros.size === 0 || misCentros.has(f.centroId)))),
+  );
+  // Cuándo arranca cada una en el calendario: el primer día (y la parte del día) en que aparece.
+  const arranque = new Map<string, string>();
+  for (const t of cargaDia.tramos) {
+    const k = `${t.dia}#${t.desde.toFixed(4)}`;
+    const ya = arranque.get(t.clave);
+    if (!ya || k < ya) arranque.set(t.clave, k);
+  }
+  const lugar = new Map(filas.map((f, i) => [f.clave, i]));
+  // Mismo centro: el orden de la cola, siempre. Centros distintos: el que arranca antes en el calendario.
+  const porCentro = new Map<string, FilaGestion[]>();
+  for (const f of mias) porCentro.set(f.centroId ?? "", [...(porCentro.get(f.centroId ?? "") ?? []), f]);
+  const salida: FilaGestion[] = [];
+  const colas = [...porCentro.values()].map((c) => c.sort((a, b) => lugar.get(a.clave)! - lugar.get(b.clave)!));
+  const clave = (f: FilaGestion) => arranque.get(f.clave) ?? `~${String(lugar.get(f.clave)).padStart(6, "0")}`;
+  while (colas.some((c) => c.length)) {
+    const siguiente = colas.filter((c) => c.length).sort((a, b) => clave(a[0]).localeCompare(clave(b[0])) || lugar.get(a[0].clave)! - lugar.get(b[0].clave)!)[0];
+    salida.push(siguiente.shift()!);
+  }
+  return salida;
+}
+
+/** Fallas 26/11: el operario que empieza una tarea sin asignar se queda con ella. */
+export async function tomarTareaSiEstaLibre(otPiezaId: string, operacionId: string, operarioId: string): Promise<void> {
+  const [actual] = await db.select().from(colaTarea).where(and(eq(colaTarea.otPiezaId, otPiezaId), eq(colaTarea.operacionId, operacionId)));
+  if (actual?.operarioId) return;
+  await db
+    .insert(colaTarea)
+    .values({ otPiezaId, operacionId, operarioId, asignadoPorId: operarioId })
+    .onConflictDoUpdate({ target: [colaTarea.otPiezaId, colaTarea.operacionId], set: { operarioId, updatedAt: new Date() } });
 }

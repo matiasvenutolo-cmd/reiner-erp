@@ -804,7 +804,8 @@ export function planificar(e: EntradaMotor): ResultadoMotor {
       diferenciaDias,
       horasTotales,
       horasHechas,
-      avancePct: horasTotales ? Math.round((horasHechas / horasTotales) * 100) : 0,
+      // Fallas 26/11: con algún paso pendiente (aunque sea un tercerizado, que no suma horas) no marca 100 %.
+      avancePct: Math.min(tareasP.some((t) => t.estado !== "terminada") ? 99 : 100, horasTotales ? Math.round((horasHechas / horasTotales) * 100) : 0),
       pctEstimado: internas.length ? Math.round((internas.filter((t) => t.estimado).length / internas.length) * 100) : 0,
       conjuntos,
       piezasCubiertasConStock: p.piezasCubiertasConStock,

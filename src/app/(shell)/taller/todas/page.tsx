@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUsuarioActual } from "@/lib/session";
-import { getOperacionesAbiertas, getHabilitacionOperario } from "@/lib/data/ejecucion";
-import { getCandidatasTaller, pasoHabilitadoParaOperario } from "@/lib/data/produccion";
+import { getOperacionesAbiertas } from "@/lib/data/ejecucion";
+import { getTareasDelOperario, type FilaGestion } from "@/lib/data/gestion";
 
 export const dynamic = "force-dynamic";
 
@@ -14,17 +14,17 @@ export default async function TallerPage() {
   const pausadas = abiertas.filter((a) => a.pausada);
   const otPiezaIdsPausadas = new Set(pausadas.map((p) => p.otPiezaId));
 
-  const [candidatas, { centroIds, asignadasHoy }] = await Promise.all([getCandidatasTaller(), getHabilitacionOperario(usuario.id)]);
-  const asignadaHoy = (c: (typeof candidatas)[number]) =>
-    asignadasHoy.some((a) => a.otPiezaId === c.otPieza.id && (a.operacionId === null || a.operacionId === c.pasoActual.id));
-
-  // Misma regla que la ficha y el inicio en el servidor (pasoHabilitadoParaOperario):
-  // lo asignado para hoy, o un paso interno de alguno de sus centros. Lo que espera
-  // una compra o está afuera en un tercerizado no es trabajo de taller.
-  const pendientes = candidatas
-    .filter((c) => !otPiezaIdsPausadas.has(c.otPieza.id))
-    .filter((c) => pasoHabilitadoParaOperario(c.pasoActual, c.otPieza.id, centroIds, asignadasHoy))
-    .sort((a, b) => Number(asignadaHoy(b)) - Number(asignadaHoy(a)));
+  // Fallas 26/11: la misma lista que la tablet (la cola de Gestión de sus centros, en ese orden). Así no aparecen
+  // piezas dadas de baja (scrap) ni pasos de otros centros o tercerizados.
+  const pendientes = (await getTareasDelOperario(usuario.id)).filter((f) => !otPiezaIdsPausadas.has(f.otPiezaId));
+  const ESTADO: Partial<Record<FilaGestion["estado"], { texto: string; clase: string }>> = {
+    asignada: { texto: "Lista para producir", clase: "bg-accent text-accent-foreground" },
+    sin_asignar: { texto: "Lista · sin asignar", clase: "bg-accent-soft text-accent-hover" },
+    en_curso: { texto: "Produciendo", clase: "bg-verde text-white" },
+    espera: { texto: "Espera paso anterior", clase: "bg-gris-bg text-gris-fg" },
+    trabada: { texto: "Trabada", clase: "bg-rojo text-white" },
+  };
+  const sePuede = (f: FilaGestion) => f.estado === "asignada" || f.estado === "sin_asignar" || f.estado === "en_curso";
 
   return (
     <div className="max-w-lg mx-auto space-y-4">
@@ -33,7 +33,7 @@ export default async function TallerPage() {
           ← Mi próxima tarea
         </Link>
         <h1 className="text-xl font-semibold mt-1">Piezas de mis centros</h1>
-        <p className="text-sm text-foreground-muted mt-1">Todo lo que se puede hacer en tus centros, aunque no esté en tu plan de hoy.</p>
+        <p className="text-sm text-foreground-muted mt-1">La cola de tus centros, en el orden de Gestión: lo tuyo y lo que todavía no tiene operario.</p>
       </div>
 
       {pausadas.length > 0 && (
@@ -63,30 +63,37 @@ export default async function TallerPage() {
       ) : (
         <div className="space-y-2">
           {pausadas.length > 0 && <h2 className="text-sm font-semibold pt-2">Para empezar</h2>}
-          {pendientes.map((c) => (
-            <Link
-              key={c.otPieza.id}
-              href={`/taller/${c.otPieza.id}`}
-              className="block bg-surface border border-border rounded-xl p-4 hover:border-accent active:scale-[0.99] transition"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-xs text-foreground-muted">{c.otPieza.codigo}</span>
-                <div className="flex items-center gap-1.5">
-                  {asignadaHoy(c) && <span className="badge-estado badge-terminada">Asignado hoy</span>}
-                  <span className={`badge-estado ${c.estado === "en_curso" ? "badge-en_curso" : "badge-pendiente"}`}>
-                    {c.estado === "en_curso" ? "En curso" : `${c.pasos} operaciones`}
-                  </span>
+          {pendientes.map((f) => {
+            const e = ESTADO[f.estado] ?? { texto: f.estado, clase: "bg-gris-bg text-gris-fg" };
+            const cuerpo = (
+              <>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-xs text-foreground-muted">{f.codigo}</span>
+                  <span className={`badge-estado ${e.clase}`}>{e.texto}</span>
                 </div>
+                <div className="font-semibold mt-1">
+                  {f.pieza.charAt(0).toUpperCase() + f.pieza.slice(1)} × {f.cantidad}
+                </div>
+                <div className="text-sm text-foreground-muted">
+                  {f.paso} · paso {f.posicion} de {f.totalPasos}
+                </div>
+                {f.estado === "trabada" && f.motivo && <div className="text-xs text-rojo-fg mt-0.5">{f.motivo}</div>}
+                <div className="text-xs text-foreground-muted">{f.orden}</div>
+              </>
+            );
+            return sePuede(f) ? (
+              <Link key={f.clave} href={`/taller/${f.otPiezaId}`} className="block bg-surface border border-border rounded-xl p-4 hover:border-accent active:scale-[0.99] transition">
+                {cuerpo}
+              </Link>
+            ) : (
+              <div key={f.clave} className="bg-surface-muted border border-border rounded-xl p-4 text-foreground-muted">
+                {cuerpo}
               </div>
-              <div className="font-semibold mt-1">{c.piezaNombre}</div>
-              <div className="text-sm text-foreground-muted">
-                {c.pasoActual.nombre} · {c.cantidadActual} pieza{c.cantidadActual === 1 ? "" : "s"} a procesar
-              </div>
-              <div className="text-xs text-foreground-muted">{c.conjuntoNombre}</div>
-            </Link>
-          ))}
+            );
+          })}
         </div>
       )}
+
     </div>
   );
 }

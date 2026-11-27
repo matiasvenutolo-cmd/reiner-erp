@@ -2,7 +2,7 @@
  * v2 — Vista del operario (mejoras de usabilidad §3): su cola del día y todo lo
  * que necesita saber de cada tarea para no tener que preguntar.
  */
-import { getColaDe, getGestion } from "./gestion";
+import { getGestion, getTareasDelOperario } from "./gestion";
 import { getClavesEnReproceso } from "./desvios";
 import { and, asc, desc, eq, gte, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
@@ -57,17 +57,15 @@ export async function getColaOperario(usuarioId: string): Promise<ColaOperario> 
       .select({ otPiezaId: registroOperacion.otPiezaId, operacionId: registroOperacion.operacionId })
       .from(registroOperacion)
       .where(and(eq(registroOperacion.usuarioId, usuarioId), eq(registroOperacion.tipo, "ejecucion"), isNotNull(registroOperacion.fin), gte(registroOperacion.fin, desdeHoy))),
-    getColaDe(usuarioId),
+    getTareasDelOperario(usuarioId),
   ]);
   const porClave = new Map(plan.resultado.tareas.map((t) => [t.clave, t]));
-  // Gestión (reorganización 30/10 §3): si el jefe le armó la cola, la tablet muestra exactamente esa cola, en ese
-  // orden. Las que esperan el paso anterior aparecen recién cuando se habilitan.
-  // Tanda 2 (05/11): la cola de Gestión es lo único que ve el operario, aunque esté vacía. Antes, sin cola, la
-  // tablet caía en el reparto automático del plan y mostraba pasos que nadie le había asignado.
+  // Fallas 26/11: la tablet muestra la cola de Gestión de sus centros (lo suyo y lo que no tiene operario), en el
+  // mismo orden. Las que esperan el paso anterior aparecen recién cuando se habilitan.
   const conCola = true;
   const confirmada = cola.length > 0 || !!semana || asignadas.length > 0;
   let tareas: Tarea[] = cola
-    .map((c) => porClave.get(`${c.otPiezaId}::${c.operacionId}`))
+    .map((f) => porClave.get(f.clave))
     .filter((t): t is Tarea => !!t && ["lista", "en_curso", "pausada"].includes(t.estado));
   tareas = tareas.filter((t) => t.estado !== "terminada");
   const ordenAdelanto = new Map<string, number>();
@@ -116,11 +114,11 @@ export type TareaProxima = {
  * un día anterior y todavía no se empezó.
  */
 export async function getProximasDe(usuarioId: string): Promise<TareaProxima[]> {
-  const [gestion, plan, cola] = await Promise.all([getGestion(), getPlan(), getColaDe(usuarioId)]);
+  const [gestion, plan, cola] = await Promise.all([getGestion(), getPlan(), getTareasDelOperario(usuarioId)]);
   const porClave = new Map(plan.resultado.tareas.map((t) => [t.clave, t]));
   const arranque = new Map<string, string>();
-  for (const t of gestion.cargaDia.tramos) if (t.operarioId === usuarioId && !arranque.has(t.clave)) arranque.set(t.clave, t.dia);
-  const tareas = cola.map((c) => porClave.get(`${c.otPiezaId}::${c.operacionId}`)).filter((t): t is Tarea => !!t && t.estado !== "terminada");
+  for (const t of gestion.cargaDia.tramos) if (!arranque.has(t.clave)) arranque.set(t.clave, t.dia);
+  const tareas = cola.map((f) => porClave.get(f.clave)).filter((t): t is Tarea => !!t && t.estado !== "terminada");
   if (!tareas.length) return [];
   const otPiezaIds = [...new Set(tareas.map((t) => t.otPiezaId))];
   const [cerrados, enviadas] = await Promise.all([
@@ -270,7 +268,7 @@ export async function getTareaDePieza(otPiezaId: string, operacionId?: string): 
     .from(otPieza)
     .innerJoin(pieza, eq(pieza.id, otPieza.piezaId))
     .where(eq(otPieza.id, otPiezaId));
-  if (!op) return null;
+  if (!op || op.op.cantidadAFabricar <= 0) return null;
   const ruta = await db
     .select({ o: operacion, nombre: proceso.nombre, tipo: proceso.tipo, centro: proceso.centroTrabajoId })
     .from(operacion)

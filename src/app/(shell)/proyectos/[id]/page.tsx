@@ -18,6 +18,7 @@ import { controlaMateriaPrima } from "@/lib/data/materia-prima";
 import { getProveedoresAfuera, getPasosInformativos } from "@/lib/data/orden-detalle";
 import { tildarPasoInformativoAction, eliminarOrdenAction } from "@/app/actions/orden";
 import { getUsuarioActual } from "@/lib/session";
+import { CierreOrden } from "@/components/orden/CierreOrden";
 import { Etiqueta } from "@/components/ui/Etiqueta";
 import { capitalizar, diasHabiles, numero, plural } from "@/lib/formato";
 import { activarProyectoAction, pausarProyectoAction } from "@/app/actions/v2";
@@ -147,7 +148,7 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
     <div className="space-y-6">
       {header}
       <Suspense fallback={<EsqueletoBloques />}>
-        <CuerpoOrden id={id} sp={sp} fila={fila} eventos={eventos} />
+        <CuerpoOrden id={id} sp={sp} fila={fila} eventos={eventos} puedeCerrar={yo.rol === "taller"} />
       </Suspense>
     </div>
   );
@@ -156,13 +157,29 @@ export default async function ProyectoPage({ params, searchParams }: { params: P
 type FilaOrden = { m: typeof otMaquina.$inferSelect; config: string | null; cliente: string | null };
 type Evento = { e: typeof proyectoEvento.$inferSelect; nombre: string | null };
 
-async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; fila: FilaOrden; eventos: Evento[] }) {
+async function CuerpoOrden({ id, sp, fila, eventos, puedeCerrar }: { id: string; sp: Params; fila: FilaOrden; eventos: Evento[]; puedeCerrar: boolean }) {
   const { ok, error, temprana, entrega: entregaPedida, prioridad: prioridadPedida, causas: causasTexto, quitar } = sp;
   const plan = await getPlan();
   const m = fila.m;
   const p = plan.resultado.proyectos.find((x) => x.id === id);
   const cal = plan.entrada.calendario;
   const hoy = plan.entrada.hoy;
+
+  // ── Terminada (fallas 26/11): con el cierre registrado sale del plan; se ve el cierre y el detalle ──
+  if (m.estadoProyecto === "terminado" || m.estadoProyecto === "entregado") {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        {ok && <Aviso tipo="ok">{ok}</Aviso>}
+        <Aviso tipo="ok">
+          Orden {m.estadoProyecto === "entregado" ? "entregada" : "terminada"}.{" "}
+          <Link href={`/ot/${id}`} className="underline">
+            Ver el detalle de la orden
+          </Link>
+        </Aviso>
+        <CierreOrden otMaquinaId={id} puedeRegistrar={puedeCerrar} />
+      </div>
+    );
+  }
 
   // ── Borrador: activar ──────────────────────────────────────────────────
   if (!p) {
@@ -352,6 +369,7 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
             </div>
           )}
         </section>
+        <CierreOrden otMaquinaId={id} puedeRegistrar={puedeCerrar} />
 
         <section className="tarjeta p-4">
           <h2 className="font-semibold mb-2">{piezasOrden.length === 1 ? "La pieza" : `Las piezas (${piezasOrden.length})`}</h2>
@@ -531,6 +549,7 @@ async function CuerpoOrden({ id, sp, fila, eventos }: { id: string; sp: Params; 
           {p.piezasCubiertasConStock > 0 && <span>{plural(p.piezasCubiertasConStock, "pieza")} cubierta{p.piezasCubiertasConStock === 1 ? "" : "s"} con stock</span>}
         </div>
       </section>
+      <CierreOrden otMaquinaId={id} puedeRegistrar={puedeCerrar} />
 
       {porEnviar > 0 && (
         <Aviso tipo="info">

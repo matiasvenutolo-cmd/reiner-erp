@@ -15,7 +15,7 @@
  * operario trabaja en otra.
  */
 import { ingresarPiezaTerminada } from "./stock";
-import { getColaDe } from "./gestion";
+import { getColaDe, tomarTareaSiEstaLibre } from "./gestion";
 import { eq, and, isNull, isNotNull, sql, desc, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { registroOperacion, parada, tipoParada, otPieza, tareaRevision, usuario, pieza, articuloStock, movimientoStock, tareaBloqueo, operacion, proceso } from "@/lib/db/schema";
@@ -212,6 +212,8 @@ export async function iniciarOperacion(
       piezasRechazadas: 0,
     })
     .returning();
+  // Fallas 26/11: si la tarea no tenía operario, queda para el que la empezó.
+  await tomarTareaSiEstaLibre(input.otPiezaId, input.operacionId, input.usuarioId);
   // Primera vez que alguien trabaja la pieza: es su fecha de inicio (la OT impresa la muestra).
   await db
     .update(otPieza)

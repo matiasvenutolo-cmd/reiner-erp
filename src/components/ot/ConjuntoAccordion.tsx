@@ -9,7 +9,6 @@ import { EstadoBadge } from "@/components/EstadoBadge";
 import { ProgresoOperaciones } from "@/components/ProgresoOperaciones";
 import { CantidadAFabricarForm } from "@/components/CantidadAFabricarForm";
 import { agregarPiezaSueltaAction } from "@/app/actions/ot";
-import { registrarControlArmadoAction } from "@/app/actions/armado";
 
 export type FilaPieza = {
   otPieza: OtPieza;
@@ -53,7 +52,7 @@ export function ConjuntoAccordion({
   ocultarTerminadas: boolean;
   lanzada: boolean;
 }) {
-  const { otConjuntoId, otConjuntoCodigo, conjuntoNombre, estadoConjunto, filas, piezasParaAgregar, controlesArmado, procedimientos } =
+  const { otConjuntoId, otConjuntoCodigo, conjuntoNombre, estadoConjunto, filas, piezasParaAgregar, controlesArmado } =
     conjunto;
   // Reunión 20/11: terminado y sin armado OK, se abre solo para que se vea "Control de armado".
   const [abierto, setAbierto] = useState(estadoConjunto === "en_curso" || (estadoConjunto === "terminada" && !controlesArmado.some((c) => c.resultado === "ok")));
@@ -199,29 +198,12 @@ export function ConjuntoAccordion({
                   ))}
                 </ul>
               )}
-              <form action={registrarControlArmadoAction} className="flex flex-wrap items-center gap-1.5">
-                <input type="hidden" name="otMaquinaId" value={otMaquinaId} />
-                <input type="hidden" name="otConjuntoId" value={otConjuntoId} />
-                <select name="procedimientoId" className="input text-xs py-1" defaultValue="">
-                  <option value="">Sin procedimiento</option>
-                  {procedimientos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.codigo} — {p.titulo}
-                    </option>
-                  ))}
-                </select>
-                <select name="resultado" required className="input text-xs py-1" defaultValue="">
-                  <option value="" disabled>
-                    Resultado…
-                  </option>
-                  <option value="ok">Funciona OK</option>
-                  <option value="no_ok">NO OK</option>
-                </select>
-                <input name="observacion" placeholder="Observación" className="input text-xs py-1 flex-1 min-w-[8rem]" />
-                <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
-                  Registrar control
-                </button>
-              </form>
+              {/* Fallas 26/11: el control final se registra en la orden → Cierre de la orden (sólo el jefe de planta). */}
+              {!controlesArmado.some((c) => c.resultado === "ok") && (
+                <Link href={`/proyectos/${otMaquinaId}`} className="text-sm text-accent hover:underline">
+                  Registrar el control final en Cierre de la orden →
+                </Link>
+              )}
             </div>
           )}
         </>
